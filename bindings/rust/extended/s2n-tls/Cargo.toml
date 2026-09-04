@@ -30,9 +30,9 @@ libc = "0.2.121"
 s2n-tls-sys = { version = "=0.3.40", path = "../s2n-tls-sys", features = ["internal"] }
 pin-project-lite = "0.2"
 hex = "0.4"
-bytes = "1.11.1"
 
 [dev-dependencies]
+bytes = "1.11.1"
 futures-test = "0.3"
 openssl = "0.10"
 openssl-sys = "0.9"

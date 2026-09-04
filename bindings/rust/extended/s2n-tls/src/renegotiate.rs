@@ -432,12 +432,15 @@ mod tests {
         },
         config::ConnectionInitializer,
         error::{ErrorSource, ErrorType},
-        testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair, TestPairIO},
+        testing::{
+            test::{openssl_handshake, ServerTestStream},
+            CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair,
+        },
     };
     use foreign_types::ForeignTypeRef;
     use futures_test::task::new_count_waker;
     use openssl::ssl::{
-        ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion,
+        Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion,
     };
     use std::{
         error::Error,
@@ -624,7 +627,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Ignore)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Expect receiving the hello request to be successful
         pair.send_renegotiate_request()
@@ -643,7 +646,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Expect receiving the hello request to be successful
         pair.send_renegotiate_request()
@@ -667,7 +670,7 @@ mod tests {
         builder.set_renegotiate_callback(ErrorRenegotiateCallback {})?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         // send_renegotiate_request() returns Err if the client's renegotiate
         // callback errors when processing the HelloRequest during the drain.
         let error = pair.send_renegotiate_request().unwrap_err();
@@ -682,7 +685,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Reject)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         pair.send_renegotiate_request()
             .expect("Server sends request");
         // s2n-tls doesn't fail when it rejects renegotiation, it just sends
@@ -701,7 +704,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         pair.send_and_receive()
             .expect("Application data before renegotiate");
         pair.send_renegotiate_request()
@@ -719,7 +722,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         for _ in 0..10 {
             pair.send_and_receive()
@@ -741,7 +744,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Server sends app data immediately after hello request
         let server_data = b"server_data";
@@ -769,7 +772,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Server sends hello request, but initially no app data
         pair.send_renegotiate_request()
@@ -805,7 +808,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Server sends hello request, but initially no app data
         pair.send_renegotiate_request()
@@ -827,7 +830,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         pair.send_renegotiate_request()
             .expect("Server sends request");
@@ -873,7 +876,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // The client needs to initially block on send.
         let client_data = b"client data";
@@ -899,7 +902,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Read the hello request and start renegotiation
         pair.send_renegotiate_request()
@@ -984,7 +987,7 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         pair.client.set_waker(Some(&waker))?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         assert_eq!(wake_count, count_per_handshake);
         pair.send_renegotiate_request()
             .expect("Server sends request");
@@ -1048,7 +1051,7 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         pair.client.set_waker(Some(&waker))?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         assert_eq!(wake_count, count_per_handshake);
         pair.send_renegotiate_request()
             .expect("Server sends request");
