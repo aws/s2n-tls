@@ -22,7 +22,7 @@ byteorder = "1.5.0"
 foreign-types-shared = "0.1.1"
 
 brass-aphid-wire-decryption = "0.0.2"
-brass-aphid-wire-messages = "0.0.2"
+brass-aphid-wire-messages = "0.0.5"
 tracing = "0.1.43"
 
 # BoringSSL is provided by the `btls` crate, a maintained fork of
