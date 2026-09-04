@@ -124,7 +124,7 @@ mod tests {
     use super::*;
     use crate::{connection::Connection, security, testing::*};
     use core::task::Poll;
-    use futures_test::task::new_count_waker;
+    use futures_test::task::{new_count_waker, noop_waker};
 
     struct ValidationContext {
         accept: bool,
@@ -156,6 +156,65 @@ mod tests {
             };
 
             let mut pair = TestPair::from_config(&config);
+            let context = ValidationContext { accept };
+            pair.client.set_application_context(context);
+
+            assert_eq!(counter.count(), 0);
+
+            if accept {
+                pair.handshake()?;
+            } else {
+                let s2n_err = pair.handshake().unwrap_err();
+                assert_eq!(s2n_err.name(), "S2N_ERR_CERT_REJECTED");
+            }
+
+            assert_eq!(counter.count(), 1);
+        }
+
+        Ok(())
+    }
+
+    /// An async callback that resolves synchronously: it calls accept/reject
+    /// inline and returns `Ok(None)` (no future to poll).
+    struct SyncResolvingAsyncCallback(Counter);
+    impl CertValidationCallback for SyncResolvingAsyncCallback {
+        fn validate_cert(
+            &self,
+            conn: &mut Connection,
+            info: CertValidationInfo,
+        ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, Error> {
+            self.0.increment();
+            let accept = conn
+                .application_context::<ValidationContext>()
+                .unwrap()
+                .accept;
+            if accept {
+                info.accept(conn)?;
+            } else {
+                info.reject(conn)?;
+            }
+            // Resolved synchronously: no future to poll.
+            Ok(None)
+        }
+    }
+
+    #[test]
+    fn async_cert_validation_sync_resolution() -> Result<(), Box<dyn std::error::Error>> {
+        for accept in [true, false] {
+            let counter = Counter::default();
+            let callback = SyncResolvingAsyncCallback(counter.clone());
+
+            let config = {
+                let mut config = config_builder(&security::DEFAULT_TLS13)?;
+                config.set_cert_validation_callback(callback)?;
+                config.build()?
+            };
+
+            let mut pair = TestPair::from_config(&config);
+            // The async trait always stores a connection future (even for the
+            // `Ok(None)` case), so a waker must be set. It never pends, so a
+            // noop waker suffices.
+            pair.client.set_waker(Some(&noop_waker()))?;
             let context = ValidationContext { accept };
             pair.client.set_application_context(context);
 
