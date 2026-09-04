@@ -1599,6 +1599,321 @@ const struct s2n_security_policy security_policy_null = {
     .ecc_preferences = &s2n_ecc_preferences_null,
 };
 
+const struct s2n_security_policy security_policy_elb_backend_2016_08 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &elb_security_policy_backend_2016_08,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_sslv3_2013_12 = {
+    .minimum_protocol_version = S2N_SSLv3,
+    .cipher_preferences = &elb_security_policy_sslv3_2013_12,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls_1_1_Res_2017_01 = {
+    .minimum_protocol_version = S2N_TLS11,
+    .cipher_preferences = &elb_security_policy_tls_1_1_Res_2017_01,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2020_10 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_fs_1_2_Res_2020_10,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
+const struct s2n_security_policy security_policy_intb_2021_04 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_intb_2021_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20210816,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+};
+
+const struct s2n_security_policy security_policy_intb_2021_04_gcm = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_intb_2021_04_gcm,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20210816,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+    },
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &elb_security_policy_tls13_1_0_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_1_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS11,
+    .cipher_preferences = &elb_security_policy_tls13_1_1_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext0_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext1_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext2_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Res_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_2023_04 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &elb_security_policy_tls13_1_3_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_0_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &elb_security_policy_tls13_1_0_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20201021,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20240603,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20240603,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Res_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20240603,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext1_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20240603,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext2_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20201021,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20240603,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_3_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &elb_security_policy_tls13_1_3_2021_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20240603,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &elb_security_policy_tls13_1_0_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_FIPS_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_FIPS_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext0_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_FIPS_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext1_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_FIPS_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext2_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_FIPS_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Res_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_PQ_2025_09 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &elb_security_policy_tls13_1_3_FIPS_2023_04,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
+    .signature_preferences = &s2n_signature_preferences_20250813,
+    .certificate_signature_preferences = &s2n_signature_preferences_20250813,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_RFC9151_FIPS_2023_07 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_RFC9151_FIPS_2023_07,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250429,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_RFC9151_FIPS_2023_07 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls13_1_2_Ext0_RFC9151_FIPS_2023_07,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250429,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+};
+
+const struct s2n_security_policy security_policy_elb_tls13_1_3_RFC9151_FIPS_2023_07 = {
+    .minimum_protocol_version = S2N_TLS13,
+    .cipher_preferences = &elb_security_policy_tls13_1_3_RFC9151_FIPS_2023_07,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20250429,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+};
+
+const struct s2n_security_policy security_policy_elb_tls12_1_2_RFC9151_2024_01 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls12_1_2_RFC9151_2024_01,
+    .kem_preferences = &kem_preferences_null,
+    /* Not s2n_signature_preferences_20250429, which also offers rsa_pss. This TLS1.2
+     * policy offers only ecdsa_sha384 and rsa_pkcs1_sha384. */
+    .signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+};
+
+const struct s2n_security_policy security_policy_elb_tls12_1_2_Ext0_RFC9151_2024_01 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &elb_security_policy_tls12_1_2_Ext0_RFC9151_2024_01,
+    .kem_preferences = &kem_preferences_null,
+    /* Not s2n_signature_preferences_20250429, which also offers rsa_pss. This TLS1.2
+     * policy offers only ecdsa_sha384 and rsa_pkcs1_sha384. */
+    .signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20250429,
+    .ecc_preferences = &s2n_ecc_preferences_20210816,
+};
+
+const struct s2n_security_policy security_policy_20170816_healthcheck = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20170816_healthcheck,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
+const struct s2n_security_policy security_policy_kms_tls_1_2_2023_07 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_kms_tls_1_2_2023_07,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
+
+const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2023_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_kms_fips_tls_1_2_2021_08,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_certificate_signature_preferences_20201110,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
+};
 struct s2n_security_policy_selection security_policy_selection[] = {
     /* If changing named policies, please update the usage guide's docs on the corresponding policy.
      * You likely also want to update the compatibility unit tests in (tests/unit/s2n_security_rules_test.c).
@@ -1636,6 +1951,40 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "ELBSecurityPolicy-TLS13-1-3-CNSA2-INTEROP1-FIPS-PQ-2026-07", .security_policy = &security_policy_20260720, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS13-1-2-CNSA2-INTEROP2-FIPS-PQ-2026-07", .security_policy = &security_policy_20260220, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS13-1-2-CNSA2-INTEROP3-FIPS-PQ-2026-07", .security_policy = &security_policy_20260722, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-FS-1-2-Res-2020-10", .security_policy = &security_policy_elb_fs_1_2_Res_2020_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-Backend-2016-08", .security_policy = &security_policy_elb_backend_2016_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-SSLv3-2013-12", .security_policy = &security_policy_elb_sslv3_2013_12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS-1-1-Res-2017-01", .security_policy = &security_policy_elb_tls_1_1_Res_2017_01, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-0-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_0_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-1-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_1_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_2_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext0-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_2_Ext0_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext1-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_2_Ext1_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext2-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_2_Ext2_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Res-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_2_Res_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-3-FIPS-2023-04", .security_policy = &security_policy_elb_tls13_1_3_FIPS_2023_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-RFC9151-FIPS-2023-07", .security_policy = &security_policy_elb_tls13_1_2_RFC9151_FIPS_2023_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext0-RFC9151-FIPS-2023-07", .security_policy = &security_policy_elb_tls13_1_2_Ext0_RFC9151_FIPS_2023_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-3-RFC9151-FIPS-2023-07", .security_policy = &security_policy_elb_tls13_1_3_RFC9151_FIPS_2023_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-RFC9151-INTEROP1-FIPS-2023-07", .security_policy = &security_policy_20251113, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-RFC9151-INTEROP2-FIPS-2023-07", .security_policy = &security_policy_20251117, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-RFC9151-INTEROP3-FIPS-2023-07", .security_policy = &security_policy_20251114, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-RFC9151-INTEROP4-FIPS-2023-07", .security_policy = &security_policy_20251115, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS12-1-2-RFC9151-2024-01", .security_policy = &security_policy_elb_tls12_1_2_RFC9151_2024_01, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS12-1-2-Ext0-RFC9151-2024-01", .security_policy = &security_policy_elb_tls12_1_2_Ext0_RFC9151_2024_01, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-0-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_0_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Res-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_Res_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext1-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_Ext1_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext2-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_Ext2_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-3-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_3_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-0-FIPS-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_0_FIPS_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-FIPS-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_FIPS_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext0-FIPS-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_Ext0_FIPS_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext1-FIPS-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_Ext1_FIPS_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Ext2-FIPS-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_Ext2_FIPS_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-2-Res-FIPS-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_2_Res_FIPS_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS13-1-3-FIPS-PQ-2025-09", .security_policy = &security_policy_elb_tls13_1_3_FIPS_PQ_2025_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream", .security_policy = &security_policy_cloudfront_upstream, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-0", .security_policy = &security_policy_cloudfront_upstream_tls10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "CloudFront-Upstream-TLS-1-1", .security_policy = &security_policy_cloudfront_upstream_tls11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1713,6 +2062,9 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "KMS-FIPS-TLS-1-2-2018-10", .security_policy = &security_policy_kms_fips_tls_1_2_2018_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-FIPS-TLS-1-2-2021-08", .security_policy = &security_policy_kms_fips_tls_1_2_2021_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-FIPS-TLS-1-2-2024-10", .security_policy = &security_policy_kms_fips_tls_1_2_2024_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170816_healthcheck", .security_policy = &security_policy_20170816_healthcheck, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-TLS-1-2-2023-07", .security_policy = &security_policy_kms_tls_1_2_2023_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-FIPS-TLS-1-2-2023-09", .security_policy = &security_policy_kms_fips_tls_1_2_2023_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-2-2024-10-07", .security_policy = &security_policy_pq_tls_1_2_2024_10_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-2-2024-10-08", .security_policy = &security_policy_pq_tls_1_2_2024_10_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-2-2024-10-08_gcm", .security_policy = &security_policy_pq_tls_1_2_2024_10_08_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1745,6 +2097,8 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20200207_pq", .security_policy = &security_policy_20200207_pq, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20201021", .security_policy = &security_policy_20201021, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20210816", .security_policy = &security_policy_20210816, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20210422_INTB", .security_policy = &security_policy_intb_2021_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20210422_INTB_gcm", .security_policy = &security_policy_intb_2021_04_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20210816_GCM", .security_policy = &security_policy_20210816_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240603", .security_policy = &security_policy_20240603, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20250211", .security_policy = &security_policy_20250211, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -2233,5 +2587,198 @@ S2N_RESULT s2n_security_policy_validate_certificate_chain(
                 S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
         current = current->next;
     }
+    return S2N_RESULT_OK;
+}
+
+/* The preference-list comparisons below all treat two NULL lists as equal and a
+ * NULL list as unequal to a non-NULL one, because optional policy fields are left
+ * NULL by the designated initializers used to define each security policy.
+ *
+ * List elements are compared by pointer. Every cipher suite, signature scheme,
+ * curve, KEM, and certificate key is a singleton, so pointer identity is
+ * equivalent to identity of the underlying algorithm.
+ */
+
+static bool s2n_cipher_preferences_equals(const struct s2n_cipher_preferences *a,
+        const struct s2n_cipher_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    if (a->allow_chacha20_boosting != b->allow_chacha20_boosting) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->suites[i] != b->suites[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_signature_preferences_equals(const struct s2n_signature_preferences *a,
+        const struct s2n_signature_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->signature_schemes[i] != b->signature_schemes[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_ecc_preferences_equals(const struct s2n_ecc_preferences *a,
+        const struct s2n_ecc_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->ecc_curves[i] != b->ecc_curves[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_kem_preferences_equals(const struct s2n_kem_preferences *a,
+        const struct s2n_kem_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->kem_count != b->kem_count) {
+        return false;
+    }
+    if (a->tls13_kem_group_count != b->tls13_kem_group_count) {
+        return false;
+    }
+    if (a->tls13_pq_hybrid_draft_revision != b->tls13_pq_hybrid_draft_revision) {
+        return false;
+    }
+    for (size_t i = 0; i < a->kem_count; i++) {
+        if (a->kems[i] != b->kems[i]) {
+            return false;
+        }
+    }
+    for (size_t i = 0; i < a->tls13_kem_group_count; i++) {
+        if (a->tls13_kem_groups[i] != b->tls13_kem_groups[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_supported_group_preferences_equals(const struct s2n_supported_group_preferences *a,
+        const struct s2n_supported_group_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    /* iana_ids holds IANA identifiers by value, not pointers to shared singletons. */
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->iana_ids[i] != b->iana_ids[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+static bool s2n_certificate_key_preferences_equals(const struct s2n_certificate_key_preferences *a,
+        const struct s2n_certificate_key_preferences *b)
+{
+    if (a == b) {
+        return true;
+    }
+    if (a == NULL || b == NULL) {
+        return false;
+    }
+    if (a->count != b->count) {
+        return false;
+    }
+    for (size_t i = 0; i < a->count; i++) {
+        if (a->certificate_keys[i] != b->certificate_keys[i]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+S2N_RESULT s2n_security_policy_equals(const struct s2n_security_policy *a,
+        const struct s2n_security_policy *b, bool *equal)
+{
+    RESULT_ENSURE_REF(a);
+    RESULT_ENSURE_REF(b);
+    RESULT_ENSURE_MUT(equal);
+
+    /* Set false up front so that any early return reports "not equal". Only the
+     * fallthrough at the end, after every field has been compared, reports equal. */
+    *equal = false;
+
+    if (a->minimum_protocol_version != b->minimum_protocol_version) {
+        return S2N_RESULT_OK;
+    }
+    if (a->certificate_preferences_apply_locally != b->certificate_preferences_apply_locally) {
+        return S2N_RESULT_OK;
+    }
+    for (size_t i = 0; i < S2N_SECURITY_RULES_COUNT; i++) {
+        if (a->rules[i] != b->rules[i]) {
+            return S2N_RESULT_OK;
+        }
+    }
+    if (!s2n_cipher_preferences_equals(a->cipher_preferences, b->cipher_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_kem_preferences_equals(a->kem_preferences, b->kem_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_signature_preferences_equals(a->signature_preferences, b->signature_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_signature_preferences_equals(a->certificate_signature_preferences,
+                b->certificate_signature_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_ecc_preferences_equals(a->ecc_preferences, b->ecc_preferences)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_supported_group_preferences_equals(a->strongly_preferred_groups, b->strongly_preferred_groups)) {
+        return S2N_RESULT_OK;
+    }
+    if (!s2n_certificate_key_preferences_equals(a->certificate_key_preferences, b->certificate_key_preferences)) {
+        return S2N_RESULT_OK;
+    }
+
+    *equal = true;
     return S2N_RESULT_OK;
 }
