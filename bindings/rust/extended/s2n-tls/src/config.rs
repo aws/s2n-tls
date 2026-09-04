@@ -659,8 +659,8 @@ impl Builder {
                 callback.map(|callback| {
                     let accepted = callback.handle_validation(conn, &mut info).unwrap();
                     match accepted {
-                        true => info.accept().unwrap(),
-                        false => info.reject().unwrap(),
+                        true => info.accept(conn).unwrap(),
+                        false => info.reject(conn).unwrap(),
                     }
                 })
             });
@@ -674,6 +674,55 @@ impl Builder {
             self.config.context_mut()
         };
         context.cert_validation_callback_sync = Some(handler);
+
+        unsafe {
+            s2n_config_set_cert_validation_cb(
+                self.as_mut_ptr(),
+                Some(cert_validation_cb),
+                core::ptr::null_mut(),
+            )
+            .into_result()?;
+        }
+
+        Ok(self)
+    }
+
+    /// Set a callback function to perform custom cert validation asynchronously.
+    ///
+    /// This is the asynchronous variant of
+    /// [`Builder::set_cert_validation_callback_sync`]. The callback receives an
+    /// owned [`CertValidationInfo`] and may return a [`ConnectionFuture`] to run
+    /// asynchronous work off of the handshake thread. The application MUST
+    /// eventually call [`CertValidationInfo::accept`] or
+    /// [`CertValidationInfo::reject`] to unblock the handshake.
+    ///
+    /// Corresponds to [`s2n_config_set_cert_validation_cb`].
+    #[cfg(feature = "unstable-crl")]
+    pub fn set_cert_validation_callback<T: 'static + CertValidationCallback>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn cert_validation_cb(
+            conn_ptr: *mut s2n_connection,
+            validation_info: *mut s2n_cert_validation_info,
+            _context: *mut core::ffi::c_void,
+        ) -> libc::c_int {
+            with_context(conn_ptr, |conn, context| {
+                let info = CertValidationInfo::from_ptr(validation_info);
+                let callback = context.cert_validation_callback.as_ref();
+                let future = callback.map_or(Ok(None), |c| c.validate_cert(conn, info));
+                AsyncCallback::trigger(future, conn)
+            })
+            .into()
+        }
+
+        let handler = Box::new(handler);
+        let context = unsafe {
+            // SAFETY: usage of context_mut is safe in the builder, because while
+            // it is being built, the Builder is the only reference to the config.
+            self.config.context_mut()
+        };
+        context.cert_validation_callback = Some(handler);
 
         unsafe {
             s2n_config_set_cert_validation_cb(
@@ -1184,6 +1233,8 @@ pub(crate) struct Context {
     pub(crate) cert_authorities: Option<Box<dyn CertificateRequestCallback>>,
     #[cfg(feature = "unstable-crl")]
     pub(crate) cert_validation_callback_sync: Option<Box<dyn CertValidationCallbackSync>>,
+    #[cfg(feature = "unstable-crl")]
+    pub(crate) cert_validation_callback: Option<Box<dyn CertValidationCallback>>,
     #[cfg(feature = "unstable-events")]
     pub(crate) event_subscriber: Option<Box<dyn crate::events::EventSubscriber>>,
 }
@@ -1210,6 +1261,8 @@ impl Default for Context {
             cert_authorities: None,
             #[cfg(feature = "unstable-crl")]
             cert_validation_callback_sync: None,
+            #[cfg(feature = "unstable-crl")]
+            cert_validation_callback: None,
             #[cfg(feature = "unstable-events")]
             event_subscriber: None,
         }
