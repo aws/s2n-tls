@@ -428,3 +428,153 @@ fn entry_writes_match_metric_names_catalog() {
         "metric_names catalog vs Entry impl mismatch.\n  Missing from Entry: {missing:?}\n  Extra in Entry: {extra:?}"
     );
 }
+
+/// Mock writer that captures the numeric observations written for each metric
+/// name, so tests can assert on the distribution shape (not just the name).
+#[derive(Default)]
+struct ObservationCollector {
+    metrics: Vec<(String, Vec<metrique_writer::Observation>)>,
+}
+
+impl ObservationCollector {
+    fn observations(&self, name: &str) -> &[metrique_writer::Observation] {
+        let matches: Vec<_> = self
+            .metrics
+            .iter()
+            .filter(|(metric, _)| metric == name)
+            .collect();
+        assert_eq!(
+            matches.len(),
+            1,
+            "expected exactly one write of {name}, got {}",
+            matches.len()
+        );
+        &matches[0].1
+    }
+}
+
+impl<'a> metrique_writer::EntryWriter<'a> for &mut ObservationCollector {
+    fn timestamp(&mut self, _: SystemTime) {}
+
+    fn value(
+        &mut self,
+        name: impl Into<Cow<'a, str>>,
+        value: &(impl metrique_writer::Value + ?Sized),
+    ) {
+        let mut observations = Vec::new();
+        value.write(ObservationCapture(&mut observations));
+        self.metrics.push((name.into().into_owned(), observations));
+    }
+
+    fn config(&mut self, _: &'a dyn metrique_writer::EntryConfig) {}
+}
+
+struct ObservationCapture<'a>(&'a mut Vec<metrique_writer::Observation>);
+
+impl metrique_writer::ValueWriter for ObservationCapture<'_> {
+    fn string(self, _value: &str) {}
+
+    fn metric<'a>(
+        self,
+        distribution: impl IntoIterator<Item = metrique_writer::Observation>,
+        _unit: metrique_writer::Unit,
+        _dimensions: impl IntoIterator<Item = (&'a str, &'a str)>,
+        _flags: metrique_writer::MetricFlags<'_>,
+    ) {
+        self.0.extend(distribution);
+    }
+
+    fn error(self, error: metrique_writer::ValidationError) {
+        panic!("unexpected validation error: {error}");
+    }
+}
+
+fn write_handshake(
+    record: &s2n_tls_metrics_schema::record::FrozenHandshakeRecord,
+) -> ObservationCollector {
+    use metrique_writer::Entry;
+
+    let mut collector = ObservationCollector::default();
+    record.write(&mut &mut collector);
+    collector
+}
+
+/// The latency metrics are written as `Repeated` observations so that consumers
+/// can compute an average per handshake, rather than only a sum.
+#[test]
+fn latency_metrics_carry_handshake_count_as_occurrences() {
+    use s2n_tls_metrics_schema::record::FrozenHandshakeRecord;
+
+    let record = FrozenHandshakeRecord {
+        handshake_success_count: 30,
+        handshake_failure_count: 10,
+        handshake_duration_us: 80_000,
+        handshake_compute_us: 20_000,
+        ..Default::default()
+    };
+
+    let collector = write_handshake(&record);
+
+    assert_eq!(
+        collector.observations(names::HANDSHAKE_DURATION_US),
+        [metrique_writer::Observation::Repeated {
+            total: 80_000.0,
+            // successes only; the 10 failures contributed no latency
+            occurrences: 30,
+        }]
+    );
+    assert_eq!(
+        collector.observations(names::HANDSHAKE_COMPUTE_US),
+        [metrique_writer::Observation::Repeated {
+            total: 20_000.0,
+            occurrences: 30,
+        }]
+    );
+}
+
+/// Failed handshakes never contribute latency (the subscriber returns early
+/// after recording the failure), so they must not be counted in the
+/// occurrences: otherwise the average is deflated.
+#[test]
+fn latency_occurrences_exclude_failures() {
+    use s2n_tls_metrics_schema::record::FrozenHandshakeRecord;
+
+    let record = FrozenHandshakeRecord {
+        handshake_failure_count: 4,
+        ..Default::default()
+    };
+
+    let collector = write_handshake(&record);
+
+    for name in [names::HANDSHAKE_DURATION_US, names::HANDSHAKE_COMPUTE_US] {
+        assert_eq!(
+            collector.observations(name),
+            [metrique_writer::Observation::Repeated {
+                total: 0.0,
+                occurrences: 0,
+            }],
+            "{name}"
+        );
+    }
+}
+
+/// A record with no handshakes must still write the latency metrics, with zero
+/// occurrences. Zero occurrences is explicitly allowed by `Observation` and
+/// must not produce a validation error.
+#[test]
+fn latency_metrics_with_no_handshakes_have_zero_occurrences() {
+    use s2n_tls_metrics_schema::record::FrozenHandshakeRecord;
+
+    let collector = write_handshake(&FrozenHandshakeRecord::default());
+
+    for name in [names::HANDSHAKE_DURATION_US, names::HANDSHAKE_COMPUTE_US] {
+        assert_eq!(
+            collector.observations(name),
+            [metrique_writer::Observation::Repeated {
+                total: 0.0,
+                occurrences: 0,
+            }],
+            "{name}"
+        );
+    }
+}
