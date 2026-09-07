@@ -76,6 +76,15 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&server_conn->handshake.io, 0));
             EXPECT_FAILURE(s2n_tls13_client_finished_recv(server_conn));
 
+            /* Expect failure if verify has 256 extra bytes (uint8 wrap-around regression) */
+            EXPECT_SUCCESS(reset_stuffers(&client_conn->handshake.io, &server_conn->handshake.io));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, hash_size));
+            for (int j = 0; j < 256; j++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&server_conn->handshake.io, 0));
+            }
+            EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), hash_size + 256);
+            EXPECT_FAILURE(s2n_tls13_client_finished_recv(server_conn));
+
             /* Expect failure if verify on wire is modified by 1 bit */
             EXPECT_SUCCESS(reset_stuffers(&client_conn->handshake.io, &server_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, hash_size));
