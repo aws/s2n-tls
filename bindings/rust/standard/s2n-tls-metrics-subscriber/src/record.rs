@@ -62,8 +62,10 @@ impl NegotiatedParameters {
             }
         };
 
-        let group = success.group().and_then(|g| g.parse().ok());
-        let signature = conn.signature_scheme().and_then(|s| s.parse().ok());
+        let group = success.group().and_then(Group::from_iana_description);
+        let signature = conn
+            .signature_scheme()
+            .and_then(Signature::from_s2n_description);
 
         Ok(Self {
             version,
@@ -609,48 +611,54 @@ mod tests {
             .selected_key_exchange_group()
             .unwrap()
             .to_owned();
-        let expected_group_element: Group = expected_group.parse().unwrap();
+        let expected_group_element = Group::from_iana_description(&expected_group).unwrap();
         let slot = expected_group_element.slot_from_key().unwrap();
         assert_eq!(record.negotiated_groups.slots()[slot], 1);
 
         let expected_sig = result.client.signature_scheme().unwrap().to_owned();
-        let expected_sig_element: Signature = expected_sig.parse().unwrap();
+        let expected_sig_element: Signature =
+            Signature::from_s2n_description(&expected_sig).unwrap();
         let slot = expected_sig_element.slot_from_key().unwrap();
         assert_eq!(record.negotiated_signatures.slots()[slot], 1);
     }
 
     #[test]
     fn record_contents_supported_parameters() {
-        const EXPECTED_VERSIONS: &[&str] = &["TLSv1_3", "TLSv1_2"];
-        const EXPECTED_CIPHERS: &[&str] = &[
-            "TLS_AES_256_GCM_SHA384",
-            "TLS_AES_128_GCM_SHA256",
-            "TLS_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+        let expected_protocols: Vec<Version> = vec![Version::TLS_1_2, Version::TLS_1_3];
+        let expected_ciphers: Vec<Cipher> = vec![
+            Cipher::from_iana_description("TLS_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_CHACHA20_POLY1305_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256").unwrap(),
         ];
-        const EXPECTED_GROUPS: &[&str] = &["secp256r1", "secp384r1", "secp521r1", "x25519"];
-        const EXPECTED_SIGS: &[&str] = &[
-            "ecdsa_sha256",
-            "ecdsa_sha384",
-            "ecdsa_sha512",
-            "rsa_pkcs1_sha256",
-            "rsa_pkcs1_sha384",
-            "rsa_pkcs1_sha512",
-            "rsa_pss_rsae_sha256",
-            "rsa_pss_rsae_sha384",
-            "rsa_pss_rsae_sha512",
-            "rsa_pss_pss_sha256",
-            "rsa_pss_pss_sha384",
-            "rsa_pss_pss_sha512",
+        let expected_groups: Vec<Group> = vec![
+            Group::from_iana_description("secp256r1").unwrap(),
+            Group::from_iana_description("secp384r1").unwrap(),
+            Group::from_iana_description("secp521r1").unwrap(),
+            Group::from_iana_description("x25519").unwrap(),
+        ];
+        let expected_sigs: Vec<Signature> = vec![
+            Signature::from_s2n_description("ecdsa_sha256").unwrap(),
+            Signature::from_s2n_description("ecdsa_sha384").unwrap(),
+            Signature::from_s2n_description("ecdsa_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha512").unwrap(),
         ];
 
         let endpoint = TestEndpoint::new();
@@ -662,19 +670,13 @@ mod tests {
 
         fn assert_supported_matches<const N: usize, T>(
             counter: &FrozenCounter<N, T>,
-            expected: &[&str],
+            expected: &[T],
         ) where
-            T: FiniteCounter<N> + std::fmt::Display + std::str::FromStr<Err = ()>,
+            T: FiniteCounter<N> + std::fmt::Display,
         {
             let expected_slots: Vec<usize> = expected
                 .iter()
-                .map(|description| {
-                    description
-                        .parse::<T>()
-                        .unwrap_or_else(|()| panic!("unknown description {description}"))
-                        .slot_from_key()
-                        .unwrap()
-                })
+                .map(|description| description.slot_from_key().unwrap())
                 .collect();
 
             for (slot, &count) in counter.slots().iter().enumerate() {
@@ -687,10 +689,10 @@ mod tests {
             }
         }
 
-        assert_supported_matches(&record.supported_protocols, EXPECTED_VERSIONS);
-        assert_supported_matches(&record.supported_ciphers, EXPECTED_CIPHERS);
-        assert_supported_matches(&record.supported_groups, EXPECTED_GROUPS);
-        assert_supported_matches(&record.supported_signatures, EXPECTED_SIGS);
+        assert_supported_matches(&record.supported_protocols, &expected_protocols);
+        assert_supported_matches(&record.supported_ciphers, &expected_ciphers);
+        assert_supported_matches(&record.supported_groups, &expected_groups);
+        assert_supported_matches(&record.supported_signatures, &expected_sigs);
     }
 
     #[test]
