@@ -62,8 +62,10 @@ impl NegotiatedParameters {
             }
         };
 
-        let group = success.group().and_then(|g| g.parse().ok());
-        let signature = conn.signature_scheme().and_then(|s| s.parse().ok());
+        let group = success.group().and_then(Group::from_iana_description);
+        let signature = conn
+            .signature_scheme()
+            .and_then(Signature::from_s2n_description);
 
         Ok(Self {
             version,
@@ -122,6 +124,16 @@ pub(crate) struct HandshakeRecordInProgress {
     compatibility_cnsa1: AtomicU64,
     compatibility_cnsa2: AtomicU64,
 
+    // These mirror the `compatibility_*` counters above, but are computed from
+    // the negotiated parameters rather than the client hello. Because negotiated
+    // parameters are available on both the client and server side of a
+    // connection, these counters are populated regardless of which side the
+    // subscriber is installed on.
+    compatibility_negotiated_general20251201: AtomicU64,
+    compatibility_negotiated_fips20251201: AtomicU64,
+    compatibility_negotiated_cnsa1: AtomicU64,
+    compatibility_negotiated_cnsa2: AtomicU64,
+
     client_issue: Counter<{ ClientIssue::COUNT }, ClientIssue>,
 
     /// sum of handshake duration, including network latency and waiting
@@ -177,6 +189,11 @@ impl HandshakeRecordInProgress {
             compatibility_fips20251201: AtomicU64::default(),
             compatibility_cnsa1: AtomicU64::default(),
             compatibility_cnsa2: AtomicU64::default(),
+
+            compatibility_negotiated_general20251201: AtomicU64::default(),
+            compatibility_negotiated_fips20251201: AtomicU64::default(),
+            compatibility_negotiated_cnsa1: AtomicU64::default(),
+            compatibility_negotiated_cnsa2: AtomicU64::default(),
 
             client_issue: Counter::new(),
 
@@ -266,6 +283,27 @@ impl HandshakeRecordInProgress {
         }
         if let Some(sig) = negotiated.signature {
             self.negotiated_signatures.increment(&sig);
+        }
+
+        // Compatibility based on the negotiated parameters. Unlike the client
+        // hello based `compatibility_*` counters below, negotiated parameters
+        // are available on both the client and server side, so these counters
+        // are populated regardless of which side the subscriber runs on.
+        if General20251201::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_general20251201
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if Fips20251201::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_fips20251201
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if Cnsa1::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_cnsa1
+                .fetch_add(1, Ordering::Relaxed);
+        }
+        if Cnsa2::negotiated_compatible(&negotiated) {
+            self.compatibility_negotiated_cnsa2
+                .fetch_add(1, Ordering::Relaxed);
         }
 
         let supported_parameters = if let Some(client_hello) = client_hello {
@@ -473,6 +511,19 @@ impl HandshakeRecordInProgress {
             compatibility_cnsa1: self.compatibility_cnsa1.load(Ordering::Relaxed),
             compatibility_cnsa2: self.compatibility_cnsa2.load(Ordering::Relaxed),
 
+            compatibility_negotiated_general20251201: self
+                .compatibility_negotiated_general20251201
+                .load(Ordering::Relaxed),
+            compatibility_negotiated_fips20251201: self
+                .compatibility_negotiated_fips20251201
+                .load(Ordering::Relaxed),
+            compatibility_negotiated_cnsa1: self
+                .compatibility_negotiated_cnsa1
+                .load(Ordering::Relaxed),
+            compatibility_negotiated_cnsa2: self
+                .compatibility_negotiated_cnsa2
+                .load(Ordering::Relaxed),
+
             client_issues: self.client_issue.freeze(),
 
             handshake_duration_us: self.handshake_duration_us.load(Ordering::Relaxed),
@@ -560,48 +611,54 @@ mod tests {
             .selected_key_exchange_group()
             .unwrap()
             .to_owned();
-        let expected_group_element: Group = expected_group.parse().unwrap();
+        let expected_group_element = Group::from_iana_description(&expected_group).unwrap();
         let slot = expected_group_element.slot_from_key().unwrap();
         assert_eq!(record.negotiated_groups.slots()[slot], 1);
 
         let expected_sig = result.client.signature_scheme().unwrap().to_owned();
-        let expected_sig_element: Signature = expected_sig.parse().unwrap();
+        let expected_sig_element: Signature =
+            Signature::from_s2n_description(&expected_sig).unwrap();
         let slot = expected_sig_element.slot_from_key().unwrap();
         assert_eq!(record.negotiated_signatures.slots()[slot], 1);
     }
 
     #[test]
     fn record_contents_supported_parameters() {
-        const EXPECTED_VERSIONS: &[&str] = &["TLSv1_3", "TLSv1_2"];
-        const EXPECTED_CIPHERS: &[&str] = &[
-            "TLS_AES_256_GCM_SHA384",
-            "TLS_AES_128_GCM_SHA256",
-            "TLS_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+        let expected_protocols: Vec<Version> = vec![Version::TLS_1_2, Version::TLS_1_3];
+        let expected_ciphers: Vec<Cipher> = vec![
+            Cipher::from_iana_description("TLS_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_CHACHA20_POLY1305_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256").unwrap(),
         ];
-        const EXPECTED_GROUPS: &[&str] = &["secp256r1", "secp384r1", "secp521r1", "x25519"];
-        const EXPECTED_SIGS: &[&str] = &[
-            "ecdsa_sha256",
-            "ecdsa_sha384",
-            "ecdsa_sha512",
-            "rsa_pkcs1_sha256",
-            "rsa_pkcs1_sha384",
-            "rsa_pkcs1_sha512",
-            "rsa_pss_rsae_sha256",
-            "rsa_pss_rsae_sha384",
-            "rsa_pss_rsae_sha512",
-            "rsa_pss_pss_sha256",
-            "rsa_pss_pss_sha384",
-            "rsa_pss_pss_sha512",
+        let expected_groups: Vec<Group> = vec![
+            Group::from_iana_description("secp256r1").unwrap(),
+            Group::from_iana_description("secp384r1").unwrap(),
+            Group::from_iana_description("secp521r1").unwrap(),
+            Group::from_iana_description("x25519").unwrap(),
+        ];
+        let expected_sigs: Vec<Signature> = vec![
+            Signature::from_s2n_description("ecdsa_sha256").unwrap(),
+            Signature::from_s2n_description("ecdsa_sha384").unwrap(),
+            Signature::from_s2n_description("ecdsa_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha512").unwrap(),
         ];
 
         let endpoint = TestEndpoint::new();
@@ -613,19 +670,13 @@ mod tests {
 
         fn assert_supported_matches<const N: usize, T>(
             counter: &FrozenCounter<N, T>,
-            expected: &[&str],
+            expected: &[T],
         ) where
-            T: FiniteCounter<N> + std::fmt::Display + std::str::FromStr<Err = ()>,
+            T: FiniteCounter<N> + std::fmt::Display,
         {
             let expected_slots: Vec<usize> = expected
                 .iter()
-                .map(|description| {
-                    description
-                        .parse::<T>()
-                        .unwrap_or_else(|()| panic!("unknown description {description}"))
-                        .slot_from_key()
-                        .unwrap()
-                })
+                .map(|description| description.slot_from_key().unwrap())
                 .collect();
 
             for (slot, &count) in counter.slots().iter().enumerate() {
@@ -638,10 +689,10 @@ mod tests {
             }
         }
 
-        assert_supported_matches(&record.supported_protocols, EXPECTED_VERSIONS);
-        assert_supported_matches(&record.supported_ciphers, EXPECTED_CIPHERS);
-        assert_supported_matches(&record.supported_groups, EXPECTED_GROUPS);
-        assert_supported_matches(&record.supported_signatures, EXPECTED_SIGS);
+        assert_supported_matches(&record.supported_protocols, &expected_protocols);
+        assert_supported_matches(&record.supported_ciphers, &expected_ciphers);
+        assert_supported_matches(&record.supported_groups, &expected_groups);
+        assert_supported_matches(&record.supported_signatures, &expected_sigs);
     }
 
     #[test]
@@ -720,6 +771,108 @@ mod tests {
         assert_eq!(record.compatibility_general20251201, 1);
         assert_eq!(record.compatibility_fips20251201, 1);
         assert_eq!(record.compatibility_cnsa1, 1);
+        assert_eq!(record.compatibility_cnsa2, 0);
+    }
+
+    /// The `compatibility_negotiated_*` counters reflect whether the actually
+    /// negotiated parameters are permitted by each profile. These are computed
+    /// from negotiated parameters (available on both client and server) rather
+    /// than the client hello.
+    #[test]
+    fn record_contents_negotiated_compatibility_metrics() {
+        let endpoint = TestEndpoint::new();
+
+        let result = endpoint.client_handshake(&ARBITRARY_POLICY_1);
+        endpoint.subscriber.finish_record();
+
+        // Figure out what was actually negotiated so the assertions below stay
+        // correct even if the default negotiated parameters change.
+        let group = result
+            .client
+            .selected_key_exchange_group()
+            .unwrap()
+            .to_owned();
+        let sig = result.client.signature_scheme().unwrap().to_owned();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        // A single successful handshake -> exactly one profile evaluation.
+        // The negotiated group is an MLKEM hybrid or an EC group and the
+        // negotiated signature is RSA-PSS, so General and Fips are compatible
+        // but the CNSA profiles (which require ecdsa_secp384r1 / mldsa87) are not.
+        assert_eq!(record.compatibility_negotiated_general20251201, 1);
+        assert_eq!(record.compatibility_negotiated_fips20251201, 1);
+        assert_eq!(
+            record.compatibility_negotiated_cnsa1, 0,
+            "negotiated group {group} / signature {sig} should not satisfy CNSA1"
+        );
+        assert_eq!(record.compatibility_negotiated_cnsa2, 0);
+    }
+
+    /// The `compatibility_negotiated_*` counters must be populated when the
+    /// subscriber is installed on the *client* side of the connection.
+    ///
+    /// This is the key advantage over the client-hello-based `compatibility_*`
+    /// counters: a client connection has no parsed client hello
+    /// (`Connection::client_hello()` only returns data server-side), so the
+    /// `compatibility_*` counters stay zero on a client, while the negotiated
+    /// counters are still populated.
+    #[test]
+    fn negotiated_compatibility_available_on_client_subscriber() {
+        use crate::{AggregatedMetricsSubscriber, Attribution, test_utils::VecSink};
+        use s2n_tls::{
+            security::DEFAULT_TLS13,
+            testing::{TestPair, build_config, config_builder},
+        };
+
+        let sink = VecSink::new();
+        let attribution = Attribution {
+            service: "test_client".to_owned(),
+            resource: "test_resource".to_owned(),
+            component: "test_component".to_owned(),
+        };
+        let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
+
+        // Subscriber is on the CLIENT config.
+        let client_config = {
+            let mut config = config_builder(&DEFAULT_TLS13).unwrap();
+            config.set_event_subscriber(subscriber.clone()).unwrap();
+            config.build().unwrap()
+        };
+        let server_config = build_config(&DEFAULT_TLS13).unwrap();
+
+        let mut pair = TestPair::from_configs(&client_config, &server_config);
+        pair.handshake().unwrap();
+
+        // Grab the negotiated parameters for a descriptive assertion message.
+        let group = pair
+            .client
+            .selected_key_exchange_group()
+            .unwrap()
+            .to_owned();
+        let sig = pair.client.signature_scheme().unwrap().to_owned();
+
+        subscriber.finish_record();
+        let records = sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.handshake_success_count, 1);
+
+        // The negotiated compatibility counters ARE populated on the client.
+        assert_eq!(
+            record.compatibility_negotiated_general20251201, 1,
+            "negotiated group {group} / signature {sig} should satisfy General"
+        );
+        assert_eq!(record.compatibility_negotiated_fips20251201, 1);
+        assert_eq!(record.compatibility_negotiated_cnsa1, 0);
+        assert_eq!(record.compatibility_negotiated_cnsa2, 0);
+
+        // Meanwhile, the client-hello-based compatibility counters stay zero on
+        // the client side, because there is no parsed client hello available.
+        assert_eq!(record.compatibility_general20251201, 0);
+        assert_eq!(record.compatibility_fips20251201, 0);
+        assert_eq!(record.compatibility_cnsa1, 0);
         assert_eq!(record.compatibility_cnsa2, 0);
     }
 

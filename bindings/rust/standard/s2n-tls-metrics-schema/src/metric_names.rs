@@ -75,6 +75,11 @@ pub const COMPATIBILITY_GENERAL20251201: &str = "compatibility.general20251201";
 pub const COMPATIBILITY_FIPS20251201: &str = "compatibility.fips20251201";
 pub const COMPATIBILITY_CNSA1: &str = "compatibility.cnsa1";
 pub const COMPATIBILITY_CNSA2: &str = "compatibility.cnsa2";
+pub const COMPATIBILITY_NEGOTIATED_GENERAL20251201: &str =
+    "compatibility.negotiated.general20251201";
+pub const COMPATIBILITY_NEGOTIATED_FIPS20251201: &str = "compatibility.negotiated.fips20251201";
+pub const COMPATIBILITY_NEGOTIATED_CNSA1: &str = "compatibility.negotiated.cnsa1";
+pub const COMPATIBILITY_NEGOTIATED_CNSA2: &str = "compatibility.negotiated.cnsa2";
 pub const SECURITY_POLICY_PREFIX: &str = "tls_policy";
 pub const SECURITY_POLICY_TOO_MANY: &str = "tls_policy.TOO_MANY";
 
@@ -93,6 +98,10 @@ pub const ALL_SCALARS: &[&str] = &[
     COMPATIBILITY_FIPS20251201,
     COMPATIBILITY_CNSA1,
     COMPATIBILITY_CNSA2,
+    COMPATIBILITY_NEGOTIATED_GENERAL20251201,
+    COMPATIBILITY_NEGOTIATED_FIPS20251201,
+    COMPATIBILITY_NEGOTIATED_CNSA1,
+    COMPATIBILITY_NEGOTIATED_CNSA2,
     SSLV2_CLIENT_HELLO,
     HANDSHAKE_SUCCESS_COUNT,
     HANDSHAKE_FAILURE_COUNT,

@@ -146,6 +146,18 @@
             "Name": "compatibility.cnsa2"
           },
           {
+            "Name": "compatibility.negotiated.general20251201"
+          },
+          {
+            "Name": "compatibility.negotiated.fips20251201"
+          },
+          {
+            "Name": "compatibility.negotiated.cnsa1"
+          },
+          {
+            "Name": "compatibility.negotiated.cnsa2"
+          },
+          {
             "Name": "sslv2_client_hello"
           },
           {
@@ -200,6 +212,10 @@
   "compatibility.cnsa2": 0,
   "compatibility.fips20251201": 1,
   "compatibility.general20251201": 1,
+  "compatibility.negotiated.cnsa1": 0,
+  "compatibility.negotiated.cnsa2": 0,
+  "compatibility.negotiated.fips20251201": 1,
+  "compatibility.negotiated.general20251201": 1,
   "group.negotiated.secp256r1": 1,
   "group.supported.secp256r1": 1,
   "group.supported.secp384r1": 1,

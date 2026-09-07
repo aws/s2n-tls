@@ -250,6 +250,15 @@ function rust_test {(set -e
     echo "rust_test: Exporting s2n-tls headers and libs for Cargo"
     export S2N_TLS_LIB_DIR=$(pwd)/build/lib
     export S2N_TLS_INCLUDE_DIR=$(pwd)/api
+    # The btls crate (BoringSSL, used by the boringssl integration tests) links
+    # libstdc++ dynamically, so the test binary needs libstdc++.so.6 at runtime.
+    # Nix does not place it on the default loader path. Add it here, scoped to
+    # this function, rather than in the devshell hook: a global LD_LIBRARY_PATH
+    # leaks the Nix libgcc/libstdc++ into system tools (e.g. gmake) used by other
+    # jobs' CMake compiler checks, which then fail on GLIBC version mismatches.
+    local cxx_lib_dir
+    cxx_lib_dir=$(dirname "$(cc -print-file-name=libstdc++.so.6)")
+    export LD_LIBRARY_PATH="${cxx_lib_dir}${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
     echo "rust_test: Running Rust integration tests"
     cargo test --manifest-path bindings/rust/standard/integration/Cargo.toml --features boringssl
 )}
