@@ -222,7 +222,6 @@ mod tests {
         assert_eq!(full_session[0], S2N_STATE_WITH_SESSION_TICKET);
         let ticket_len = u16::from_be_bytes([full_session[1], full_session[2]]) as usize;
         let ticket = &full_session[3..3 + ticket_len];
-        println!("[repro] captured TLS1.3 ticket length = {}", ticket.len());
         assert_eq!(
             ticket.len(),
             138,
