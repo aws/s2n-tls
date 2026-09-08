@@ -172,7 +172,7 @@ mod tests {
     // SessionTicket extension, so we model the malicious client directly: we craft
     // a serialized session that makes a TLS1.2 client (a) carry the genuine 138-byte
     // TLS1.3 ticket as its client_ticket (sent in the legacy extension) and (b) use
-    // an all-zero master secret, matching what the confused server will derive.
+    // an all-zero master secret, matching what a confused server would derive.
     #[test]
     fn tls13_ticket_on_tls12_path() -> Result<(), Box<dyn Error>> {
         const S2N_STATE_WITH_SESSION_TICKET: u8 = 1;
