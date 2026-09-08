@@ -165,9 +165,8 @@ mod tests {
         Ok(())
     }
 
-    // End-to-end reproduction: a genuine TLS1.3 session ticket is accepted on the
-    // TLS1.2 resumption path, and the server completes an abbreviated ("resumed")
-    // handshake keyed by an all-zero master secret.
+    // Test that a genuine TLS1.3 session ticket is not accepted on the
+    // TLS1.2 resumption path.
     //
     // The honest s2n client never places a TLS1.3 ticket in the legacy TLS1.2
     // SessionTicket extension, so we model the malicious client directly: we craft
