@@ -313,6 +313,7 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     uint8_t protocol_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
     RESULT_ENSURE_GTE(protocol_version, S2N_TLS13);
+    RESULT_ENSURE(protocol_version == conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     uint8_t iana_id[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, iana_id, S2N_TLS_CIPHER_SUITE_LEN));
