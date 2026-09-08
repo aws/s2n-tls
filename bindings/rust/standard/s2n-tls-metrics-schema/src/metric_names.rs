@@ -88,6 +88,7 @@ pub fn security_policy_name(policy: &str) -> String {
 }
 
 pub const SSLV2_CLIENT_HELLO: &str = "sslv2_client_hello";
+pub const HELLO_RETRY_REQUEST_COUNT: &str = "hello_retry_request_count";
 pub const HANDSHAKE_DURATION_US: &str = "handshake_duration_us";
 pub const HANDSHAKE_COMPUTE_US: &str = "handshake_compute_us";
 pub const SYNTHETIC_TRAFFIC_COUNT: &str = "synthetic_traffic_count";
@@ -103,6 +104,7 @@ pub const ALL_SCALARS: &[&str] = &[
     COMPATIBILITY_NEGOTIATED_CNSA1,
     COMPATIBILITY_NEGOTIATED_CNSA2,
     SSLV2_CLIENT_HELLO,
+    HELLO_RETRY_REQUEST_COUNT,
     HANDSHAKE_SUCCESS_COUNT,
     HANDSHAKE_FAILURE_COUNT,
     HANDSHAKE_DURATION_US,

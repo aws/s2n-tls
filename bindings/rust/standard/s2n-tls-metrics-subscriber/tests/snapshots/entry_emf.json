@@ -161,6 +161,9 @@
             "Name": "sslv2_client_hello"
           },
           {
+            "Name": "hello_retry_request_count"
+          },
+          {
             "Name": "handshake_success_count"
           },
           {
@@ -225,6 +228,7 @@
   "handshake_duration_us": "<DURATION>",
   "handshake_failure_count": 1,
   "handshake_success_count": 1,
+  "hello_retry_request_count": 0,
   "internal_failure": 0,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",
