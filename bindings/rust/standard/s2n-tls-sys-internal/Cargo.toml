@@ -14,4 +14,4 @@ libc = "0.2.121"
 aws-lc-sys = "*"
 
 [build-dependencies]
-bindgen = "0.72"
+bindgen = "0.73"
