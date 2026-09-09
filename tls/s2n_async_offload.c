@@ -64,10 +64,17 @@ int s2n_async_offload_op_perform(struct s2n_async_offload_op *op)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_async_offload_op_wipe(struct s2n_async_offload_op *op)
+/**
+ * Unconditionally releases the op's resources, regardless of async_state.
+ *
+ * This is the connection teardown path (s2n_connection_free / s2n_connection_wipe).
+ * It MUST always fully free the op, even if a failed s2n_async_offload_op_perform()
+ * left the op in S2N_ASYNC_INVOKED; otherwise the remainder of teardown is skipped
+ * and the connection leaks.
+ */
+S2N_RESULT s2n_async_offload_op_free(struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(op);
-    RESULT_ENSURE(op->async_state != S2N_ASYNC_INVOKED, S2N_ERR_ASYNC_BLOCKED);
     if (op->op_data_free == NULL) {
         return S2N_RESULT_OK;
     }
@@ -80,6 +87,10 @@ S2N_RESULT s2n_async_offload_op_wipe(struct s2n_async_offload_op *op)
 /**
  * MUST be called at the end of each handshake state handler that may invoke async_offload_cb
  * to clean up the op object for its next use.
+ *
+ * Unlike s2n_async_offload_op_free(), this is the handshake-path cleanup and refuses
+ * to free an op that is still in flight (S2N_ASYNC_INVOKED): s2n still holds
+ * references to its data, so wiping mid-negotiation would be a logic error.
  */
 S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op)
 {
@@ -90,7 +101,7 @@ S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op)
     }
 
     RESULT_ENSURE(op->async_state == S2N_ASYNC_COMPLETE, S2N_ERR_INVALID_STATE);
-    RESULT_GUARD(s2n_async_offload_op_wipe(op));
+    RESULT_GUARD(s2n_async_offload_op_free(op));
     return S2N_RESULT_OK;
 }
 
