@@ -53,22 +53,36 @@ impl CertValidationInfo {
 
     /// Accepts the certificate, allowing the handshake to continue.
     ///
-    /// `connection` must be the connection that produced this info; see the
-    /// [type-level safety docs](Self).
-    ///
     /// Corresponds to [`s2n_cert_validation_accept`].
-    pub fn accept(self, _connection: &mut Connection) -> Result<(), Error> {
+    ///
+    /// # Safety
+    ///
+    /// The owning connection MUST still be alive: `connection` must be the
+    /// connection that produced this info, and the info MUST NOT be resolved
+    /// after that connection has been dropped. See the [type-level safety
+    /// docs](Self).
+    // `connection` is not used by the FFI call, but is required to ensure the
+    // owning connection is still alive when the info is resolved.
+    #[allow(unused_variables)]
+    pub unsafe fn accept(self, connection: &mut Connection) -> Result<(), Error> {
         unsafe { s2n_cert_validation_accept(self.info.as_ptr()).into_result() }?;
         Ok(())
     }
 
     /// Rejects the certificate, causing the handshake to fail.
     ///
-    /// `connection` must be the connection that produced this info; see the
-    /// [type-level safety docs](Self).
-    ///
     /// Corresponds to [`s2n_cert_validation_reject`].
-    pub fn reject(self, _connection: &mut Connection) -> Result<(), Error> {
+    ///
+    /// # Safety
+    ///
+    /// The owning connection MUST still be alive: `connection` must be the
+    /// connection that produced this info, and the info MUST NOT be resolved
+    /// after that connection has been dropped. See the [type-level safety
+    /// docs](Self).
+    // `connection` is not used by the FFI call, but is required to ensure the
+    // owning connection is still alive when the info is resolved.
+    #[allow(unused_variables)]
+    pub unsafe fn reject(self, connection: &mut Connection) -> Result<(), Error> {
         unsafe { s2n_cert_validation_reject(self.info.as_ptr()).into_result() }?;
         Ok(())
     }
@@ -188,10 +202,12 @@ mod tests {
                 .application_context::<ValidationContext>()
                 .unwrap()
                 .accept;
+            // SAFETY: resolved synchronously within the callback, where the
+            // owning connection is alive.
             if accept {
-                info.accept(conn)?;
+                unsafe { info.accept(conn) }?;
             } else {
-                info.reject(conn)?;
+                unsafe { info.reject(conn) }?;
             }
             // Resolved synchronously: no future to poll.
             Ok(None)
@@ -258,10 +274,11 @@ mod tests {
                 .info
                 .take()
                 .expect("future should not be polled after it resolves");
+            // SAFETY: resolved inside poll, where the owning connection is alive.
             let result = if self.accept {
-                info.accept(conn)
+                unsafe { info.accept(conn) }
             } else {
-                info.reject(conn)
+                unsafe { info.reject(conn) }
             };
             Poll::Ready(result)
         }

@@ -656,9 +656,11 @@ impl Builder {
                 let callback = context.cert_validation_callback_sync.as_ref();
                 callback.map(|callback| {
                     let accepted = callback.handle_validation(conn, &mut info).unwrap();
+                    // SAFETY: resolved from within the cert validation callback,
+                    // where the owning connection is guaranteed to be alive.
                     match accepted {
-                        true => info.accept(conn).unwrap(),
-                        false => info.reject(conn).unwrap(),
+                        true => unsafe { info.accept(conn) }.unwrap(),
+                        false => unsafe { info.reject(conn) }.unwrap(),
                     }
                 })
             });
