@@ -1977,7 +1977,8 @@ int main(int argc, char **argv)
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
         struct s2n_config *config = s2n_config_new();
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+        /* 20240503 is a security policy with a certificate_signature_preferences list that rejects SHA-1 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240503"));
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_SUCCESS(s2n_connection_set_config(connection, config));

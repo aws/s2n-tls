@@ -420,14 +420,14 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "20240503"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(client_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240503"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 0, &s2n_tls13_aes_256_gcm_sha384));
             EXPECT_EQUAL(server_conn->early_data_state, S2N_UNKNOWN_EARLY_DATA_STATE);
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));

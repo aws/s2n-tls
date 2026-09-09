@@ -72,6 +72,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer key_share_extension = { 0 };
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20240503"));
 
         uint32_t key_share_size = 0;
         EXPECT_OK(s2n_extensions_client_key_share_size(conn, &key_share_size));
@@ -98,6 +99,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer key_share_extension = { 0 };
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20240503"));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
 
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
@@ -119,6 +121,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer key_share_extension = { 0 };
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20240503"));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 0));
             EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
 
@@ -342,6 +345,7 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20240503"));
 
             const struct s2n_ecc_preferences *ecc_preferences = NULL;
             EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
