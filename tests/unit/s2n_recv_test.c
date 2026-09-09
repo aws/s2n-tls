@@ -567,6 +567,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, reneg_config));
             s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
             conn->secure_renegotiation = true;
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_OK(s2n_skip_handshake(conn));
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                     s2n_ktls_io_stuffer_pair_free);

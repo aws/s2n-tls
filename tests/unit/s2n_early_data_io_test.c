@@ -778,10 +778,13 @@ int main(int argc, char **argv)
              * s2n_recv can only process post-handshake messages, and EndOfEarlyData is not a post-handshake
              * message.
              * We should have read the EndOfEarlyData handshake message via s2n_negotiate.
+             * Because the handshake is not actually complete yet (server is still
+             * expecting END_OF_EARLY_DATA), s2n-tls now defensively rejects this with
+             * S2N_ERR_HANDSHAKE_NOT_COMPLETE instead of the less precise S2N_ERR_BAD_MESSAGE.
              */
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), END_OF_EARLY_DATA);
             EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, test_buffer, sizeof(test_buffer), &blocked),
-                    S2N_ERR_BAD_MESSAGE);
+                    S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
