@@ -51,7 +51,7 @@ static S2N_RESULT s2n_check_dhe(const struct s2n_cipher_suite *cipher_suite, str
     RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(is_supported);
 
-    *is_supported = conn->config->dhparams != NULL;
+    *is_supported = conn->config->dhparams.dh != NULL;
 
     return S2N_RESULT_OK;
 }
