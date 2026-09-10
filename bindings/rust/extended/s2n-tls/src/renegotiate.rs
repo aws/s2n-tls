@@ -432,12 +432,15 @@ mod tests {
         },
         config::ConnectionInitializer,
         error::{ErrorSource, ErrorType},
-        testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair, TestPairIO},
+        testing::{
+            test::{openssl_handshake, ServerTestStream},
+            CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair,
+        },
     };
     use foreign_types::ForeignTypeRef;
     use futures_test::task::new_count_waker;
     use openssl::ssl::{
-        ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion,
+        Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion,
     };
     use std::{
         error::Error,
@@ -465,36 +468,6 @@ mod tests {
             return value;
         }
         panic!("Poll not Ready");
-    }
-
-    #[derive(Debug)]
-    struct ServerTestStream(TestPairIO);
-
-    // For server testing purposes, we read from the client output stream
-    impl Read for ServerTestStream {
-        fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
-            let result = self.0.client_tx_stream.borrow_mut().read(buf);
-            if let Ok(0) = result {
-                // Treat no data as blocking instead of EOF
-                Err(std::io::Error::new(
-                    std::io::ErrorKind::WouldBlock,
-                    "blocking",
-                ))
-            } else {
-                result
-            }
-        }
-    }
-
-    // For server testing purposes, we write to the server output stream
-    impl Write for ServerTestStream {
-        fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
-            self.0.server_tx_stream.borrow_mut().write(buf)
-        }
-
-        fn flush(&mut self) -> Result<(), std::io::Error> {
-            self.0.server_tx_stream.borrow_mut().flush()
-        }
     }
 
     // s2n-tls doesn't support sending client hello requests.
@@ -549,34 +522,6 @@ mod tests {
             let server = SslStream::new(openssl_ssl, server_stream)?;
 
             Ok(Self { client, server })
-        }
-
-        // Translate the output of openssl's `accept` to match s2n-tls's `poll_negotiate`.
-        fn poll_openssl_negotiate(
-            server: &mut SslStream<ServerTestStream>,
-        ) -> Poll<Result<(), Box<dyn Error>>> {
-            match server.accept() {
-                Ok(_) => Ready(Ok(())),
-                Err(err) if err.code() == ErrorCode::WANT_READ => Pending,
-                Err(err) => Ready(Err(err.into())),
-            }
-        }
-
-        // Perform a handshake with the s2n-tls client and openssl server
-        fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-            loop {
-                match (
-                    self.client.poll_negotiate(),
-                    Self::poll_openssl_negotiate(&mut self.server),
-                ) {
-                    (Poll::Ready(Ok(_)), Poll::Ready(Ok(_))) => return Ok(()),
-                    // Error on the server
-                    (_, Poll::Ready(Err(e))) => return Err(e),
-                    // Error on the client
-                    (Poll::Ready(Err(e)), _) => return Err(Box::new(e)),
-                    _ => continue,
-                }
-            }
         }
 
         // Send a renegotiation HelloRequest and drain the 1-byte flush
@@ -682,7 +627,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Ignore)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Expect receiving the hello request to be successful
         pair.send_renegotiate_request()
@@ -701,7 +646,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Expect receiving the hello request to be successful
         pair.send_renegotiate_request()
@@ -725,7 +670,7 @@ mod tests {
         builder.set_renegotiate_callback(ErrorRenegotiateCallback {})?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         // send_renegotiate_request() returns Err if the client's renegotiate
         // callback errors when processing the HelloRequest during the drain.
         let error = pair.send_renegotiate_request().unwrap_err();
@@ -740,7 +685,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Reject)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         pair.send_renegotiate_request()
             .expect("Server sends request");
         // s2n-tls doesn't fail when it rejects renegotiation, it just sends
@@ -759,7 +704,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         pair.send_and_receive()
             .expect("Application data before renegotiate");
         pair.send_renegotiate_request()
@@ -777,7 +722,7 @@ mod tests {
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         for _ in 0..10 {
             pair.send_and_receive()
@@ -799,7 +744,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Server sends app data immediately after hello request
         let server_data = b"server_data";
@@ -827,7 +772,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Server sends hello request, but initially no app data
         pair.send_renegotiate_request()
@@ -863,7 +808,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Server sends hello request, but initially no app data
         pair.send_renegotiate_request()
@@ -885,7 +830,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         pair.send_renegotiate_request()
             .expect("Server sends request");
@@ -931,7 +876,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // The client needs to initially block on send.
         let client_data = b"client data";
@@ -957,7 +902,7 @@ mod tests {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
 
         // Read the hello request and start renegotiation
         pair.send_renegotiate_request()
@@ -1042,7 +987,7 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         pair.client.set_waker(Some(&waker))?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         assert_eq!(wake_count, count_per_handshake);
         pair.send_renegotiate_request()
             .expect("Server sends request");
@@ -1106,7 +1051,7 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         pair.client.set_waker(Some(&waker))?;
 
-        pair.handshake().expect("Initial handshake");
+        openssl_handshake(&mut pair.client, &mut pair.server).expect("Initial handshake");
         assert_eq!(wake_count, count_per_handshake);
         pair.send_renegotiate_request()
             .expect("Server sends request");

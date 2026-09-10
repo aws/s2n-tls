@@ -466,3 +466,72 @@ impl ConnectionInitializer for LIFOSessionResumption {
         Ok(None)
     }
 }
+
+#[cfg(test)]
+pub mod test {
+    use crate::{connection::Connection, testing::TestPairIO};
+    use openssl::ssl::{ErrorCode, SslStream};
+    use std::{
+        io::{Read, Write},
+        task::Poll,
+    };
+
+    // An owned IO stream for an openssl peer. The openssl server reads from the
+    // buffer that the s2n-tls client writes to, and writes to the buffer that the
+    // s2n-tls client reads from.
+    #[derive(Debug)]
+    pub struct ServerTestStream(pub TestPairIO);
+
+    impl Read for ServerTestStream {
+        fn read(&mut self, buf: &mut [u8]) -> Result<usize, std::io::Error> {
+            let result = self.0.client_tx_stream.borrow_mut().read(buf);
+            if let Ok(0) = result {
+                // Treat "no data available" as a blocking read rather than EOF.
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::WouldBlock,
+                    "blocking",
+                ))
+            } else {
+                result
+            }
+        }
+    }
+
+    impl Write for ServerTestStream {
+        fn write(&mut self, buf: &[u8]) -> Result<usize, std::io::Error> {
+            self.0.server_tx_stream.borrow_mut().write(buf)
+        }
+
+        fn flush(&mut self) -> Result<(), std::io::Error> {
+            self.0.server_tx_stream.borrow_mut().flush()
+        }
+    }
+
+    // Translate openssl's `accept` output to match s2n-tls's `poll_negotiate`.
+    fn poll_openssl_negotiate(
+        server: &mut SslStream<ServerTestStream>,
+    ) -> Poll<Result<(), Box<dyn std::error::Error>>> {
+        match server.accept() {
+            Ok(_) => Poll::Ready(Ok(())),
+            Err(err) if err.code() == ErrorCode::WANT_READ => Poll::Pending,
+            Err(err) => Poll::Ready(Err(err.into())),
+        }
+    }
+
+    // Perform a handshake between the s2n-tls client and openssl server.
+    pub fn openssl_handshake(
+        client: &mut Connection,
+        server: &mut SslStream<ServerTestStream>,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        loop {
+            match (client.poll_negotiate(), poll_openssl_negotiate(server)) {
+                (Poll::Ready(Ok(_)), Poll::Ready(Ok(_))) => return Ok(()),
+                // Error on the server
+                (_, Poll::Ready(Err(e))) => return Err(e),
+                // Error on the client
+                (Poll::Ready(Err(e)), _) => return Err(Box::new(e)),
+                _ => continue,
+            }
+        }
+    }
+}
