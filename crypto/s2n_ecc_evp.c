@@ -37,6 +37,10 @@ DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
 
+#if EVP_APIS_SUPPORTED
+DEFINE_POINTER_CLEANUP_FUNC(uint8_t *, OPENSSL_free);
+#endif
+
 #if !EVP_APIS_SUPPORTED
 DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
 #endif
@@ -444,16 +448,11 @@ int s2n_ecc_evp_write_params_point(struct s2n_ecc_evp_params *ecc_evp_params, st
     POSIX_ENSURE_REF(out);
 
 #if EVP_APIS_SUPPORTED
-    uint8_t *encoded_point = NULL;
+    DEFER_CLEANUP(uint8_t *encoded_point = NULL, OPENSSL_free_pointer);
 
     size_t size = EVP_PKEY_get1_tls_encodedpoint(ecc_evp_params->evp_pkey, &encoded_point);
-    if (size != ecc_evp_params->negotiated_curve->share_size) {
-        OPENSSL_free(encoded_point);
-        POSIX_BAIL(S2N_ERR_ECDHE_SERIALIZING);
-    } else {
-        POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
-        OPENSSL_free(encoded_point);
-    }
+    POSIX_ENSURE(size == ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
+    POSIX_GUARD(s2n_stuffer_write_bytes(out, encoded_point, size));
 #else
     uint8_t point_len = 0;
     struct s2n_blob point_blob = { 0 };
