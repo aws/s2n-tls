@@ -348,7 +348,7 @@ struct s2n_config *cbmc_allocate_s2n_config()
 {
     struct s2n_config *s2n_config = malloc(sizeof(*s2n_config));
     PTR_ENSURE_REF(s2n_config);
-    s2n_config->dhparams                = cbmc_allocate_dh_params();
+    cbmc_populate_s2n_dh_params(&s2n_config->dhparams);
     s2n_config->domain_name_to_cert_map = cbmc_allocate_s2n_map();
     /* `s2n_config->default_certs_by_type` is never allocated.
      * If required, this initialization should be done in the proof harness.
