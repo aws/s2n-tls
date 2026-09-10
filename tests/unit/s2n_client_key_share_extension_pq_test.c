@@ -976,6 +976,103 @@ int main()
         }
     }
 
+    /* Test that the hybrid's classical key is reused as the standalone classical
+     * key share when (and only when) the hybrid's curve matches ecc_curves[0].
+     *
+     * When the reuse happens, both key shares point at the same EVP_PKEY, so we
+     * can detect it by comparing the two evp_pkey pointers. */
+    if (s2n_pq_is_enabled() && s2n_kem_group_is_available(&s2n_x25519_mlkem_768)) {
+        const struct s2n_kem_group *test_kem_groups[] = {
+            &s2n_x25519_mlkem_768,
+        };
+
+        const struct s2n_kem_preferences test_kem_prefs = {
+            .kem_count = 0,
+            .kems = NULL,
+            .tls13_kem_group_count = s2n_array_len(test_kem_groups),
+            .tls13_kem_groups = test_kem_groups,
+            .tls13_pq_hybrid_draft_revision = 5,
+        };
+
+        /* The hybrid X25519MLKEM768 generates an X25519 key. ecc_curves[0] for
+         * s2n_ecc_preferences_20200310 is also x25519, so the reuse should fire. */
+        {
+            const struct s2n_security_policy reuse_policy = {
+                .minimum_protocol_version = S2N_SSLv3,
+                .cipher_preferences = &cipher_preferences_test_all_tls13,
+                .kem_preferences = &test_kem_prefs,
+                .signature_preferences = &s2n_signature_preferences_20200207,
+                .ecc_preferences = &s2n_ecc_preferences_20200310,
+            };
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->security_policy_override = &reuse_policy;
+
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
+
+            /* Precondition: the hybrid's curve is the same as ecc_curves[0] */
+            EXPECT_EQUAL(s2n_x25519_mlkem_768.curve, ecc_pref->ecc_curves[0]);
+
+            DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, MEM_FOR_EXTENSION));
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            struct s2n_ecc_evp_params *hybrid_ecc = &conn->kex_params.client_kem_group_params.ecc_params;
+            struct s2n_ecc_evp_params *classical_ecc = &conn->kex_params.client_ecc_evp_params;
+
+            EXPECT_NOT_NULL(hybrid_ecc->evp_pkey);
+            EXPECT_NOT_NULL(classical_ecc->evp_pkey);
+
+            /* The classical share reused the hybrid's key: same curve, same key */
+            EXPECT_EQUAL(classical_ecc->negotiated_curve, hybrid_ecc->negotiated_curve);
+            EXPECT_EQUAL(classical_ecc->evp_pkey, hybrid_ecc->evp_pkey);
+        }
+
+        /* ecc_curves[0] for s2n_ecc_preferences_20230623 is secp256r1, which does
+         * not match the hybrid's X25519 curve, so the reuse should NOT fire and
+         * each key share must hold its own independently generated key. */
+        {
+            const struct s2n_security_policy no_reuse_policy = {
+                .minimum_protocol_version = S2N_SSLv3,
+                .cipher_preferences = &cipher_preferences_test_all_tls13,
+                .kem_preferences = &test_kem_prefs,
+                .signature_preferences = &s2n_signature_preferences_20200207,
+                .ecc_preferences = &s2n_ecc_preferences_20230623,
+            };
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->security_policy_override = &no_reuse_policy;
+
+            const struct s2n_ecc_preferences *ecc_pref = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+            EXPECT_NOT_NULL(ecc_pref);
+
+            /* Precondition: the hybrid's curve differs from ecc_curves[0] */
+            EXPECT_NOT_EQUAL(s2n_x25519_mlkem_768.curve, ecc_pref->ecc_curves[0]);
+
+            DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, MEM_FOR_EXTENSION));
+            EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+            struct s2n_ecc_evp_params *hybrid_ecc = &conn->kex_params.client_kem_group_params.ecc_params;
+            struct s2n_ecc_evp_params *classical_ecc = &conn->kex_params.client_ecc_evp_params;
+
+            EXPECT_NOT_NULL(hybrid_ecc->evp_pkey);
+            EXPECT_NOT_NULL(classical_ecc->evp_pkey);
+
+            /* Distinct curves, and therefore distinct keys */
+            EXPECT_EQUAL(classical_ecc->negotiated_curve, ecc_pref->ecc_curves[0]);
+            EXPECT_NOT_EQUAL(classical_ecc->negotiated_curve, hybrid_ecc->negotiated_curve);
+            EXPECT_NOT_EQUAL(classical_ecc->evp_pkey, hybrid_ecc->evp_pkey);
+        }
+    }
+
     END_TEST();
 
     return 0;
