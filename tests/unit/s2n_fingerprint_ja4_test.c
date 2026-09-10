@@ -635,6 +635,51 @@ int main(int argc, char **argv)
             };
         };
 
+        /* Only the first S2N_JA4_LIST_LIMIT (99) ciphers and extensions are
+         * collected into the sorted list. Lists longer than the limit therefore
+         * produce the same hash as a list of exactly the limit, since the helpers
+         * generate a deterministic sequence and the extra entries are not included.
+         */
+        {
+            const uint16_t counts_over_limit[] = { 99, 100, 255 };
+
+            /* Ciphers */
+            {
+                uint8_t limit_hash[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                uint32_t limit_hash_size = 0;
+                EXPECT_OK(s2n_test_ja4_hash_from_cipher_count(99,
+                        sizeof(limit_hash), limit_hash, &limit_hash_size));
+
+                for (size_t i = 0; i < s2n_array_len(counts_over_limit); i++) {
+                    uint8_t hash[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                    uint32_t hash_size = 0;
+                    EXPECT_OK(s2n_test_ja4_hash_from_cipher_count(counts_over_limit[i],
+                            sizeof(hash), hash, &hash_size));
+
+                    EXPECT_EQUAL(hash_size, limit_hash_size);
+                    EXPECT_BYTEARRAY_EQUAL(hash, limit_hash, limit_hash_size);
+                }
+            };
+
+            /* Extensions */
+            {
+                uint8_t limit_hash[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                uint32_t limit_hash_size = 0;
+                EXPECT_OK(s2n_test_ja4_hash_from_extension_count(99,
+                        sizeof(limit_hash), limit_hash, &limit_hash_size));
+
+                for (size_t i = 0; i < s2n_array_len(counts_over_limit); i++) {
+                    uint8_t hash[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                    uint32_t hash_size = 0;
+                    EXPECT_OK(s2n_test_ja4_hash_from_extension_count(counts_over_limit[i],
+                            sizeof(hash), hash, &hash_size));
+
+                    EXPECT_EQUAL(hash_size, limit_hash_size);
+                    EXPECT_BYTEARRAY_EQUAL(hash, limit_hash, limit_hash_size);
+                }
+            };
+        };
+
         /* Test ALPN */
         {
             /* Test basic ALPN
