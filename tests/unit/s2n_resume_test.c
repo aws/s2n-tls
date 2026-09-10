@@ -52,6 +52,23 @@ static int s2n_test_session_ticket_callback(struct s2n_connection *conn, void *c
     return S2N_SUCCESS;
 }
 
+static int s2n_test_cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl_in_seconds,
+        const void *key, uint64_t key_size, const void *value, uint64_t value_size)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_test_cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key,
+        uint64_t key_size, void *value, uint64_t *value_size)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_test_cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+{
+    return S2N_SUCCESS;
+}
+
 static int mock_time(void *data, uint64_t *nanoseconds)
 {
     *nanoseconds = ticket_issue_time;
@@ -1788,7 +1805,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
 
         /* Turn session caching on */
-        config->use_session_cache = 1;
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, s2n_test_cache_store_callback, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, s2n_test_cache_retrieve_callback, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, s2n_test_cache_delete_callback, NULL));
+        EXPECT_SUCCESS(s2n_config_set_session_cache_onoff(config, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Cannot cache connection if client auth is required */
@@ -1802,6 +1822,36 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
+    };
+
+    /* s2n_config_set_session_cache_onoff */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Session caching can be enabled before the cache callbacks are set,
+         * but caching is not active until all three callbacks are set.
+         * See https://github.com/aws/s2n-tls/issues/3463 */
+        EXPECT_SUCCESS(s2n_config_set_session_cache_onoff(config, 1));
+        EXPECT_TRUE(config->use_session_cache);
+        EXPECT_FALSE(s2n_allowed_to_cache_connection(conn));
+
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(config, s2n_test_cache_store_callback, NULL));
+        EXPECT_FALSE(s2n_allowed_to_cache_connection(conn));
+
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(config, s2n_test_cache_retrieve_callback, NULL));
+        EXPECT_FALSE(s2n_allowed_to_cache_connection(conn));
+
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(config, s2n_test_cache_delete_callback, NULL));
+        EXPECT_TRUE(s2n_allowed_to_cache_connection(conn));
+
+        /* Disabling caching takes effect even with the callbacks set */
+        EXPECT_SUCCESS(s2n_config_set_session_cache_onoff(config, 0));
+        EXPECT_FALSE(config->use_session_cache);
+        EXPECT_FALSE(s2n_allowed_to_cache_connection(conn));
     };
 
     /* Test s2n_connection_set_session */
