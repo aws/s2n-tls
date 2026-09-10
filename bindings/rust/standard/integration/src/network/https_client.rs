@@ -49,7 +49,8 @@ const TEST_CASES: &[TestCase] = &[
     // 2026-04-28: ebay.com returns 400 under
     // `cargo test --no-default-features --features pq`.
     // 2026-06-16: ebay.com also returns 307 (redirect).
-    TestCase::new("https://www.ebay.com", &[200, 307, 400]),
+    // 2026-08-12: also returns 403
+    TestCase::new("https://www.ebay.com", &[200, 307, 400, 403]),
     TestCase::new("https://www.google.com", &[200]),
     TestCase::new("https://www.mozilla.org", &[200]),
     TestCase::new("https://www.netflix.com", &[200]),

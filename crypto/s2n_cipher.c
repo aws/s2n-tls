@@ -30,6 +30,7 @@ int s2n_session_key_alloc(struct s2n_session_key *key)
     key->evp_aead_ctx = OPENSSL_malloc(sizeof(EVP_AEAD_CTX));
     if (key->evp_aead_ctx == NULL) {
         EVP_CIPHER_CTX_free(key->evp_cipher_ctx);
+        key->evp_cipher_ctx = NULL;
         S2N_ERROR_PRESERVE_ERRNO();
     }
     EVP_AEAD_CTX_zero(key->evp_aead_ctx);

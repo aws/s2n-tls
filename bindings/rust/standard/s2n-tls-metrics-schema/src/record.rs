@@ -78,6 +78,12 @@ pub struct FrozenHandshakeRecord {
 
     #[serde(default)]
     pub sslv2_client_hello: u64,
+
+    /// Number of TLS 1.3 handshakes that required a HelloRetryRequest, and
+    /// therefore an additional round trip.
+    #[serde(default)]
+    pub hello_retry_request_count: u64,
+
     #[serde(default)]
     pub supported_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
     #[serde(default)]
@@ -118,6 +124,15 @@ pub struct FrozenHandshakeRecord {
     pub compatibility_cnsa2: u64,
 
     #[serde(default)]
+    pub compatibility_negotiated_general20251201: u64,
+    #[serde(default)]
+    pub compatibility_negotiated_fips20251201: u64,
+    #[serde(default)]
+    pub compatibility_negotiated_cnsa1: u64,
+    #[serde(default)]
+    pub compatibility_negotiated_cnsa2: u64,
+
+    #[serde(default)]
     pub client_issues: FrozenCounter<{ ClientIssue::COUNT }, ClientIssue>,
 
     #[serde(default)]
@@ -146,6 +161,7 @@ impl Default for FrozenHandshakeRecord {
             negotiated_groups: FrozenCounter::default(),
             negotiated_signatures: FrozenCounter::default(),
             sslv2_client_hello: 0,
+            hello_retry_request_count: 0,
             supported_protocols: FrozenCounter::default(),
             supported_ciphers: FrozenCounter::default(),
             supported_groups: FrozenCounter::default(),
@@ -164,6 +180,10 @@ impl Default for FrozenHandshakeRecord {
             compatibility_fips20251201: 0,
             compatibility_cnsa1: 0,
             compatibility_cnsa2: 0,
+            compatibility_negotiated_general20251201: 0,
+            compatibility_negotiated_fips20251201: 0,
+            compatibility_negotiated_cnsa1: 0,
+            compatibility_negotiated_cnsa2: 0,
             client_issues: FrozenCounter::default(),
             handshake_duration_us: 0,
             handshake_compute_us: 0,
@@ -269,9 +289,30 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         writer.value(names::COMPATIBILITY_CNSA1, &self.compatibility_cnsa1);
         writer.value(names::COMPATIBILITY_CNSA2, &self.compatibility_cnsa2);
 
+        writer.value(
+            names::COMPATIBILITY_NEGOTIATED_GENERAL20251201,
+            &self.compatibility_negotiated_general20251201,
+        );
+        writer.value(
+            names::COMPATIBILITY_NEGOTIATED_FIPS20251201,
+            &self.compatibility_negotiated_fips20251201,
+        );
+        writer.value(
+            names::COMPATIBILITY_NEGOTIATED_CNSA1,
+            &self.compatibility_negotiated_cnsa1,
+        );
+        writer.value(
+            names::COMPATIBILITY_NEGOTIATED_CNSA2,
+            &self.compatibility_negotiated_cnsa2,
+        );
+
         write_counter(&self.client_issues, &names::CLIENT_ISSUES, writer);
 
         writer.value(names::SSLV2_CLIENT_HELLO, &self.sslv2_client_hello);
+        writer.value(
+            names::HELLO_RETRY_REQUEST_COUNT,
+            &self.hello_retry_request_count,
+        );
         writer.value(
             names::HANDSHAKE_SUCCESS_COUNT,
             &self.handshake_success_count,

@@ -2,23 +2,24 @@
 # SPDX-License-Identifier: Apache-2.0
 import os
 import subprocess
-import pytest
 import threading
+from stat import S_IMODE
+
+import pytest
 
 from common import (
-    ProviderOptions,
+    Cert,
     Certificates,
     Ciphers,
     Curves,
     Protocols,
+    ProviderOptions,
     Signatures,
-    Cert,
 )
-from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
-from stat import S_IMODE
+from global_flags import S2N_FIPS_MODE, S2N_PROVIDER_VERSION, get_flag
 
 
-class Provider(object):
+class Provider:
     """
     A provider defines a specific provider of TLS. This could be
     S2N, OpenSSL, BoringSSL, etc.
@@ -77,7 +78,7 @@ class Provider(object):
         """
         This should be the last message printed before the client/server can send data.
         """
-        return None
+        return
 
     @classmethod
     def supports_protocol(cls, protocol):
@@ -142,12 +143,10 @@ class S2N(Provider):
         if not cls._pss_supported() and cert.algorithm == "RSAPSS":
             return False
         # https://github.com/aws/s2n-tls/issues/5200
-        if (
+        return not (
             "openssl-3.0-fips" in get_flag(S2N_PROVIDER_VERSION)
             and "RSA_1024" in cert.name
-        ):
-            return False
-        return True
+        )
 
     @classmethod
     def supports_protocol(cls, protocol):
@@ -155,16 +154,13 @@ class S2N(Provider):
             return False
 
         # SSLv3 cannot be negotiated in FIPS mode with libcryptos other than AWS-LC.
-        if all(
+        return not all(
             [
                 protocol == Protocols.SSLv3,
                 get_flag(S2N_FIPS_MODE),
                 "awslc" not in get_flag(S2N_PROVIDER_VERSION),
             ]
-        ):
-            return False
-
-        return True
+        )
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
@@ -192,18 +188,13 @@ class S2N(Provider):
     @classmethod
     def supports_signature(cls, signature):
         # Disable RSA_PSS_RSAE_SHA256 in unsupported libcryptos
-        if (
+        return not (
             any(
-                [
-                    libcrypto in get_flag(S2N_PROVIDER_VERSION)
-                    for libcrypto in ["openssl-1.0.2", "libressl", "boringssl"]
-                ]
+                libcrypto in get_flag(S2N_PROVIDER_VERSION)
+                for libcrypto in ["openssl-1.0.2", "libressl", "boringssl"]
             )
             and signature == Signatures.RSA_PSS_RSAE_SHA256
-        ):
-            return False
-
-        return True
+        )
 
     def setup_client(self):
         """
@@ -311,9 +302,7 @@ class S2N(Provider):
             cmd_line.append("-T")
 
         if self.options.reconnects_before_exit is not None:
-            cmd_line.append(
-                "--max-conns={}".format(self.options.reconnects_before_exit)
-            )
+            cmd_line.append(f"--max-conns={self.options.reconnects_before_exit}")
 
         if get_flag(S2N_FIPS_MODE):
             cmd_line.append("--enter-fips-mode")
@@ -331,7 +320,7 @@ class S2N(Provider):
 
 class OpenSSL(Provider):
     result = subprocess.run(
-        ["openssl", "version"], shell=False, capture_output=True, text=True
+        ["openssl", "version"], shell=False, capture_output=True, text=True, check=False
     )
     # After splitting, version_str would be: ["OpenSSL", "3.0.8", "7", "Feb", "2023\n"]
     version_str = result.stdout.split(" ")
@@ -366,7 +355,7 @@ class OpenSSL(Provider):
         return ciphers
 
     def _cipher_to_cmdline(self, cipher):
-        cmdline = list()
+        cmdline = []
 
         ciphers = []
         if type(cipher) is list:
@@ -381,9 +370,7 @@ class OpenSSL(Provider):
 
             if len(mismatch) > 0:
                 raise Exception(
-                    "Cannot combine ciphers for TLS1.3 or above with older ciphers: {}".format(
-                        [c.name for c in cipher]
-                    )
+                    f"Cannot combine ciphers for TLS1.3 or above with older ciphers: {[c.name for c in cipher]}"
                 )
 
             ciphers.append(self._join_ciphers(cipher))
@@ -438,9 +425,7 @@ class OpenSSL(Provider):
 
     def setup_client(self):
         cmd_line = ["openssl", "s_client"]
-        cmd_line.extend(
-            ["-connect", "{}:{}".format(self.options.host, self.options.port)]
-        )
+        cmd_line.extend(["-connect", f"{self.options.host}:{self.options.port}"])
 
         # Additional debugging that will be captured incase of failure
         if self.options.verbose:
@@ -506,7 +491,7 @@ class OpenSSL(Provider):
         self.ready_to_test_marker = "ACCEPT"
 
         cmd_line = ["openssl", "s_server"]
-        cmd_line.extend(["-accept", "{}".format(self.options.port)])
+        cmd_line.extend(["-accept", f"{self.options.port}"])
 
         if self.options.reconnects_before_exit is not None:
             # If the user request a specific reconnection count, set it here
@@ -574,16 +559,14 @@ class SSLv3Provider(OpenSSL):
     def _override_libssl(self, options: ProviderOptions):
         install_dir = os.environ["OPENSSL_1_0_2_INSTALL_DIR"]
 
-        override_env_vars = dict()
+        override_env_vars = {}
         override_env_vars["PATH"] = install_dir + "/bin"
         override_env_vars["LD_LIBRARY_PATH"] = install_dir + "/lib"
         options.env_overrides = override_env_vars
 
     @classmethod
     def supports_protocol(cls, protocol):
-        if protocol is Protocols.SSLv3:
-            return True
-        return False
+        return protocol is Protocols.SSLv3
 
 
 class JavaSSL(Provider):
@@ -602,22 +585,16 @@ class JavaSSL(Provider):
     @classmethod
     def supports_protocol(cls, protocol):
         # https://aws.amazon.com/blogs/opensource/tls-1-0-1-1-changes-in-openjdk-and-amazon-corretto/
-        if (
+        return not (
             protocol is Protocols.SSLv3
             or protocol is Protocols.TLS10
             or protocol is Protocols.TLS11
-        ):
-            return False
-
-        return True
+        )
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
         # Java SSL does not support CHACHA20
-        if "CHACHA20" in cipher.name:
-            return False
-
-        return True
+        return "CHACHA20" not in cipher.name
 
     def setup_server(self):
         pytest.skip("JavaSSL does not support server mode at this time")
@@ -677,9 +654,7 @@ class BoringSSL(Provider):
             elif self.options.curve == Curves.P521:
                 cmd_line.extend(["-curves", "P-521"])
             elif self.options.curve == Curves.X25519:
-                pytest.skip(
-                    "BoringSSL does not support curve {}".format(self.options.curve)
-                )
+                pytest.skip(f"BoringSSL does not support curve {self.options.curve}")
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -688,9 +663,7 @@ class BoringSSL(Provider):
 
     def setup_client(self):
         cmd_line = ["bssl", "s_client"]
-        cmd_line.extend(
-            ["-connect", "{}:{}".format(self.options.host, self.options.port)]
-        )
+        cmd_line.extend(["-connect", f"{self.options.host}:{self.options.port}"])
         if self.options.cert is not None:
             cmd_line.extend(["-cert", self.options.cert])
         if self.options.key is not None:
@@ -708,9 +681,7 @@ class BoringSSL(Provider):
             elif self.options.curve == Curves.P521:
                 cmd_line.extend(["-curves", "P-521"])
             elif self.options.curve == Curves.X25519:
-                pytest.skip(
-                    "BoringSSL does not support curve {}".format(self.options.curve)
-                )
+                pytest.skip(f"BoringSSL does not support curve {self.options.curve}")
 
         if self.options.extra_flags is not None:
             cmd_line.extend(self.options.extra_flags)
@@ -912,13 +883,15 @@ class GnuTLS(Provider):
         return GnuTLS.sigalg_to_priority_str(signature) is not None
 
 
-def find_files(file_glob, root_dir=".", modes=[]):
+def find_files(file_glob, root_dir=".", modes=None):
     """
     find util in python form.
     file_glob: a snippet of the filename, e.g. ".py"
     root_dir: starting point for search
     mode is an octal representation of owner/group/other, e.g.: '0o644'
     """
+    if modes is None:
+        modes = []
     result = []
     for root, dirs, files in os.walk(root_dir):
         for file in files:

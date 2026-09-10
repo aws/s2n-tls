@@ -80,7 +80,7 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
      * must match that auth method.
      */
     if (cipher_suite->auth_method != S2N_AUTHENTICATION_METHOD_SENTINEL) {
-        s2n_authentication_method auth_method_for_sig_alg;
+        s2n_authentication_method auth_method_for_sig_alg = 0;
         POSIX_GUARD(s2n_get_auth_method_for_cert_type(cert_type_for_sig_alg, &auth_method_for_sig_alg));
         POSIX_ENSURE_EQ(cipher_suite->auth_method, auth_method_for_sig_alg);
     }
@@ -114,13 +114,14 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
             POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
             POSIX_ENSURE_EQ(cert->cert_chain->head->info.public_key_nid, sig_scheme->signature_curve->libcrypto_nid);
         } else if (cert_type == S2N_PKEY_TYPE_MLDSA) {
-            /* ML-DSA signatures e.g. mldsa65 include a parameter set (65) which must
-             * match the cert */
+            /* ML-DSA signatures e.g. mldsa65 include a parameter set (65) which must match
+             * the cert. public_key_nid holds the specific ML-DSA NID (NID_MLDSA44/65/87)
+             * populated via EVP_PKEY_pqdsa_get_type() at cert-load time. */
             POSIX_ENSURE_REF(cert->private_key);
             POSIX_ENSURE_REF(cert->cert_chain);
             POSIX_ENSURE_REF(cert->cert_chain->head);
             POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_MLDSA);
-            POSIX_ENSURE_EQ(cert->cert_chain->head->info.signature_nid, sig_scheme->libcrypto_nid);
+            POSIX_ENSURE_EQ(cert->cert_chain->head->info.public_key_nid, sig_scheme->libcrypto_nid);
         } else {
             /* We expect any future signature schemes to also have these restrictions
              * so we concretely fail here until they are properly handled */
@@ -137,7 +138,7 @@ static int s2n_certs_exist_for_auth_method(struct s2n_connection *conn, s2n_auth
         return S2N_SUCCESS;
     }
 
-    s2n_authentication_method auth_method_for_cert_type;
+    s2n_authentication_method auth_method_for_cert_type = 0;
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         POSIX_GUARD(s2n_get_auth_method_for_cert_type(i, &auth_method_for_cert_type));
 

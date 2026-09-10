@@ -281,7 +281,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_free(&conn->handshake.io));
     POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
     s2n_x509_validator_wipe(&conn->x509_validator);
-    POSIX_GUARD_RESULT(s2n_async_offload_op_wipe(&conn->async_offload_op));
+    POSIX_GUARD_RESULT(s2n_async_offload_op_free(&conn->async_offload_op));
     POSIX_GUARD(s2n_client_hello_free_raw_message(&conn->client_hello));
     POSIX_GUARD(s2n_free(&conn->application_protocols_overridden));
     POSIX_GUARD(s2n_free(&conn->cookie));
@@ -316,12 +316,24 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         POSIX_BAIL(S2N_ERR_TOO_MANY_CERTIFICATES);
     }
 
-    s2n_x509_validator_wipe(&conn->x509_validator);
+    /* Build the new validator into a local so that the connection's existing
+     * validator is not destroyed until the new one is fully initialized.
+     * Without this staging, a failure mid-init (e.g. X509_STORE_CTX_new
+     * returning NULL under OOM) would leave conn->x509_validator wiped
+     * while conn->config still references the old config.
+     */
+    struct s2n_x509_validator new_validator = { 0 };
 
     if (config->disable_x509_validation) {
-        POSIX_GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
+        POSIX_GUARD(s2n_x509_validator_init_no_x509_validation(&new_validator));
     } else {
-        POSIX_GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
+        int ret = s2n_x509_validator_init(&new_validator, &config->trust_store, config->check_ocsp);
+        if (ret != S2N_SUCCESS) {
+            /* init may have partially populated new_validator before failing */
+            s2n_x509_validator_wipe(&new_validator);
+            POSIX_GUARD(ret);
+        }
+
         if (!conn->verify_host_fn_overridden) {
             if (config->verify_host_fn != NULL) {
                 conn->verify_host_fn = config->verify_host_fn;
@@ -333,9 +345,18 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
 
         if (config->max_verify_cert_chain_depth_set) {
-            POSIX_GUARD(s2n_x509_validator_set_max_chain_depth(&conn->x509_validator, config->max_verify_cert_chain_depth));
+            ret = s2n_x509_validator_set_max_chain_depth(&new_validator, config->max_verify_cert_chain_depth);
+            if (ret != S2N_SUCCESS) {
+                s2n_x509_validator_wipe(&new_validator);
+                POSIX_GUARD(ret);
+            }
         }
     }
+
+    /* New validator is fully initialized. Swap it in. */
+    s2n_x509_validator_wipe(&conn->x509_validator);
+    conn->x509_validator = new_validator;
+
     conn->tickets_to_send = config->initial_tickets_to_send;
 
     if (conn->psk_params.psk_list.len == 0 && !conn->psk_mode_overridden) {
@@ -376,7 +397,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      * However, the s2n_config_set_verification_ca_location behavior predates client authentication
      * support for OCSP stapling, so could only affect whether clients requested OCSP stapling. We
      * therefore only have to maintain the legacy behavior for clients, not servers.
-     * 
+     *
      * Note: The Rust bindings do not maintain the legacy behavior.
      */
     conn->request_ocsp_status = config->ocsp_status_requested_by_user;
@@ -531,7 +552,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_free(&conn->in));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
-    POSIX_GUARD_RESULT(s2n_async_offload_op_wipe(&conn->async_offload_op));
+    POSIX_GUARD_RESULT(s2n_async_offload_op_free(&conn->async_offload_op));
 
     /* Wipe the I/O-related info and restore the original socket if necessary */
     POSIX_GUARD(s2n_connection_wipe_io(conn));
@@ -1031,7 +1052,7 @@ int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const cha
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(group_name);
 
-    /* s2n_connection_get_curve returns only the ECDH curve portion of a named group, even if 
+    /* s2n_connection_get_curve returns only the ECDH curve portion of a named group, even if
        the negotiated group was a hybrid PQ key exchange also containing a KEM. Therefore,
        we use the result of s2n_connection_get_kem_group_name if the connection supports PQ. */
     if (s2n_tls13_pq_hybrid_supported(conn)) {
@@ -1267,11 +1288,11 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 
 /* s2n-tls has a random delay that will trigger for sensitive errors. This is a mitigation
  * for possible timing sidechannels.
- * 
+ *
  * The historical sidechannel that inspired s2n-tls blinding was the Lucky 13 attack, which takes
  * advantage of potential timing differences when removing padding from a record encrypted in CBC mode.
- * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur 
- * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and 
+ * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur
+ * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and
  * DTLS Record Protocols.) However, we still include blinding to provide a defense in depth mitigation.
  */
 S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_t *min, int64_t *max)
@@ -1376,6 +1397,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         case S2N_ERR_CIPHER_NOT_SUPPORTED:
         case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
         case S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK:
+        case S2N_ERR_MISSING_CLIENT_CERT:
             RESULT_GUARD(s2n_connection_set_closed(*conn));
             break;
         default:
@@ -1530,7 +1552,7 @@ const uint8_t *s2n_connection_get_sct_list(struct s2n_connection *conn, uint32_t
 
 int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection)
 {
-    s2n_cert_auth_type auth_type;
+    s2n_cert_auth_type auth_type = 0;
     POSIX_GUARD(s2n_connection_get_client_auth_type(s2n_connection, &auth_type));
 
     return (auth_type != S2N_CERT_AUTH_NONE);
@@ -1908,4 +1930,61 @@ s2n_mode s2n_connection_get_mode(struct s2n_connection *conn)
         return S2N_SERVER;
     }
     return conn->mode;
+}
+
+int s2n_conn_get_signature_public_key_type(struct s2n_connection *conn,
+        s2n_mode mode, char *output, uint32_t *output_size)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(output);
+    POSIX_ENSURE_REF(output_size);
+
+    const struct s2n_cert_info *cert_info = NULL;
+    struct s2n_cert_info peer_cert_info = { 0 };
+
+    bool requesting_own_cert = (mode == conn->mode);
+
+    if (requesting_own_cert) {
+        /* Return info about our own certificate */
+        POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key);
+        POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key->cert_chain);
+        POSIX_ENSURE_REF(conn->handshake_params.our_chain_and_key->cert_chain->head);
+        cert_info = &conn->handshake_params.our_chain_and_key->cert_chain->head->info;
+    } else {
+        /* Return info about the peer's certificate (validated during handshake) */
+        const struct s2n_x509_validator *validator = &conn->x509_validator;
+        POSIX_ENSURE(s2n_x509_validator_is_cert_chain_validated(validator), S2N_ERR_CERT_NOT_VALIDATED);
+
+        DEFER_CLEANUP(struct s2n_validated_cert_chain validated_cert_chain = { 0 },
+                s2n_x509_validator_validated_cert_chain_free);
+        POSIX_GUARD_RESULT(s2n_x509_validator_get_validated_cert_chain(validator, &validated_cert_chain));
+        STACK_OF(X509) *cert_chain_validated = validated_cert_chain.stack;
+        POSIX_ENSURE_REF(cert_chain_validated);
+
+        int cert_count = sk_X509_num(cert_chain_validated);
+        POSIX_ENSURE_GT(cert_count, 0);
+
+        /* Get the leaf certificate (first in chain) */
+        X509 *leaf_cert = sk_X509_value(cert_chain_validated, 0);
+        POSIX_ENSURE_REF(leaf_cert);
+
+        POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(leaf_cert, &peer_cert_info));
+        cert_info = &peer_cert_info;
+    }
+
+    POSIX_ENSURE_REF(cert_info);
+
+    uint32_t required_size = 0;
+    s2n_result format_result = s2n_cert_info_format_public_key_string(cert_info, output, *output_size, &required_size);
+
+    /* Always set the output_size to the required/written size */
+    *output_size = required_size;
+
+    /* Now check the result - this will return failure if buffer was too small */
+    if (s2n_result_is_error(format_result)) {
+        /* Propagate the error that was set by s2n_format_public_key_string */
+        POSIX_BAIL(s2n_errno);
+    }
+
+    return S2N_SUCCESS;
 }

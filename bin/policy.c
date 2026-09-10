@@ -18,7 +18,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
-#include "tls/policy/s2n_policy_feature.h"
+#include "tls/s2n_policy_writer.h"
 #include "tls/s2n_security_policies.h"
 
 static int usage()

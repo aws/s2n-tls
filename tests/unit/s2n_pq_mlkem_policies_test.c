@@ -137,6 +137,7 @@ const char *tls_version_exceptions[] = {
     "test_all",
     "20260520",
     "20260520_gcm",
+    "20200207_pq",
 };
 
 const size_t mlkem_list_size = s2n_array_len(mlkem_list);

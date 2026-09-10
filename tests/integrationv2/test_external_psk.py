@@ -1,18 +1,19 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
+from enum import Enum, auto
+
 import pytest
 
+from common import Protocols, ProviderOptions, data_bytes
 from configuration import (
-    available_ports,
-    TLS13_CIPHERS,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
+    TLS13_CIPHERS,
+    available_ports,
 )
-from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # noqa: F401
 from providers import S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
-from enum import Enum, auto
+from utils import get_parameter_name, invalid_test_parameters, to_bytes
 
 # Known value test vectors from https://tools.ietf.org/html/rfc8448#section-4
 known_psk_identity = (
@@ -95,14 +96,10 @@ def skip_invalid_psk_tests(provider, psk_hash_alg):
 
 def validate_negotiated_psk_s2n(outcome, psk_identity, results):
     if outcome == Outcome.psk_connection:
-        assert (
-            to_bytes("Negotiated PSK identity: {}".format(psk_identity))
-            in results.stdout
-        )
+        assert to_bytes(f"Negotiated PSK identity: {psk_identity}") in results.stdout
     elif outcome == Outcome.full_handshake:
         assert (
-            to_bytes("Negotiated PSK identity: {}".format(psk_identity))
-            not in results.stdout
+            to_bytes(f"Negotiated PSK identity: {psk_identity}") not in results.stdout
         )
     else:
         assert results.exit_code != 0

@@ -94,14 +94,19 @@ Pytest will generate 8 configuration based on the parameterize options below. Th
 test will be run with each of the possible configurations.
 """
 
-@pytest.mark.parametrize("cipher",
-    [Ciphers.AES128_GCM_SHA256, Ciphers.CHACHA20_POLY1305_SHA256], ids=get_parameter_name)
-@pytest.mark.parametrize("provider",
-    [S2N, OpenSSL])
-@pytest.mark.parametrize("protocol",
-    [Protocols.TLS13], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate",
-    [Cert("ECDSA_256", "ecdsa_p256_pkcs1"), Cert("ECDSA_384", "ecdsa_p384_pkcs1")], ids=get_parameter_name)
+
+@pytest.mark.parametrize(
+    "cipher",
+    [Ciphers.AES128_GCM_SHA256, Ciphers.CHACHA20_POLY1305_SHA256],
+    ids=get_parameter_name,
+)
+@pytest.mark.parametrize("provider", [S2N, OpenSSL])
+@pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
+@pytest.mark.parametrize(
+    "certificate",
+    [Cert("ECDSA_256", "ecdsa_p256_pkcs1"), Cert("ECDSA_384", "ecdsa_p384_pkcs1")],
+    ids=get_parameter_name,
+)
 def test_example(managed_process, cipher, provider, protocol, certificate):
     host = "localhost"
     port = next(available_ports)
@@ -112,7 +117,8 @@ def test_example(managed_process, cipher, provider, protocol, certificate):
         port=port,
         cipher=cipher,
         insecure=True,
-        protocol=protocol)
+        protocol=protocol,
+    )
 
     server_options = copy.copy(client_options)
     server_options.mode = Provider.ServerMode
@@ -127,12 +133,16 @@ def test_example(managed_process, cipher, provider, protocol, certificate):
     for results in client.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-        assert bytes("Actual protocol version: {}".format(expected_version).encode('utf-8')) in results.stdout
+        assert (
+            bytes(
+                "Actual protocol version: {}".format(expected_version).encode("utf-8")
+            )
+            in results.stdout
+        )
 
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code == 0
-
 ```
 
 

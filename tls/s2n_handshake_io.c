@@ -975,7 +975,7 @@ static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn)
         conn->handshake.handshake_type |= WITH_EARLY_DATA;
     }
 
-    s2n_cert_auth_type client_cert_auth_type;
+    s2n_cert_auth_type client_cert_auth_type = 0;
     RESULT_GUARD_POSIX(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
     if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED
@@ -1036,7 +1036,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     /* A handshake type has been negotiated */
     POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, NEGOTIATED));
 
-    s2n_cert_auth_type client_cert_auth_type;
+    s2n_cert_auth_type client_cert_auth_type = 0;
     POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
     if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
@@ -1113,7 +1113,7 @@ skip_cache_lookup:
 
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
 {
-    s2n_cert_auth_type client_cert_auth_type;
+    s2n_cert_auth_type client_cert_auth_type = 0;
     POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
     POSIX_ENSURE(client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL, S2N_ERR_MISSING_CLIENT_CERT);
 
@@ -1526,54 +1526,61 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     if (isSSLv2) {
         S2N_ERROR_IF(record_type != SSLv2_CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
         POSIX_GUARD(s2n_handshake_handle_sslv2(conn));
+        return S2N_SUCCESS;
     }
 
     /* Now we have a record, but it could be a partial fragment of a message, or it might
      * contain several messages.
      */
 
-    if (record_type == TLS_APPLICATION_DATA) {
-        POSIX_GUARD_RESULT(s2n_handshake_app_data_recv(conn));
-    } else if (record_type == TLS_CHANGE_CIPHER_SPEC) {
-        /* TLS1.3 can receive unexpected CCS messages at any point in the handshake
-         * due to a peer operating in middlebox compatibility mode.
-         * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
-         * including these unexpected ones.*/
-        if (!IS_TLS13_HANDSHAKE(conn) || s2n_connection_is_quic_enabled(conn)) {
-            POSIX_ENSURE(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
-            POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
-        }
+    switch (record_type) {
+        case TLS_APPLICATION_DATA:
+            POSIX_GUARD_RESULT(s2n_handshake_app_data_recv(conn));
+            return S2N_SUCCESS;
+        case TLS_CHANGE_CIPHER_SPEC:
+            /* TLS1.3 can receive unexpected CCS messages at any point in the handshake
+             * due to a peer operating in middlebox compatibility mode.
+             * However, when operating in QUIC mode, S2N should not accept ANY CCS messages,
+             * including these unexpected ones.*/
+            if (!IS_TLS13_HANDSHAKE(conn) || s2n_connection_is_quic_enabled(conn)) {
+                POSIX_ENSURE(EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC, S2N_ERR_BAD_MESSAGE);
+                POSIX_ENSURE(!CONNECTION_IS_WRITER(conn), S2N_ERR_BAD_MESSAGE);
+            }
 
-        S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 1, S2N_ERR_BAD_MESSAGE);
+            S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) != 1, S2N_ERR_BAD_MESSAGE);
 
-        POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
-        POSIX_GUARD(CCS_STATE(conn).handler[conn->mode](conn));
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
+            POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
+            POSIX_GUARD(CCS_STATE(conn).handler[conn->mode](conn));
+            POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
 
-        /* We're done with the record, wipe it */
-        POSIX_GUARD_RESULT(s2n_record_wipe(conn));
+            /* We're done with the record, wipe it */
+            POSIX_GUARD_RESULT(s2n_record_wipe(conn));
 
-        /* Advance the state machine if this was an expected message */
-        if (EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC && !CONNECTION_IS_WRITER(conn)) {
-            POSIX_GUARD(s2n_advance_message(conn));
-        }
+            /* Advance the state machine if this was an expected message */
+            if (EXPECTED_RECORD_TYPE(conn) == TLS_CHANGE_CIPHER_SPEC && !CONNECTION_IS_WRITER(conn)) {
+                POSIX_GUARD(s2n_advance_message(conn));
+            }
 
-        return S2N_SUCCESS;
-    } else if (record_type != TLS_HANDSHAKE) {
-        if (record_type == TLS_ALERT) {
+            return S2N_SUCCESS;
+        case TLS_ALERT:
             POSIX_GUARD(s2n_process_alert_fragment(conn));
-        }
-
-        /* Ignore record types that we don't support */
-
-        /* We're done with the record, wipe it */
-        POSIX_GUARD_RESULT(s2n_record_wipe(conn));
-        return S2N_SUCCESS;
+            POSIX_GUARD_RESULT(s2n_record_wipe(conn));
+            return S2N_SUCCESS;
+        case TLS_HANDSHAKE:
+            /* Record is a handshake message */
+            S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
+            POSIX_GUARD(s2n_handshake_message_process(conn, record_type));
+            return S2N_SUCCESS;
+        default:
+            /*
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-5
+             *# Implementations MUST NOT send record types not defined in this
+             *# document unless negotiated by some extension.  If a TLS
+             *# implementation receives an unexpected record type, it MUST terminate
+             *# the connection with an "unexpected_message" alert.
+             */
+            POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
     }
-
-    /* Record is a handshake message */
-    S2N_ERROR_IF(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_BAD_MESSAGE);
-    POSIX_GUARD(s2n_handshake_message_process(conn, record_type));
 
     return S2N_SUCCESS;
 }
@@ -1640,6 +1647,11 @@ bool s2n_handshake_is_complete(struct s2n_connection *conn)
     /* A deserialized connection implies that the handshake is complete because
      * connections cannot be serialized before completing the handshake. */
     return conn && (ACTIVE_STATE(conn).writer == 'B' || conn->deserialized_conn);
+}
+
+bool s2n_connection_handshake_complete(struct s2n_connection *conn)
+{
+    return s2n_handshake_is_complete(conn);
 }
 
 int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)

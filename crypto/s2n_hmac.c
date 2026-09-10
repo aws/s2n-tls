@@ -69,7 +69,7 @@ int s2n_hmac_hash_alg(s2n_hmac_algorithm hmac_alg, s2n_hash_algorithm *out)
 
 int s2n_hmac_digest_size(s2n_hmac_algorithm hmac_alg, uint8_t *out)
 {
-    s2n_hash_algorithm hash_alg;
+    s2n_hash_algorithm hash_alg = 0;
     POSIX_GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
     POSIX_GUARD(s2n_hash_digest_size(hash_alg, out));
     return S2N_SUCCESS;
@@ -195,7 +195,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     /* key needs to be as large as the biggest block size */
     POSIX_ENSURE_GTE(sizeof(state->xor_pad), state->hash_block_size);
 
-    s2n_hash_algorithm hash_alg;
+    s2n_hash_algorithm hash_alg = 0;
     POSIX_GUARD(s2n_hmac_hash_alg(alg, &hash_alg));
 
     POSIX_GUARD(s2n_hash_init(&state->inner, hash_alg));
@@ -251,6 +251,18 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
     state->currently_in_hash_block %= state->hash_block_size;
 
     return s2n_hash_update(&state->inner, in, size);
+}
+
+/**
+ * A wrapper around s2n_hmac_update that can be used to write a u16 in network order
+ * to the hmac 
+ */
+int s2n_hmac_update_u16(struct s2n_hmac_state *state, const uint16_t data)
+{
+    uint8_t network_order[2] = { 0 };
+    network_order[0] = data >> 8;
+    network_order[1] = data & 0xFF;
+    return s2n_hmac_update(state, &network_order, 2);
 }
 
 int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size)

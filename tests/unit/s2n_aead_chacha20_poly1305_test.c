@@ -135,12 +135,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Let's decrypt it */
-        uint8_t content_type = 0;
-        uint16_t fragment_length = 0;
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        struct s2n_record_header header = { 0 };
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &header));
         EXPECT_SUCCESS(s2n_record_parse(conn));
-        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
-        EXPECT_EQUAL(fragment_length, predicted_length);
+        EXPECT_EQUAL(header.content_type, TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(header.length, predicted_length);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -166,8 +165,8 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->header_in.blob.data[0], TLS_APPLICATION_DATA);
         conn->header_in.blob.data[0] ^= 1; /* Flip a bit in the content_type of the TLS Record Header */
 
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
-        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA ^ 1);
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &header));
+        EXPECT_EQUAL(header.content_type, TLS_APPLICATION_DATA ^ 1);
 
         /**
          * We are trying to test the case when the Additional Authenticated Data in AEAD ciphers is tampered with.
@@ -202,9 +201,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[s2n_stuffer_data_available(&conn->in) - j - 1]++;
-            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &header));
             EXPECT_FAILURE(s2n_record_parse(conn));
-            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+            EXPECT_EQUAL(header.content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -229,9 +228,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->header_in, 5));
             EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
             conn->in.blob.data[j]++;
-            EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+            EXPECT_SUCCESS(s2n_record_header_parse(conn, &header));
             EXPECT_FAILURE(s2n_record_parse(conn));
-            EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
+            EXPECT_EQUAL(header.content_type, TLS_APPLICATION_DATA);
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));

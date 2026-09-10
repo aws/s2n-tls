@@ -60,7 +60,7 @@ static int s2n_quic_transport_params_recv(struct s2n_connection *conn, struct s2
     POSIX_ENSURE(s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_EXTENSION);
 
     if (s2n_stuffer_data_available(extension)) {
-        POSIX_GUARD(s2n_alloc(&conn->peer_quic_transport_parameters, s2n_stuffer_data_available(extension)));
+        POSIX_GUARD(s2n_realloc(&conn->peer_quic_transport_parameters, s2n_stuffer_data_available(extension)));
         POSIX_GUARD(s2n_stuffer_read(extension, &conn->peer_quic_transport_parameters));
     }
     return S2N_SUCCESS;

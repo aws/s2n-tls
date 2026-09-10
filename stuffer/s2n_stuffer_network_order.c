@@ -75,7 +75,7 @@ int s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_re
 int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t *u)
 {
     POSIX_ENSURE_REF(u);
-    uint8_t data[sizeof(uint16_t)];
+    uint8_t data[sizeof(uint16_t)] = { 0 };
 
     POSIX_GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 
@@ -98,7 +98,7 @@ int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_r
 int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u)
 {
     POSIX_ENSURE_REF(u);
-    uint8_t data[SIZEOF_UINT24];
+    uint8_t data[SIZEOF_UINT24] = { 0 };
 
     POSIX_GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 
@@ -123,7 +123,7 @@ int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_r
 int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u)
 {
     POSIX_ENSURE_REF(u);
-    uint8_t data[sizeof(uint32_t)];
+    uint8_t data[sizeof(uint32_t)] = { 0 };
 
     POSIX_GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 
@@ -143,7 +143,7 @@ int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u)
 int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t *u)
 {
     POSIX_ENSURE_REF(u);
-    uint8_t data[sizeof(uint64_t)];
+    uint8_t data[sizeof(uint64_t)] = { 0 };
 
     POSIX_GUARD(s2n_stuffer_read_bytes(stuffer, data, sizeof(data)));
 

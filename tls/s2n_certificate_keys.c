@@ -17,6 +17,7 @@
 
 #include <openssl/objects.h>
 
+#include "crypto/s2n_mldsa.h"
 #include "utils/s2n_safety.h"
 
 const struct s2n_certificate_key s2n_rsa_rsae_1024 = {
@@ -86,11 +87,7 @@ const struct s2n_certificate_key s2n_ec_p521 = {
 };
 
 const struct s2n_certificate_key s2n_mldsa_87 = {
-#if S2N_LIBCRYPTO_SUPPORTS_MLDSA
-    .public_key_libcrypto_nid = NID_PQDSA,
-#else
-    .public_key_libcrypto_nid = NID_undef,
-#endif
+    .public_key_libcrypto_nid = S2N_NID_MLDSA87,
     .name = "mldsa_87",
     .bits = 20736, /* The ML-DSA-87 public key size is 2592 bytes. */
 };

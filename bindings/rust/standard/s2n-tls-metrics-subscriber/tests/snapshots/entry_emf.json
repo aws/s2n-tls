@@ -146,7 +146,22 @@
             "Name": "compatibility.cnsa2"
           },
           {
+            "Name": "compatibility.negotiated.general20251201"
+          },
+          {
+            "Name": "compatibility.negotiated.fips20251201"
+          },
+          {
+            "Name": "compatibility.negotiated.cnsa1"
+          },
+          {
+            "Name": "compatibility.negotiated.cnsa2"
+          },
+          {
             "Name": "sslv2_client_hello"
+          },
+          {
+            "Name": "hello_retry_request_count"
           },
           {
             "Name": "handshake_success_count"
@@ -200,6 +215,10 @@
   "compatibility.cnsa2": 0,
   "compatibility.fips20251201": 1,
   "compatibility.general20251201": 1,
+  "compatibility.negotiated.cnsa1": 0,
+  "compatibility.negotiated.cnsa2": 0,
+  "compatibility.negotiated.fips20251201": 1,
+  "compatibility.negotiated.general20251201": 1,
   "group.negotiated.secp256r1": 1,
   "group.supported.secp256r1": 1,
   "group.supported.secp384r1": 1,
@@ -209,6 +228,7 @@
   "handshake_duration_us": "<DURATION>",
   "handshake_failure_count": 1,
   "handshake_success_count": 1,
+  "hello_retry_request_count": 0,
   "internal_failure": 0,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",

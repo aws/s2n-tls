@@ -1,8 +1,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 from common import Protocols
+from global_flags import S2N_FIPS_MODE, get_flag
 from providers import S2N
-from global_flags import get_flag, S2N_FIPS_MODE
 
 
 def to_bytes(val):

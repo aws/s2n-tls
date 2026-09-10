@@ -1,6 +1,6 @@
 [package]
 name = "s2n-tls-metrics-subscriber"
-version = "0.0.5"
+version = "0.0.6"
 edition = "2024"
 description = "Telemetry provider for s2n-tls"
 authors = ["AWS s2n"]
@@ -16,6 +16,7 @@ tracing = "0.1.43"
 metrique-writer = "0.1.19"
 
 arc-swap = "1.8.0"
+rand = "0.9"
 # minimum versions set for workspace-wide cargo minimal-versions compatibility
 serde = { version = "1.0.225", features = ["derive"] }
 # the event APIs are not stable, but we rely on the test introduced in

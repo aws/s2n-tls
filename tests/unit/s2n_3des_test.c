@@ -97,12 +97,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Let's decrypt it */
-        uint8_t content_type = 0;
-        uint16_t fragment_length = 0;
-        EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
+        struct s2n_record_header header = { 0 };
+        EXPECT_SUCCESS(s2n_record_header_parse(conn, &header));
         EXPECT_SUCCESS(s2n_record_parse(conn));
-        EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);
-        EXPECT_EQUAL(fragment_length, predicted_length);
+        EXPECT_EQUAL(header.content_type, TLS_APPLICATION_DATA);
+        EXPECT_EQUAL(header.length, predicted_length);
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
