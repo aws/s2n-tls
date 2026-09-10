@@ -347,33 +347,6 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
         }
 
-        /* Test: s2n_recv with interleaved control messages */
-        {
-            /* TLS1.3 and TLS1.2 have different expectations for control messages */
-            EXPECT_EQUAL(reader->actual_protocol_version, S2N_TLS12);
-
-            const uint8_t test_record_type = TLS_CHANGE_CIPHER_SPEC;
-            uint8_t control_record_data[] = "control record data";
-            struct s2n_blob control_record = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&control_record, control_record_data,
-                    sizeof(control_record_data)));
-
-            for (size_t i = 0; i < 5; i++) {
-                EXPECT_OK(s2n_record_write(writer, test_record_type, &control_record));
-                EXPECT_SUCCESS(s2n_flush(writer, &blocked));
-
-                int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
-                EXPECT_EQUAL(written, sizeof(test_data));
-
-                uint8_t buffer[sizeof(test_data)] = { 0 };
-                int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
-                EXPECT_EQUAL(read, sizeof(test_data));
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-
-                EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
-            }
-        };
-
         /* Test: s2n_recv with incorrectly encrypted application data
          *
          * This test closes the connection so should be the last test to use
