@@ -494,8 +494,14 @@ S2N_RESULT s2n_store_to_cache(struct s2n_connection *conn)
 
     RESULT_GUARD_POSIX(s2n_stuffer_init(&to, &entry));
 
-    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, &to));
+    /* The lookup returns a pointer into the shared, unsynchronized config->ticket_keys array.
+     * A concurrent call to s2n_config_add_ticket_crypto_key (key rotation) can reallocate,
+     * shift, or overwrite that array, invalidating the pointer. Copy the key to the stack
+     * immediately so later operations never dereference memory another thread might change. */
+    struct s2n_ticket_key *key_ptr = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE(key_ptr != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+    struct s2n_ticket_key key = *key_ptr;
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, &key, &to));
 
     /* Store to the cache */
     conn->config->cache_store(conn, conn->config->cache_store_data, S2N_TLS_SESSION_CACHE_TTL, conn->session_id, conn->session_id_len, entry.data, entry.size);
@@ -905,12 +911,17 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
     uint8_t key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, key_name, sizeof(key_name)));
 
-    struct s2n_ticket_key *key = s2n_find_ticket_key(conn->config, key_name);
+    /* The lookup returns a pointer into the shared, unsynchronized config->ticket_keys array.
+     * A concurrent call to s2n_config_add_ticket_crypto_key (key rotation) can reallocate,
+     * shift, or overwrite that array, invalidating the pointer. Copy the key to the stack
+     * immediately so later operations never dereference memory another thread might change. */
+    struct s2n_ticket_key *key_ptr = s2n_find_ticket_key(conn->config, key_name);
     /* Key has expired; do full handshake */
-    RESULT_ENSURE(key != NULL, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+    RESULT_ENSURE(key_ptr != NULL, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+    struct s2n_ticket_key key = *key_ptr;
 
     struct s2n_unique_ticket_key ticket_key = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&ticket_key.initial_key, key->aes_key, sizeof(key->aes_key)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&ticket_key.initial_key, key.aes_key, sizeof(key.aes_key)));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, ticket_key.info, sizeof(ticket_key.info)));
     RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key));
 
@@ -934,8 +945,8 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_blob_init(&aad_blob, aad_data, sizeof(aad_data)));
     struct s2n_stuffer aad = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&aad, &aad_blob));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&aad, key->implicit_aad, sizeof(key->implicit_aad)));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&aad, key->key_name, sizeof(key->key_name)));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&aad, key.implicit_aad, sizeof(key.implicit_aad)));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&aad, key.key_name, sizeof(key.key_name)));
 
     /* Initialize blob to be decrypted */
     struct s2n_blob en_blob = { 0 };
