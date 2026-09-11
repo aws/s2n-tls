@@ -30,14 +30,15 @@
 static const char *certificate_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS8_CERT_CHAIN };
 static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_KEY, S2N_RSA_2048_PKCS8_KEY };
 
-void mock_client(struct s2n_test_io_pair *io_pair)
+void mock_client(struct s2n_test_io_pair *io_pair, int ready_pipe_w, int done_pipe_r)
 {
     struct s2n_connection *conn = NULL;
     struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
 
-    /* Give the server a chance to listen */
-    sleep(1);
+    /* The socketpair underlying io_pair is valid from the moment of fork,
+     * so the child can start the handshake immediately. The kernel buffers
+     * writes until the parent is ready to read. */
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
@@ -64,8 +65,23 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Close client read fd to mock half closed pipe at server side */
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_RD);
 #endif
-    /* Give server a chance to send data on broken pipe */
-    sleep(2);
+
+    /* Signal the parent: the read end of the socketpair is now shut down,
+     * so the parent's next s2n_send is guaranteed to observe EPIPE. */
+    uint8_t ready = 1;
+    if (write(ready_pipe_w, &ready, 1) != 1) {
+        exit(1);
+    }
+    close(ready_pipe_w);
+
+    /* Wait for the parent to finish its broken-pipe assertions before
+     * continuing teardown. Without this, the child could race ahead and
+     * close the socket entirely while the parent is mid-assertion. */
+    uint8_t done = 0;
+    if (read(done_pipe_r, &done, 1) != 1) {
+        exit(1);
+    }
+    close(done_pipe_r);
 
     s2n_shutdown(conn, &blocked);
 
@@ -79,8 +95,9 @@ void mock_client(struct s2n_test_io_pair *io_pair)
         exit(1);
     }
 
-    /* Give the server a chance to avoid a sigpipe */
-    sleep(1);
+    /* The parent has SIGPIPE ignored (via s2n_io_pair_init), and the child
+     * inherits that signal disposition through fork(), so there's no need to
+     * sleep before tearing down the other end of the socketpair. */
 
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
@@ -107,15 +124,34 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
+        /* Create control pipes for child<->parent synchronization. The child
+         * writes to ready_pipe after shutting down its read side, so the
+         * parent can deterministically observe EPIPE on its next s2n_send.
+         * The parent writes to done_pipe after completing its assertions, so
+         * the child knows when it's safe to tear down the socket. This
+         * replaces two timing-dependent sleep() calls. */
+        int ready_pipe[2] = { -1, -1 };
+        int done_pipe[2] = { -1, -1 };
+        EXPECT_EQUAL(pipe(ready_pipe), 0);
+        EXPECT_EQUAL(pipe(done_pipe), 0);
+
         /* Create a child process */
         pid_t pid = fork();
         if (pid == 0) {
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
+            /* Close the pipe ends the child doesn't use */
+            close(ready_pipe[0]);
+            close(done_pipe[1]);
+
             /* Write the fragmented hello message */
-            mock_client(&io_pair);
+            mock_client(&io_pair, ready_pipe[1], done_pipe[0]);
         }
+
+        /* Close the pipe ends the parent doesn't use */
+        close(ready_pipe[1]);
+        close(done_pipe[0]);
 
         /* This is the server process, close the client end of the pipe */
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
@@ -146,8 +182,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
-        /* Give client a chance to close pipe at the receiving end */
-        sleep(1);
+        /* Wait for the child to shut down its read side of the socketpair.
+         * Once this read returns, the next s2n_send on the server conn is
+         * guaranteed to observe EPIPE. */
+        uint8_t ready = 0;
+        EXPECT_EQUAL(read(ready_pipe[0], &ready, 1), 1);
+        EXPECT_SUCCESS(close(ready_pipe[0]));
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
         ssize_t w = s2n_send(conn, buffer, 1, &blocked);
@@ -160,6 +200,12 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(w, -1);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_IO);
         EXPECT_EQUAL(errno, 0);
+
+        /* Signal the child that the assertions are complete so it can tear
+         * down its socket and exit. */
+        uint8_t done = 1;
+        EXPECT_EQUAL(write(done_pipe[1], &done, 1), 1);
+        EXPECT_SUCCESS(close(done_pipe[1]));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
