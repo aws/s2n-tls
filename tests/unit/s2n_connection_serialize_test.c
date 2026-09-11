@@ -18,6 +18,7 @@
 #include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_tls.h"
 
@@ -1284,6 +1285,63 @@ int main(int argc, char **argv)
         uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)),
                 S2N_ERR_INVALID_STATE);
+    };
+
+    /* A deserialized TLS1.3 connection treats warning-level alerts as fatal, even
+     * when S2N_ALERT_IGNORE_WARNINGS is configured. This relies on the deserialized
+     * connection having actual_protocol_version_established set so that
+     * s2n_process_as_warning() applies the TLS1.3 alert rules.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
+     *# All the alerts listed in Section 6.2 MUST be sent with
+     *# AlertLevel=fatal and MUST be treated as error alerts when received
+     *# regardless of the AlertLevel in the message.  Unknown Alert types
+     *# MUST be treated as error alerts.
+     */
+    if (s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+
+        uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_connection_serialize(client_conn, buffer, sizeof(buffer)));
+
+        /* Deserialize into a new connection configured to ignore warnings */
+        DEFER_CLEANUP(struct s2n_config *ignore_warnings_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_alert_behavior(ignore_warnings_config, S2N_ALERT_IGNORE_WARNINGS));
+
+        DEFER_CLEANUP(struct s2n_connection *new_client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(new_client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(new_client_conn, ignore_warnings_config));
+        EXPECT_SUCCESS(s2n_connection_deserialize(new_client_conn, buffer, sizeof(buffer)));
+
+        /* The deserialized connection must know its protocol version is established */
+        EXPECT_TRUE(new_client_conn->actual_protocol_version_established);
+
+        /* A warning-level alert must be treated as fatal on the deserialized TLS1.3
+         * connection, not silently ignored. */
+        const uint8_t warning_alert[] = {
+            1 /* AlertLevel = warning */,
+            70 /* AlertDescription = protocol_version (arbitrary value) */
+        };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&new_client_conn->in, warning_alert, sizeof(warning_alert)));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(new_client_conn), S2N_ERR_ALERT);
+        EXPECT_TRUE(s2n_connection_check_io_status(new_client_conn, S2N_IO_CLOSED));
     };
 
     END_TEST();

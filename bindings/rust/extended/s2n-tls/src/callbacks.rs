@@ -95,7 +95,7 @@ pub trait MonotonicClock: 'static + Send + Sync {
 pub(crate) unsafe fn verify_host(
     host_name: *const ::libc::c_char,
     host_name_len: usize,
-    handler: &mut Box<dyn VerifyHostNameCallback>,
+    handler: &dyn VerifyHostNameCallback,
 ) -> u8 {
     let host_name = host_name as *const u8;
     let host_name = core::slice::from_raw_parts(host_name, host_name_len);
