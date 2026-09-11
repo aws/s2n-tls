@@ -245,6 +245,42 @@ extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06;
 extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10;
 extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2024_10;
 
+extern const struct s2n_security_policy security_policy_elb_backend_2016_08;
+extern const struct s2n_security_policy security_policy_elb_sslv3_2013_12;
+extern const struct s2n_security_policy security_policy_elb_tls_1_1_Res_2017_01;
+extern const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2020_10;
+extern const struct s2n_security_policy security_policy_intb_2021_04;
+extern const struct s2n_security_policy security_policy_intb_2021_04_gcm;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_1_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_0_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_RFC9151_FIPS_2023_07;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_RFC9151_FIPS_2023_07;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_RFC9151_FIPS_2023_07;
+extern const struct s2n_security_policy security_policy_elb_tls12_1_2_RFC9151_2024_01;
+extern const struct s2n_security_policy security_policy_elb_tls12_1_2_Ext0_RFC9151_2024_01;
+extern const struct s2n_security_policy security_policy_20170816_healthcheck;
+extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_07;
+extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2023_09;
+
 extern const struct s2n_security_policy security_policy_20190120;
 extern const struct s2n_security_policy security_policy_20190121;
 extern const struct s2n_security_policy security_policy_20190122;
@@ -273,3 +309,26 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
         const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
 S2N_RESULT s2n_security_policy_validate_cert_key(
         const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
+
+/**
+ * Compares two security policies for content equality.
+ *
+ * Two policies are equal when every field of `struct s2n_security_policy` matches.
+ * Preference lists are compared by content rather than by address, so two policies
+ * that reference separate but identical lists compare equal. Within a list,
+ * elements are compared by pointer, which is exact because cipher suites,
+ * signature schemes, curves, KEMs, and certificate keys are all singletons.
+ * A NULL preference list is equal only to another NULL list.
+ *
+ * @note Adding a field to `struct s2n_security_policy` requires updating this
+ * function. Omitting a field would silently report differing policies as equal.
+ * s2n_security_policies_duplicates_test.c asserts on the size of the struct to
+ * catch that mistake at build time.
+ *
+ * @param a The first security policy. Must not be NULL.
+ * @param b The second security policy. Must not be NULL.
+ * @param equal Set to true if the policies are equal, false otherwise.
+ * @returns S2N_RESULT_OK on success, S2N_RESULT_ERROR if any argument is NULL.
+ */
+S2N_RESULT s2n_security_policy_equals(const struct s2n_security_policy *a,
+        const struct s2n_security_policy *b, bool *equal);
