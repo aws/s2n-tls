@@ -487,6 +487,7 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
         const uint8_t *raw_message, uint32_t raw_message_size)
 {
     RESULT_ENSURE_REF(result);
+    RESULT_ENSURE(raw_message_size <= S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_client_hello)));
@@ -496,8 +497,6 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
     client_hello = (struct s2n_client_hello *) (void *) mem.data;
     client_hello->alloced = true;
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
-
-    RESULT_ENSURE(raw_message_size <= S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(&in, raw_message_size));

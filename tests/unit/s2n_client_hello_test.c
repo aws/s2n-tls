@@ -1612,10 +1612,45 @@ int main(int argc, char **argv)
             client_hello = s2n_client_hello_parse_message(all_zeroes, sizeof(all_zeroes));
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+        };
 
-            DEFER_CLEANUP(struct s2n_blob too_large = { 0 }, s2n_free);
-            EXPECT_SUCCESS(s2n_alloc(&too_large, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH + 1));
-            client_hello = s2n_client_hello_parse_message(too_large.data, too_large.size);
+        /* Test: Rejects a valid but oversized ClientHello.
+         *
+         * This ClientHello is valid apart from its size, so only the
+         * S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH check can reject it.
+         */
+        {
+            /* Fill the cipher suite list to its max (2^16-2 bytes) to exceed 64KB.
+             * s2n-tls appends TLS_EMPTY_RENEGOTIATION_INFO_SCSV, so provide one fewer. */
+            const uint16_t cipher_suites_count = ((1 << 16) - 2) / S2N_TLS_CIPHER_SUITE_LEN - 1;
+            struct s2n_cipher_suite *test_cipher_suites[UINT16_MAX] = { 0 };
+            for (size_t i = 0; i < cipher_suites_count; i++) {
+                test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
+            }
+            const struct s2n_cipher_preferences test_cipher_preferences = {
+                .count = cipher_suites_count,
+                .suites = test_cipher_suites,
+            };
+            const struct s2n_security_policy *base_policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &base_policy));
+            struct s2n_security_policy test_security_policy = *base_policy;
+            test_security_policy.cipher_preferences = &test_cipher_preferences;
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            client->security_policy_override = &test_security_policy;
+
+            EXPECT_SUCCESS(s2n_handshake_write_header(&client->handshake.io, TLS_CLIENT_HELLO));
+            EXPECT_SUCCESS(s2n_client_hello_send(client));
+            EXPECT_SUCCESS(s2n_handshake_finish_header(&client->handshake.io));
+
+            uint32_t raw_size = s2n_stuffer_data_available(&client->handshake.io);
+            EXPECT_TRUE(raw_size > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
+            uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);
+            EXPECT_NOT_NULL(raw);
+
+            struct s2n_client_hello *client_hello = s2n_client_hello_parse_message(raw, raw_size);
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
         };
