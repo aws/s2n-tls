@@ -112,6 +112,15 @@ batch:
       identifier: s2nUnitAl2Arm
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/amazonlinux2-aarch64-standard:2.0
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          TESTS: interning
+      identifier: s2nLibcryptoInterningAl2Arm
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
+      env:
         compute-type: BUILD_GENERAL1_SMALL
         image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
         privileged-mode: true
