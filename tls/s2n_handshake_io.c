@@ -1741,12 +1741,10 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
     return S2N_SUCCESS;
 }
 
-int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
+/* Performs negotiate timing/metrics work that may early-return via POSIX_GUARD.
+ * Called only while conn->negotiate_in_use is true; the caller clears the flag. */
+static int s2n_negotiate_with_timing(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE(!conn->negotiate_in_use, S2N_ERR_REENTRANCY);
-    conn->negotiate_in_use = true;
-
     /* We use the default monotonic clock so that we can avoid referencing any
      * item on the config until after the client hello callback is invoked. */
     uint64_t negotiate_start = 0;
@@ -1788,6 +1786,19 @@ int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
         s2n_errno = saved_errno;
         _s2n_debug_info = saved_debug_info;
     }
+
+    return result;
+}
+
+int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(!conn->negotiate_in_use, S2N_ERR_REENTRANCY);
+    conn->negotiate_in_use = true;
+
+    /* Keep fallible POSIX_GUARD work in the helper so this flag is cleared on
+     * every return path, including early errors (#5796). */
+    int result = s2n_negotiate_with_timing(conn, blocked);
 
     conn->negotiate_in_use = false;
     return result;
