@@ -246,7 +246,7 @@ const struct s2n_signature_scheme s2n_mldsa87 = {
 /* ALL signature schemes, including the legacy default s2n_rsa_pkcs1_md5_sha1 scheme.
  * New signature schemes must be added to this list.
  */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_all[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_all[] = {
     &s2n_rsa_pkcs1_md5_sha1,
     &s2n_rsa_pkcs1_sha1,
     &s2n_rsa_pkcs1_sha224,
@@ -281,7 +281,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_all = {
  * supported PKCS1 for RSA, so would be unable to negotiate with a new default
  * that didn't include PKCS1.
  */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20240501[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20240501[] = {
     /* ECDSA */
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
@@ -309,7 +309,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20240501 = {
 };
 
 /* 20240501, but with ML-DSA added */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250512[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20250512[] = {
     /* ML-DSA */
     &s2n_mldsa44,
     &s2n_mldsa65,
@@ -343,7 +343,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20250512 = {
 
 /* All Supported SignatureSchemes. */
 /* No MD5 to avoid SLOTH Vulnerability */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20140601[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20140601[] = {
     /* RSA PKCS1 */
     &s2n_rsa_pkcs1_sha256,
     &s2n_rsa_pkcs1_sha384,
@@ -362,7 +362,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20140601[] = {
 };
 
 /* The original preference list, but with rsa_pss supported. */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20200207[] = {
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
@@ -389,7 +389,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207[] = {
 };
 
 /* Same as above, but without sha1 */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207_no_sha1[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20200207_no_sha1[] = {
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
@@ -412,7 +412,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207_no_sh
 };
 
 /* Same as above, but without sha224 */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250813[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20250813[] = {
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
@@ -436,7 +436,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250813[] = {
  * These signature schemes were chosen based on the following specification:
  * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
  */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_default_fips[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_default_fips[] = {
     /* RSA PKCS1 - TLS1.2 */
     &s2n_rsa_pkcs1_sha256,
     &s2n_rsa_pkcs1_sha384,
@@ -459,7 +459,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_default_fips = 
  * Supports TLS1.3.
  * Prefers PSS over PKCS1.
  */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20230317[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20230317[] = {
     /* RSA */
     &s2n_rsa_pss_rsae_sha256,
     &s2n_rsa_pss_rsae_sha384,
@@ -484,7 +484,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20230317 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20230317,
 };
 
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201021[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20201021[] = {
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
@@ -541,7 +541,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_null = {
 };
 
 /* TLS1.3 supported signature schemes, without SHA-1 legacy algorithms */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201110[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20201110[] = {
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
@@ -572,7 +572,7 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_202
  * No SHA-1 legacy algorithms
  * ML-DSA support
  */
-const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_20250512[] = {
+const struct s2n_signature_scheme *const s2n_cert_sig_scheme_pref_list_20250512[] = {
     /* ML-DSA */
     &s2n_mldsa44,
     &s2n_mldsa65,
@@ -605,7 +605,7 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_202
 };
 
 /* Based on s2n_sig_scheme_pref_list_20140601 but with all hashes < SHA-384 removed */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20210816[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20210816[] = {
     /* RSA PKCS1 */
     &s2n_rsa_pkcs1_sha384,
     &s2n_rsa_pkcs1_sha512,
@@ -620,7 +620,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20210816 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20210816
 };
 
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250429[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20250429[] = {
     /* ECDSA */
     &s2n_ecdsa_sha384,
 
@@ -633,32 +633,13 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250429[] = {
     &s2n_rsa_pkcs1_sha384,
 };
 
-const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_20250429[] = {
-    /* ECDSA */
-    &s2n_ecdsa_sha384,
-
-    /* RSA PSS
-     * https://github.com/aws/s2n-tls/issues/3435
-     *
-     * The Openssl function used to parse signatures off certificates does not differentiate
-     * between any rsa pss signature schemes. Therefore a security policy with a certificate
-     * signatures preference list must include all rsa_pss signature schemes.
-     *
-     * Since only sha384 is allowed by rfc9151, this certificate signing policy does not
-     * support rsa_pss.
-     */
-
-    /* RSA */
-    &s2n_rsa_pkcs1_sha384,
-};
-
 const struct s2n_signature_preferences s2n_signature_preferences_20250429 = {
     .count = s2n_array_len(s2n_sig_scheme_pref_list_20250429),
     .signature_schemes = s2n_sig_scheme_pref_list_20250429
 };
 
 /* Based on 20201021, but with ECDSA preferred */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250820[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20250820[] = {
     /* ECDSA */
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
@@ -690,7 +671,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20250820 = {
 };
 
 /* Based on 20201021, but with ECDSA preferred and ML-DSA enabled + preferred */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20250821[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20250821[] = {
     /* ML-DSA */
     &s2n_mldsa44,
     &s2n_mldsa65,
@@ -726,6 +707,25 @@ const struct s2n_signature_preferences s2n_signature_preferences_20250821 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20250821,
 };
 
+const struct s2n_signature_scheme *const s2n_cert_sig_scheme_pref_list_20250429[] = {
+    /* ECDSA */
+    &s2n_ecdsa_sha384,
+
+    /* RSA PSS
+     * https://github.com/aws/s2n-tls/issues/3435
+     *
+     * The Openssl function used to parse signatures off certificates does not differentiate
+     * between any rsa pss signature schemes. Therefore a security policy with a certificate
+     * signatures preference list must include all rsa_pss signature schemes.
+     *
+     * Since only sha384 is allowed by rfc9151, this certificate signing policy does not
+     * support rsa_pss.
+     */
+
+    /* RSA */
+    &s2n_rsa_pkcs1_sha384,
+};
+
 const struct s2n_signature_preferences s2n_certificate_signature_preferences_20250429 = {
     .count = s2n_array_len(s2n_cert_sig_scheme_pref_list_20250429),
     .signature_schemes = s2n_cert_sig_scheme_pref_list_20250429
@@ -736,7 +736,7 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_202
  * This list also removes ECDSA+SHA224, which is not known to be relied on by any legitimate
  * use cases.
  */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20240521[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20240521[] = {
     /* ECDSA */
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
@@ -766,7 +766,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20240521 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20240521
 };
 
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_test_all_fips[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_test_all_fips[] = {
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,
     &s2n_rsa_pss_pss_sha384,
@@ -798,7 +798,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips =
     .signature_schemes = s2n_sig_scheme_pref_list_test_all_fips,
 };
 
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20251113[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20251113[] = {
     &s2n_ecdsa_sha384,
     &s2n_rsa_pss_pss_sha384,
     &s2n_rsa_pss_rsae_sha384,
@@ -818,7 +818,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20251113 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20251113,
 };
 
-const struct s2n_signature_scheme* s2n_cert_sig_scheme_pref_list_20251113[] = {
+const struct s2n_signature_scheme *s2n_cert_sig_scheme_pref_list_20251113[] = {
     &s2n_ecdsa_sha384,
     &s2n_rsa_pss_pss_sha384,
     &s2n_rsa_pss_rsae_sha384,
@@ -838,7 +838,7 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_202
     .signature_schemes = s2n_cert_sig_scheme_pref_list_20251113,
 };
 
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260219[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20260219[] = {
     /* CNSA 2.0 */
     &s2n_mldsa87,
 };
@@ -848,7 +848,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20260219 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20260219,
 };
 
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260220[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20260220[] = {
     /* CNSA 2.0 */
     &s2n_mldsa87,
 
@@ -864,7 +864,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20260220 = {
     .signature_schemes = s2n_sig_scheme_pref_list_20260220,
 };
 
-const struct s2n_signature_scheme* const s2n_cert_sig_scheme_pref_list_20260220[] = {
+const struct s2n_signature_scheme *const s2n_cert_sig_scheme_pref_list_20260220[] = {
     /* CNSA 2.0 */
     &s2n_mldsa87,
 
@@ -879,7 +879,7 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_202
 };
 
 /* 20251113 with ML-DSA-87 added */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260722[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20260722[] = {
     &s2n_mldsa87,
     &s2n_ecdsa_sha384,
     &s2n_rsa_pss_pss_sha384,
@@ -901,7 +901,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20260722 = {
 };
 
 /* 20240501 with ML-DSA-87 added */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260513[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20260513[] = {
     /* CNSA 2.0 */
     &s2n_mldsa87,
 
@@ -932,7 +932,7 @@ const struct s2n_signature_preferences s2n_signature_preferences_20260513 = {
 };
 
 /* 20201110 with ML-DSA-87 added */
-const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20260514[] = {
+const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20260514[] = {
     /* CNSA 2.0 */
     &s2n_mldsa87,
 
