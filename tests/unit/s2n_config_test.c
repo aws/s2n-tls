@@ -1425,5 +1425,22 @@ int main(int argc, char **argv)
         }
     };
 
+    /* Regression test for https://github.com/aws/s2n-tls/issues/6082:
+     * a failed s2n_config_add_dhparams() must not leave config->dhparams
+     * in a state that crashed the subsequent s2n_config_free(). */
+    {
+        /* Valid PEM boundaries, garbage contents. From the issue report. */
+        const char *invalid_dhparams =
+                "-----BEGIN DH PARAMETERS-----\n"
+                "test\n"
+                "-----END DH PARAMETERS-----";
+
+        struct s2n_config *config = s2n_config_new();
+        EXPECT_NOT_NULL(config);
+        EXPECT_FAILURE(s2n_config_add_dhparams(config, invalid_dhparams));
+        EXPECT_NULL(config->dhparams.dh);
+        EXPECT_SUCCESS(s2n_config_free(config));
+    };
+
     END_TEST();
 }
