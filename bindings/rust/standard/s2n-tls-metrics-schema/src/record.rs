@@ -78,6 +78,12 @@ pub struct FrozenHandshakeRecord {
 
     #[serde(default)]
     pub sslv2_client_hello: u64,
+
+    /// Number of TLS 1.3 handshakes that required a HelloRetryRequest, and
+    /// therefore an additional round trip.
+    #[serde(default)]
+    pub hello_retry_request_count: u64,
+
     #[serde(default)]
     pub supported_protocols: FrozenCounter<PROTOCOL_COUNT, Version>,
     #[serde(default)]
@@ -155,6 +161,7 @@ impl Default for FrozenHandshakeRecord {
             negotiated_groups: FrozenCounter::default(),
             negotiated_signatures: FrozenCounter::default(),
             sslv2_client_hello: 0,
+            hello_retry_request_count: 0,
             supported_protocols: FrozenCounter::default(),
             supported_ciphers: FrozenCounter::default(),
             supported_groups: FrozenCounter::default(),
@@ -302,6 +309,10 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
         write_counter(&self.client_issues, &names::CLIENT_ISSUES, writer);
 
         writer.value(names::SSLV2_CLIENT_HELLO, &self.sslv2_client_hello);
+        writer.value(
+            names::HELLO_RETRY_REQUEST_COUNT,
+            &self.hello_retry_request_count,
+        );
         writer.value(
             names::HANDSHAKE_SUCCESS_COUNT,
             &self.handshake_success_count,

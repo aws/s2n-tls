@@ -172,6 +172,44 @@ int main(int argc, char** argv)
         }
     };
     {
+        /* Test s2n_ecc_evp_write_params_point fails cleanly when the output
+         * stuffer is too small to hold the point.
+         *
+         * This exercises the error path where the encoded point has been
+         * allocated but the stuffer write fails. The allocation must be freed
+         * on this path (see DEFER_CLEANUP in s2n_ecc_evp_write_params_point);
+         * leak detection (valgrind/ASAN) in CI verifies no leak occurs. */
+        for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
+            struct s2n_ecc_evp_params test_params = { 0 };
+            struct s2n_stuffer wire = { 0 };
+
+            /* Non-growable stuffer smaller than the curve's share_size, so the
+             * write of the encoded point cannot succeed. */
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&wire, s2n_all_supported_curves_list[i]->share_size - 1));
+
+            test_params.negotiated_curve = s2n_all_supported_curves_list[i];
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&test_params));
+            EXPECT_NOT_NULL(test_params.evp_pkey);
+
+            /* The errno differs by build: the EVP path writes via
+             * s2n_stuffer_write_bytes, which reports the out-of-space condition
+             * as S2N_ERR_STUFFER_IS_FULL. The non-EVP path writes via
+             * s2n_stuffer_raw_write, which returns NULL on the same condition
+             * and is caught by POSIX_ENSURE_REF as S2N_ERR_NULL. */
+#if EVP_APIS_SUPPORTED
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ecc_evp_write_params_point(&test_params, &wire),
+                    S2N_ERR_STUFFER_IS_FULL);
+#else
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ecc_evp_write_params_point(&test_params, &wire),
+                    S2N_ERR_NULL);
+#endif
+
+            /* Clean up */
+            EXPECT_SUCCESS(s2n_ecc_evp_params_free(&test_params));
+            EXPECT_SUCCESS(s2n_stuffer_free(&wire));
+        }
+    };
+    {
         /* TEST s2n_ecc_evp_read_params_point for all supported curves */
         for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params write_params = { 0 };

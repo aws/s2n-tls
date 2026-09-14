@@ -3,7 +3,7 @@
 
 mod bounded_set;
 mod client_issue;
-mod compatibility;
+pub mod compatibility;
 pub(crate) mod counter;
 pub mod detector;
 #[cfg(feature = "fuzzing")]
