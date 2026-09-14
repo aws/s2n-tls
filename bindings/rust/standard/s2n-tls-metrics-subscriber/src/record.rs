@@ -101,6 +101,12 @@ pub(crate) struct HandshakeRecordInProgress {
     // we do not attempt to detect supported parameters for SSLv2 formatted client
     // hellos
     sslv2_client_hello: AtomicU64,
+
+    /// TLS 1.3 handshakes that required a HelloRetryRequest, and therefore an
+    /// additional round trip. This is detected from the handshake type, which is
+    /// available on both the client and server side of a connection.
+    hello_retry_request_count: AtomicU64,
+
     supported_protocols: Counter<PROTOCOL_COUNT, Version>,
     supported_ciphers: Counter<CIPHER_COUNT, Cipher>,
     supported_groups: Counter<GROUP_COUNT, Group>,
@@ -169,6 +175,7 @@ impl HandshakeRecordInProgress {
             negotiated_signatures: Counter::new(),
 
             sslv2_client_hello: Default::default(),
+            hello_retry_request_count: Default::default(),
             supported_groups: Counter::new(),
             supported_ciphers: Counter::new(),
             supported_protocols: Counter::new(),
@@ -283,6 +290,22 @@ impl HandshakeRecordInProgress {
         }
         if let Some(sig) = negotiated.signature {
             self.negotiated_signatures.increment(&sig);
+        }
+
+        // An HRR costs an additional round trip, so it's tracked separately from
+        // the negotiated parameters that it was used to negotiate. The
+        // HELLO_RETRY_REQUEST flag only appears in the TLS 1.3 handshake type
+        // labels, so it can't be confused with a TLS 1.2 flag.
+        match conn.handshake_type() {
+            Ok(handshake_type) => {
+                if handshake_type.contains("HELLO_RETRY_REQUEST") {
+                    self.hello_retry_request_count
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+            }
+            // Not treated as an internal failure: the rest of the record is
+            // still accurate, so continue recording telemetry.
+            Err(e) => tracing::error!("failed to retrieve handshake type: {e}"),
         }
 
         // Compatibility based on the negotiated parameters. Unlike the client
@@ -488,6 +511,7 @@ impl HandshakeRecordInProgress {
             negotiated_signatures: self.negotiated_signatures.freeze(),
 
             sslv2_client_hello: self.sslv2_client_hello.load(Ordering::Relaxed),
+            hello_retry_request_count: self.hello_retry_request_count.load(Ordering::Relaxed),
             supported_protocols: self.supported_protocols.freeze(),
             supported_ciphers: self.supported_ciphers.freeze(),
             supported_groups: self.supported_groups.freeze(),
@@ -545,13 +569,42 @@ impl Drop for HandshakeRecordInProgress {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
+    use crate::test_utils::{
+        ARBITRARY_POLICY_1, P256_PREFERRING_POLICY, STRONGLY_PREFERRED_GROUPS_POLICY, TestEndpoint,
+    };
     use s2n_tls_metrics_schema::{
         counter::FrozenCounter,
         static_lists::{Cipher, FiniteCounter},
     };
 
     use super::*;
+
+    /// A handshake that requires a HelloRetryRequest increments
+    /// `hello_retry_request_count`, and one that doesn't leaves it at zero.
+    #[test]
+    fn record_contents_hello_retry_request() {
+        // the server strongly prefers secp384r1, but the client key shares
+        // secp256r1, so the server sends an HRR.
+        let hrr_endpoint = TestEndpoint::with_server_policy(&STRONGLY_PREFERRED_GROUPS_POLICY);
+        hrr_endpoint.client_handshake(&P256_PREFERRING_POLICY);
+        hrr_endpoint.subscriber.finish_record();
+
+        let records = hrr_endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+        assert_eq!(record.handshake_success_count, 1);
+        assert_eq!(record.hello_retry_request_count, 1);
+
+        // the client key shares the group that the server prefers, so no HRR
+        // is needed.
+        let endpoint = TestEndpoint::with_server_policy(&STRONGLY_PREFERRED_GROUPS_POLICY);
+        endpoint.client_handshake(&STRONGLY_PREFERRED_GROUPS_POLICY);
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+        assert_eq!(record.handshake_success_count, 1);
+        assert_eq!(record.hello_retry_request_count, 0);
+    }
 
     #[test]
     fn record_contents_negotiated_parameters() {

@@ -56,6 +56,6 @@ struct s2n_async_offload_op {
 };
 
 S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_offload_op *op);
-S2N_RESULT s2n_async_offload_op_wipe(struct s2n_async_offload_op *op);
+S2N_RESULT s2n_async_offload_op_free(struct s2n_async_offload_op *op);
 S2N_RESULT s2n_async_offload_op_reset(struct s2n_async_offload_op *op);
 bool s2n_async_offload_op_is_in_allow_list(struct s2n_config *config, s2n_async_offload_op_type op_type);

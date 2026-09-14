@@ -27,6 +27,8 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
+DEFINE_POINTER_CLEANUP_FUNC(BIGNUM *, BN_free);
+
 #define S2N_MIN_DH_PRIME_SIZE_BYTES (2048 / 8)
 
 /* Caller is not responsible for freeing values returned by these accessors
@@ -317,7 +319,7 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     uint16_t Yc_length = 0;
     struct s2n_blob Yc = { 0 };
     int shared_key_size = 0;
-    BIGNUM *pub_key = NULL;
+    DEFER_CLEANUP(BIGNUM *pub_key = NULL, BN_free_pointer);
 
     POSIX_GUARD(s2n_check_all_dh_params(server_dh_params));
     int server_dh_params_size = DH_size(server_dh_params->dh);
@@ -347,14 +349,9 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     POSIX_GUARD(s2n_alloc(shared_key, server_dh_params_size));
 
     shared_key_size = DH_compute_key(shared_key->data, pub_key, server_dh_params->dh);
-    if (shared_key_size <= 0) {
-        BN_free(pub_key);
-        POSIX_BAIL(S2N_ERR_DH_SHARED_SECRET);
-    }
+    POSIX_ENSURE(shared_key_size > 0, S2N_ERR_DH_SHARED_SECRET);
 
     s2n_dh_pad_shared_secret(shared_key, shared_key_size, server_dh_params_size);
-
-    BN_free(pub_key);
 
     return S2N_SUCCESS;
 }
