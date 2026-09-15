@@ -795,18 +795,17 @@ mod tests {
         );
     }
 
-    /// A record with no handshakes should be entirely empty/default.
+    /// A record with no handshakes should not be exported at all.
     #[test]
     fn empty_record() {
         let endpoint = TestEndpoint::new();
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let mut record = records[0].as_schema().handshake.clone();
-
-        // ignore the freeze time, since that "default" value is set to the Unix Epoch.
-        record.freeze_time = SystemTime::UNIX_EPOCH;
-        assert_eq!(record, FrozenHandshakeRecord::default());
+        assert!(
+            records.is_empty(),
+            "an empty record (no handshakes) should not be exported"
+        );
     }
 
     /// ARBITRARY_POLICY_1 (20240503 / default_tls13) should be compatible with

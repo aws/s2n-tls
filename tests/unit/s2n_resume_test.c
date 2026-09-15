@@ -915,6 +915,7 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
@@ -949,6 +950,7 @@ int main(int argc, char **argv)
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
