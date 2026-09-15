@@ -522,5 +522,135 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
 
+    /* Session caching and resumption work when the cache callbacks are set
+     * after s2n_config_set_session_cache_onoff().
+     *
+     * Enabling the cache before setting the callbacks used to silently leave
+     * caching disabled. See https://github.com/aws/s2n-tls/issues/3463 */
+    {
+        DEFER_CLEANUP(struct s2n_config *onoff_first_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(onoff_first_config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(onoff_first_config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(onoff_first_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(onoff_first_config));
+
+        /* Enable the session cache before the cache callbacks are set */
+        EXPECT_SUCCESS(s2n_config_set_session_cache_onoff(onoff_first_config, 1));
+        EXPECT_SUCCESS(s2n_config_set_cache_store_callback(onoff_first_config, cache_store_callback, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_retrieve_callback(onoff_first_config, cache_retrieve_callback, session_cache));
+        EXPECT_SUCCESS(s2n_config_set_cache_delete_callback(onoff_first_config, cache_delete_callback, session_cache));
+
+        POSIX_GUARD(onoff_first_config->wall_clock(onoff_first_config->sys_clock_ctx, &now));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(onoff_first_config, ticket_key_name, strlen((char *) ticket_key_name),
+                ticket_key, sizeof(ticket_key), now / ONE_SEC_IN_NANOS));
+
+        uint8_t cached_session_id[MAX_KEY_LEN] = { 0 };
+        size_t session_state_length = 0;
+        uint8_t session_state[256] = { 0 };
+
+        /* Initial full handshake stores the session in the cache */
+        {
+            initialize_cache();
+
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, onoff_first_config));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, onoff_first_config));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+
+            /* Set the session id so the server performs a cache lookup. The
+             * retrieve callback blocking below proves the cache is enabled
+             * despite the callbacks being set after enabling caching. */
+            EXPECT_MEMCPY_SUCCESS(client_conn->session_id, SESSION_ID, S2N_TLS_SESSION_ID_MAX_LEN);
+            client_conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
+
+            /* Server will block the first time cache is accessed */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+
+            /* Negotiate succeeds on retry */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Make sure we did a full TLS1.2 handshake */
+            EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
+            EXPECT_TRUE(IS_FULL_HANDSHAKE(client_conn));
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+
+            /* Capture the session id the server stored in the cache */
+            EXPECT_EQUAL(s2n_connection_get_session_id_length(server_conn), MAX_KEY_LEN);
+            EXPECT_EQUAL(s2n_connection_get_session_id(server_conn, cached_session_id, MAX_KEY_LEN),
+                    s2n_connection_get_session_id_length(server_conn));
+
+            /* Save session state from the connection for the resumption handshake */
+            session_state_length = s2n_connection_get_session_length(client_conn);
+            EXPECT_TRUE(session_state_length <= sizeof(session_state));
+            EXPECT_EQUAL((size_t) s2n_connection_get_session(client_conn, session_state, session_state_length),
+                    session_state_length);
+
+            /* Verify data transfer works */
+            EXPECT_EQUAL(s2n_send(client_conn, TEST_MSG, sizeof(TEST_MSG), &blocked), sizeof(TEST_MSG));
+            char buffer[256] = { 0 };
+            EXPECT_EQUAL(s2n_recv(server_conn, buffer, sizeof(buffer), &blocked), sizeof(TEST_MSG));
+            EXPECT_EQUAL(memcmp(buffer, TEST_MSG, sizeof(TEST_MSG)), 0);
+
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        };
+
+        /* The stored session is resumed */
+        {
+            initialize_cache();
+
+            struct s2n_test_io_pair io_pair;
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, onoff_first_config));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, onoff_first_config));
+            EXPECT_OK(s2n_connection_set_tls12_security_policy(client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+
+            /* Set session state on client connection */
+            EXPECT_SUCCESS(s2n_connection_set_session(client_conn, session_state, session_state_length));
+
+            /* Server will block the first time cache is accessed */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_ASYNC_BLOCKED);
+
+            /* Negotiate succeeds on retry */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Make sure we did an abbreviated handshake with the cached session */
+            EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
+            EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(client_conn));
+
+            uint8_t resumed_session_id[MAX_KEY_LEN] = { 0 };
+            EXPECT_EQUAL(s2n_connection_get_session_id_length(server_conn), MAX_KEY_LEN);
+            EXPECT_EQUAL(s2n_connection_get_session_id(server_conn, resumed_session_id, MAX_KEY_LEN),
+                    s2n_connection_get_session_id_length(server_conn));
+            EXPECT_EQUAL(0, memcmp(resumed_session_id, cached_session_id, MAX_KEY_LEN));
+
+            /* Verify data transfer works */
+            EXPECT_EQUAL(s2n_send(client_conn, TEST_MSG, sizeof(TEST_MSG), &blocked), sizeof(TEST_MSG));
+            char buffer[256] = { 0 };
+            EXPECT_EQUAL(s2n_recv(server_conn, buffer, sizeof(buffer), &blocked), sizeof(TEST_MSG));
+            EXPECT_EQUAL(memcmp(buffer, TEST_MSG, sizeof(TEST_MSG)), 0);
+
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        };
+    };
+
     END_TEST();
 }
