@@ -37,7 +37,7 @@ Listening on localhost:8000
 
 Post-quantum algorithms are enabled by configuring a security policy (see [Security Policies](./ch06-security-policies.md)) that supports post-quantum algorithms. 
 
-"default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20250721". For previous defaults, see the "Default Policy History" section below.
+Post quantum algorithms are enabled in the "default" policy. For previous defaults, see the "Default Policy History" section below.
 
 "cnsa_2" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS 1.3](https://datatracker.ietf.org/doc/draft-becker-cnsa2-tls-profile/). This is a TLS 1.3 PQ only policy that requires pure ML-KEM-1024 for key exchange and ML-DSA-87 for signature and certificate verification.
 
@@ -49,7 +49,7 @@ Other available PQ policies are compared in the tables below.
 
 |        Version        | x25519+mlkem768 | secp256r1+mlkem768 | secp384r1+mlkem1024 | mlkem1024 |
 |-----------------------|-----------------|--------------------|---------------------|-----------|
-| default_pq / 20250721 |        X        |          X         |          X          |           |
+| default / 20251014    |        X        |          X         |          X          |           |
 | 20250512              |        X        |          X         |                     |           |
 | cnsa_2                |                 |                    |                     |     X     |
 | cnsa_1_2_interop      |                 |                    |                     |     X     |
@@ -58,7 +58,7 @@ Other available PQ policies are compared in the tables below.
 
 |        Version        | ML-DSA | ECDSA | RSA | RSA-PSS | Legacy SHA1 |
 |-----------------------|--------|-------|-----|---------|-------------|
-| default_pq / 20250721 |   X    |   X   |  X  |    X    |             |
+| default / 20251014    |   X    |   X   |  X  |    X    |             |
 | 20250512              |   X    |   X   |  X  |    X    |             |
 | cnsa_2                |   87   |       |     |         |             |
 | cnsa_1_2_interop      |   87   |   X   |  X  |    X    |             |
@@ -71,7 +71,7 @@ Note: the "cnsa_2" policy only allows ML-KEM-1024, thus there is no fallback to 
 
 |        Version        | secp256r1 | x25519 | secp384r1 | secp521r1 | DHE | RSA |
 |-----------------------|-----------|--------|-----------|-----------|-----|-----|
-| default_pq / 20250721 |     X     |   X    |     X     |     X     |     |     |
+| default / 20251014    |     X     |   X    |     X     |     X     |     |     |
 | 20250512              |     X     |   X    |     X     |     X     |     |     |
 | cnsa_1_2_interop      |           |        |     X     |           |     |     |
 
@@ -79,7 +79,7 @@ Note: the "cnsa_2" policy only allows ML-KEM-1024, thus there is no fallback to 
 
 |        Version        | AES-CBC | AES-GCM | CHACHAPOLY | 3DES |
 |-----------------------|---------|---------|------------|------|
-| default_pq / 20250721 |    X    |    X    |     X      |      |
+| default / 20251014    |    X    |    X    |     X      |      |
 | 20250512              |    X    |    X    |     X      |      |
 | cnsa_2                |         |    X    |            |      |
 | cnsa_1_2_interop      |         |    X    |            |      |
@@ -88,7 +88,7 @@ Note: the "cnsa_2" policy only allows ML-KEM-1024, thus there is no fallback to 
 
 |        Version        | 1.2 | 1.3 |
 |-----------------------|-----|-----|
-| default_pq / 20250721 |  X  |  X  |
+| default / 20251014    |  X  |  X  |
 | 20250512              |  X  |  X  |
 | cnsa_2                |     |  X  |
 | cnsa_1_2_interop      |  X  |  X  |
