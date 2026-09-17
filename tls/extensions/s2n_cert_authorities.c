@@ -88,7 +88,9 @@ int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *o
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);
-    POSIX_ENSURE_EQ(conn->mode, S2N_SERVER);
+    /* The certificate_authorities extension may be sent by a server in the
+     * CertificateRequest message or by a client in the ClientHello message.
+     * See https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4 */
     struct s2n_blob *cert_authorities = &conn->config->cert_authorities;
     POSIX_GUARD(s2n_stuffer_write_uint16(out, cert_authorities->size));
     POSIX_GUARD(s2n_stuffer_write(out, cert_authorities));
@@ -100,8 +102,9 @@ int s2n_cert_authorities_recv(struct s2n_connection *conn, struct s2n_stuffer *i
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);
 
-    /* For now, we don't support receiving certificate authorities on the
-     * server side. s2n-tls doesn't send them from clients today.
+    /* For now, we don't process certificate authorities received on the
+     * server side from a client's ClientHello. This extension is only read by
+     * a client parsing the CA list from a server's CertificateRequest.
      *
      * Only allocate the buffer if the callback which reads it is set, to save
      * time and memory for other customers.

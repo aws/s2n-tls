@@ -185,7 +185,12 @@ int main(int argc, char **argv)
         };
     };
 
-    /* Test: ClientHello extension ignored
+    /* Test: ClientHello extension sent by client but ignored by server
+     *
+     * The client now sends the certificate_authorities extension in the
+     * ClientHello when CA data is configured. The server accepts the
+     * ClientHello but does not process the extension, since s2n-tls only
+     * reads certificate_authorities from a server's CertificateRequest.
      *
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
      *= type=test
@@ -206,6 +211,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_parse_client_hello(client));
         struct s2n_client_hello *client_hello = &client->client_hello;
 
+        /* The client wrote the certificate_authorities extension itself, so it
+         * is present in the ClientHello's own extensions. */
+        s2n_parsed_extension *client_extension =
+                &client_hello->extensions.parsed_extensions[ca_ext_id];
+        EXPECT_EQUAL(client_extension->extension_type,
+                s2n_cert_authorities_extension.iana_value);
+        EXPECT_TRUE(client_extension->extension.size > 0);
+
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
@@ -222,27 +235,25 @@ int main(int argc, char **argv)
         struct s2n_stuffer_reservation extensions_size = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(input, &extensions_size));
 
-        /* Write the certificate_authorities extension.
-         * The client isn't allowed to write it, so use the server.
-         */
-        server->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_extension_send(&s2n_cert_authorities_extension,
-                server, input));
-
-        /* Write the rest of the extensions */
+        /* Write the client's extensions as-is. The client already includes the
+         * certificate_authorities extension, so no manual injection is needed. */
         EXPECT_SUCCESS(s2n_stuffer_write(input, &client_hello->extensions.raw));
 
         /* Update the extensions size */
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extensions_size));
 
-        /* Server should be able to successfully receive the modified ClientHello */
+        /* Server should be able to successfully receive the ClientHello */
         EXPECT_SUCCESS(s2n_client_hello_recv(server));
         EXPECT_TRUE(server->client_hello.parsed);
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
 
+        /* Server received the extension. It is recognized as part of the
+         * ClientHello extension list, so it is marked processed, but its recv
+         * handler is a no-op on the server side (s2n-tls only reads
+         * certificate_authorities from a server's CertificateRequest). */
         s2n_parsed_extension *extension = &server->client_hello.extensions.parsed_extensions[ca_ext_id];
         EXPECT_TRUE(extension->extension.size > 0);
-        EXPECT_FALSE(extension->processed);
+        EXPECT_TRUE(extension->processed);
         EXPECT_EQUAL(extension->extension_type, s2n_cert_authorities_extension.iana_value);
     };
 
@@ -276,12 +287,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
         EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server));
 
-        /* Server sent extension */
-        EXPECT_TRUE(S2N_CBIT_TEST(server->extension_requests_sent, ca_ext_id));
-        EXPECT_FALSE(S2N_CBIT_TEST(server->extension_requests_received, ca_ext_id));
+        /* Both peers advertise certificate_authorities: the client in its
+         * ClientHello and the server in its CertificateRequest. */
 
-        /* Client received extension */
-        EXPECT_FALSE(S2N_CBIT_TEST(client->extension_requests_sent, ca_ext_id));
+        /* Server sent it in the CertificateRequest and received the client's
+         * ClientHello copy. */
+        EXPECT_TRUE(S2N_CBIT_TEST(server->extension_requests_sent, ca_ext_id));
+        EXPECT_TRUE(S2N_CBIT_TEST(server->extension_requests_received, ca_ext_id));
+
+        /* Client sent it in the ClientHello and received the server's
+         * CertificateRequest copy. */
+        EXPECT_TRUE(S2N_CBIT_TEST(client->extension_requests_sent, ca_ext_id));
         EXPECT_TRUE(S2N_CBIT_TEST(client->extension_requests_received, ca_ext_id));
     };
 

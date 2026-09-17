@@ -47,6 +47,7 @@
 #define OPT_BUFFERED_SEND      1007
 #define OPT_SERIALIZE_OUT      1008
 #define OPT_DESERIALIZE_IN     1009
+#define OPT_CA_AUTHORITIES     1010
 
 /* This should match the final cert in the s2nd default_certificate_chain */
 const char default_trusted_cert[] =
@@ -109,6 +110,10 @@ void usage()
     fprintf(stderr, "    Location of trust store CA file (PEM format). If neither -f or -d are specified. System defaults will be used.\n");
     fprintf(stderr, "  -d,--ca-dir [directory path]\n");
     fprintf(stderr, "    Directory containing hashed trusted certs. If neither -f or -d are specified. System defaults will be used.\n");
+    fprintf(stderr, "  --ca-authorities [file path]\n");
+    fprintf(stderr, "    PEM file of CA certificates whose subject names are sent to the server in the\n");
+    fprintf(stderr, "    certificate_authorities extension of the ClientHello (TLS1.3 only). Loading this\n");
+    fprintf(stderr, "    file replaces the trust store, so it is also used for server certificate validation.\n");
     fprintf(stderr, "  -i,--insecure\n");
     fprintf(stderr, "    Turns off certification validation altogether.\n");
     fprintf(stderr, "  -l,--cert [file path]\n");
@@ -315,6 +320,7 @@ int main(int argc, char *const *argv)
     const char *server_name = NULL;
     const char *ca_file = NULL;
     const char *ca_dir = NULL;
+    const char *ca_authorities_file = NULL;
     const char *client_cert = NULL;
     const char *client_key = NULL;
     bool client_cert_input = false;
@@ -364,6 +370,7 @@ int main(int argc, char *const *argv)
         { "mfl", required_argument, 0, 'm' },
         { "ca-file", required_argument, 0, 'f' },
         { "ca-dir", required_argument, 0, 'd' },
+        { "ca-authorities", required_argument, 0, OPT_CA_AUTHORITIES },
         { "cert", required_argument, 0, 'l' },
         { "key", required_argument, 0, 'k' },
         { "insecure", no_argument, 0, 'i' },
@@ -431,6 +438,9 @@ int main(int argc, char *const *argv)
                 break;
             case 'd':
                 ca_dir = optarg;
+                break;
+            case OPT_CA_AUTHORITIES:
+                ca_authorities_file = optarg;
                 break;
             case 'l':
                 client_cert = load_file_to_cstring(optarg);
@@ -636,12 +646,30 @@ int main(int argc, char *const *argv)
 
         GUARD_EXIT(s2n_config_add_pem_to_trust_store(config, default_trusted_cert),
                 "Error adding default cert to trust store.");
-        if (ca_file || ca_dir) {
+        if (ca_authorities_file || ca_file || ca_dir) {
             GUARD_EXIT(s2n_config_wipe_trust_store(config), "Error wiping trust store");
-            if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
+            if (s2n_config_set_verification_ca_location(config, ca_authorities_file ? ca_authorities_file : ca_file, ca_dir) < 0) {
                 print_s2n_error("Error setting CA file for trust store.");
             }
-        } else if (insecure) {
+        }
+
+        /* Advertise the certificate_authorities extension in the ClientHello.
+         * The subject names of the CA certificates loaded above are extracted
+         * from the trust store and sent to the server to guide its certificate
+         * selection (TLS1.3 only). This mirrors OpenSSL s_client's
+         * -certificate_authorities option.
+         *
+         * This must be done before any trust store is disabled below, since it
+         * derives the CA names from the loaded trust store. */
+        if (ca_authorities_file) {
+            GUARD_EXIT(s2n_config_set_cert_authorities_from_trust_store(config),
+                    "Error setting certificate_authorities from the trust store");
+        }
+
+        /* Allow -i/--insecure to disable validation even when a CA file is
+         * loaded, so the certificate_authorities extension can be exercised
+         * against a public server whose cert is not in the provided CA file. */
+        if (insecure) {
             GUARD_EXIT(s2n_config_disable_x509_verification(config), "Error disabling X.509 validation");
         }
 
