@@ -42,3 +42,13 @@ int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *o
  * extension. If no CA names were received, *match is false. */
 S2N_RESULT s2n_cert_authorities_chain_matches(struct s2n_connection *conn,
         struct s2n_cert_chain_and_key *chain_and_key, bool *match);
+
+struct s2n_cert;
+
+/* Returns true (via *skip) if the given certificate should be omitted from the
+ * certificate chain the server sends, because the client already advertised it
+ * in the certificate_authorities extension. The leaf certificate (is_leaf) is
+ * never skipped. Only applies to a server that received the extension; in all
+ * other cases *skip is false. */
+S2N_RESULT s2n_cert_authorities_should_skip_cert(struct s2n_connection *conn,
+        struct s2n_cert *cert, bool is_leaf, bool *skip);

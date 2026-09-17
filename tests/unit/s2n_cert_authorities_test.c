@@ -15,7 +15,11 @@
 
 #include "tls/extensions/s2n_cert_authorities.h"
 
+#include <openssl/x509.h>
+
+#include "crypto/s2n_certificate.h"
 #include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_openssl_x509.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -23,6 +27,58 @@
 #include "utils/s2n_bitmap.h"
 
 int s2n_parse_client_hello(struct s2n_connection *conn);
+
+/* Build a certificate_authorities blob (a sequence of uint16 length ||
+ * DER X509_NAME entries) containing the subject names of the certificates in
+ * the given chain at the specified indices (0 == leaf). */
+static S2N_RESULT s2n_test_build_ca_names(struct s2n_cert_chain_and_key *chain,
+        const size_t *indices, size_t indices_count, struct s2n_blob *out)
+{
+    struct s2n_stuffer stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&stuffer, 256));
+
+    for (size_t i = 0; i < indices_count; i++) {
+        struct s2n_cert *cert = chain->cert_chain->head;
+        for (size_t skip = 0; skip < indices[i]; skip++) {
+            RESULT_ENSURE_REF(cert);
+            cert = cert->next;
+        }
+        RESULT_ENSURE_REF(cert);
+
+        DEFER_CLEANUP(X509 *x509 = NULL, X509_free_pointer);
+        RESULT_GUARD(s2n_openssl_x509_parse(&cert->raw, &x509));
+        X509_NAME *subject = X509_get_subject_name(x509);
+        RESULT_ENSURE_REF(subject);
+        const uint8_t *name = NULL;
+        size_t name_size = 0;
+        RESULT_GUARD_OSSL(X509_NAME_get0_der(subject, &name, &name_size), S2N_ERR_SAFETY);
+
+        RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&stuffer, name_size));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&stuffer, name, name_size));
+    }
+
+    RESULT_GUARD_POSIX(s2n_stuffer_extract_blob(&stuffer, out));
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&stuffer));
+    return S2N_RESULT_OK;
+}
+
+/* Count the number of certificates in a TLS1.2-format Certificate message
+ * body written by s2n_send_cert_chain (uint24 total || repeated uint24 len ||
+ * cert bytes). */
+static S2N_RESULT s2n_test_count_certs(struct s2n_stuffer *stuffer, size_t *count)
+{
+    *count = 0;
+    uint32_t total_size = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint24(stuffer, &total_size));
+    RESULT_ENSURE_EQ(total_size, s2n_stuffer_data_available(stuffer));
+    while (s2n_stuffer_data_available(stuffer) > 0) {
+        uint32_t cert_size = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint24(stuffer, &cert_size));
+        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(stuffer, cert_size));
+        (*count)++;
+    }
+    return S2N_RESULT_OK;
+}
 
 int main(int argc, char **argv)
 {
@@ -411,6 +467,125 @@ int main(int argc, char **argv)
          * CA names, and it sends its only chain. */
         EXPECT_EQUAL(server->cert_authorities.size, 0);
         EXPECT_EQUAL(server->handshake_params.our_chain_and_key, ecdsa_chain);
+    };
+
+    /* Test: s2n_send_cert_chain omits CA certificates that the client already
+     * advertised in the certificate_authorities extension. The RSA test chain
+     * contains three certs: leaf (index 0), intermediate (1), and root (2). */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain,
+                S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
+
+        /* Sanity check: the full chain has three certificates. */
+        size_t chain_cert_count = 0;
+        for (struct s2n_cert *c = rsa_chain->cert_chain->head; c != NULL; c = c->next) {
+            chain_cert_count++;
+        }
+        EXPECT_EQUAL(chain_cert_count, 3);
+
+        /* Control: a server that received no CA names sends the full chain. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->handshake_params.our_chain_and_key = rsa_chain;
+            conn->actual_protocol_version = S2N_TLS12;
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &out, rsa_chain));
+
+            size_t count = 0;
+            EXPECT_OK(s2n_test_count_certs(&out, &count));
+            EXPECT_EQUAL(count, 3);
+        };
+
+        /* Client advertised the intermediate and root: the server sends only
+         * the leaf. Even though the leaf's own subject is not advertised, this
+         * confirms the intermediate and root are pruned. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->handshake_params.our_chain_and_key = rsa_chain;
+            conn->actual_protocol_version = S2N_TLS12;
+
+            size_t indices[] = { 1, 2 };
+            EXPECT_OK(s2n_test_build_ca_names(rsa_chain, indices,
+                    s2n_array_len(indices), &conn->cert_authorities));
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &out, rsa_chain));
+
+            size_t count = 0;
+            EXPECT_OK(s2n_test_count_certs(&out, &count));
+            EXPECT_EQUAL(count, 1);
+        };
+
+        /* Client advertised only the intermediate: the server prunes the
+         * intermediate but still sends the leaf and the root. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->handshake_params.our_chain_and_key = rsa_chain;
+            conn->actual_protocol_version = S2N_TLS12;
+
+            size_t indices[] = { 1 };
+            EXPECT_OK(s2n_test_build_ca_names(rsa_chain, indices,
+                    s2n_array_len(indices), &conn->cert_authorities));
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &out, rsa_chain));
+
+            size_t count = 0;
+            EXPECT_OK(s2n_test_count_certs(&out, &count));
+            EXPECT_EQUAL(count, 2);
+        };
+
+        /* The leaf is never pruned, even if the client advertised the leaf's
+         * own subject. Advertising all three subjects still sends the leaf. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->handshake_params.our_chain_and_key = rsa_chain;
+            conn->actual_protocol_version = S2N_TLS12;
+
+            size_t indices[] = { 0, 1, 2 };
+            EXPECT_OK(s2n_test_build_ca_names(rsa_chain, indices,
+                    s2n_array_len(indices), &conn->cert_authorities));
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &out, rsa_chain));
+
+            size_t count = 0;
+            EXPECT_OK(s2n_test_count_certs(&out, &count));
+            EXPECT_EQUAL(count, 1);
+        };
+
+        /* A client does NOT prune its own certificate chain: pruning is
+         * server-only. A client connection with advertised CA names still
+         * sends its full chain. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->handshake_params.our_chain_and_key = rsa_chain;
+            conn->actual_protocol_version = S2N_TLS12;
+
+            size_t indices[] = { 1, 2 };
+            EXPECT_OK(s2n_test_build_ca_names(rsa_chain, indices,
+                    s2n_array_len(indices), &conn->cert_authorities));
+
+            DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &out, rsa_chain));
+
+            size_t count = 0;
+            EXPECT_OK(s2n_test_count_certs(&out, &count));
+            EXPECT_EQUAL(count, 3);
+        };
     };
 
     /* Known value test: compare our extension to openssl s_server */
