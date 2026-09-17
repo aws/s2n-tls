@@ -16,6 +16,8 @@
 
 #include <openssl/x509.h>
 
+#include "crypto/s2n_certificate.h"
+#include "crypto/s2n_openssl_x509.h"
 #include "utils/s2n_safety.h"
 
 bool s2n_cert_authorities_supported_from_trust_store()
@@ -102,14 +104,20 @@ int s2n_cert_authorities_recv(struct s2n_connection *conn, struct s2n_stuffer *i
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);
 
-    /* For now, we don't process certificate authorities received on the
-     * server side from a client's ClientHello. This extension is only read by
-     * a client parsing the CA list from a server's CertificateRequest.
+    /* A client reads the CA list from a server's CertificateRequest so that
+     * the cert_request_cb callback can use it to select a client certificate.
+     * Only allocate the buffer if that callback is set, to save time and
+     * memory for other customers.
      *
-     * Only allocate the buffer if the callback which reads it is set, to save
-     * time and memory for other customers.
+     * A server reads the CA list from a client's ClientHello so that it can
+     * choose which server certificate chain to send. Only store it when more
+     * than one certificate chain is configured; with a single chain the server
+     * always sends that chain, so parsing the list would be wasted work.
      */
-    if (conn->mode == S2N_CLIENT && conn->config->cert_request_cb) {
+    bool store_for_client = (conn->mode == S2N_CLIENT && conn->config->cert_request_cb);
+    bool store_for_server = (conn->mode == S2N_SERVER
+            && s2n_config_get_num_default_certs(conn->config) > 1);
+    if (store_for_client || store_for_server) {
         uint16_t length = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &length));
         POSIX_GUARD(s2n_stuffer_extract_blob(in, &conn->cert_authorities));
@@ -117,6 +125,89 @@ int s2n_cert_authorities_recv(struct s2n_connection *conn, struct s2n_stuffer *i
     }
 
     return S2N_SUCCESS;
+}
+
+/* Compare a single certificate's issuer and subject distinguished names against
+ * the list of CA names advertised by the peer in the certificate_authorities
+ * extension. Returns true (via *match) if either name is present in the list. */
+static S2N_RESULT s2n_cert_authorities_cert_matches(struct s2n_blob *ca_names,
+        struct s2n_cert *cert, bool *match)
+{
+    RESULT_ENSURE_REF(ca_names);
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(match);
+    *match = false;
+
+    DEFER_CLEANUP(X509 *x509 = NULL, X509_free_pointer);
+    RESULT_GUARD(s2n_openssl_x509_parse(&cert->raw, &x509));
+    RESULT_ENSURE_REF(x509);
+
+    /* Collect the DER encodings of the certificate's issuer and subject names.
+     * A certificate is a match if the peer advertised the issuer of this cert
+     * (this cert was issued by a trusted CA) or the subject of this cert (this
+     * cert is itself one of the advertised CAs, e.g. a CA in the chain). */
+    const uint8_t *names[2] = { 0 };
+    size_t name_sizes[2] = { 0 };
+    X509_NAME *issuer = X509_get_issuer_name(x509);
+    X509_NAME *subject = X509_get_subject_name(x509);
+    if (issuer != NULL) {
+        RESULT_GUARD_OSSL(X509_NAME_get0_der(issuer, &names[0], &name_sizes[0]),
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+    }
+    if (subject != NULL) {
+        RESULT_GUARD_OSSL(X509_NAME_get0_der(subject, &names[1], &name_sizes[1]),
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+    }
+
+    /* Iterate over the advertised CA names: each entry is uint16 length
+     * followed by the DER encoding of an X509_NAME. */
+    struct s2n_stuffer iterator = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&iterator, ca_names));
+    while (s2n_stuffer_data_available(&iterator) > 0) {
+        uint16_t name_len = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&iterator, &name_len));
+        uint8_t *name = s2n_stuffer_raw_read(&iterator, name_len);
+        RESULT_ENSURE_REF(name);
+
+        for (size_t i = 0; i < s2n_array_len(names); i++) {
+            if (names[i] != NULL && name_sizes[i] == name_len
+                    && memcmp(names[i], name, name_len) == 0) {
+                *match = true;
+                return S2N_RESULT_OK;
+            }
+        }
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/* Returns true (via *match) if any certificate in the given chain is issued by,
+ * or is itself, one of the CAs advertised by the peer in the
+ * certificate_authorities extension. */
+S2N_RESULT s2n_cert_authorities_chain_matches(struct s2n_connection *conn,
+        struct s2n_cert_chain_and_key *chain_and_key, bool *match)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(chain_and_key);
+    RESULT_ENSURE_REF(match);
+    *match = false;
+
+    /* No CA names were advertised, so there is nothing to match against. */
+    if (conn->cert_authorities.size == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_ENSURE_REF(chain_and_key->cert_chain);
+    struct s2n_cert *cert = chain_and_key->cert_chain->head;
+    while (cert != NULL) {
+        RESULT_GUARD(s2n_cert_authorities_cert_matches(&conn->cert_authorities, cert, match));
+        if (*match) {
+            return S2N_RESULT_OK;
+        }
+        cert = cert->next;
+    }
+
+    return S2N_RESULT_OK;
 }
 
 static bool s2n_cert_authorities_should_send(struct s2n_connection *conn)

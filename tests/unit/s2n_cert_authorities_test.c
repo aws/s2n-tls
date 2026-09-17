@@ -301,6 +301,118 @@ int main(int argc, char **argv)
         EXPECT_TRUE(S2N_CBIT_TEST(client->extension_requests_received, ca_ext_id));
     };
 
+    /* Self-talk test: server selects its certificate chain based on the CA
+     * names advertised by the client in the certificate_authorities extension,
+     * but only when more than one certificate chain is configured. */
+    if (s2n_is_tls13_fully_supported() && s2n_cert_authorities_supported_from_trust_store()) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain,
+                S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+
+        /* Build a client config that advertises the CA names for a given cert
+         * chain file, so the server can match against it. */
+        struct {
+            const char *ca_cert_file;
+            struct s2n_cert_chain_and_key *expected_chain;
+        } test_cases[] = {
+            { .ca_cert_file = S2N_ECDSA_P384_PKCS1_CERT_CHAIN, .expected_chain = ecdsa_chain },
+            { .ca_cert_file = S2N_RSA_2048_PKCS1_CERT_CHAIN, .expected_chain = rsa_chain },
+        };
+
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            /* Server: both an RSA and an ECDSA chain are configured. */
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_chain));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+            EXPECT_EQUAL(s2n_config_get_num_default_certs(server_config), 2);
+
+            /* Client: trusts both chains (so validation succeeds), but only
+             * advertises the CA names of the chain for this test case. */
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new_minimal(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config,
+                    test_cases[i].ca_cert_file, NULL));
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(client_config));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+            EXPECT_NOT_EQUAL(client_config->cert_authorities.size, 0);
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
+
+            /* The server received the extension and picked the chain whose CA
+             * names the client advertised. */
+            EXPECT_TRUE(S2N_CBIT_TEST(server->extension_requests_received, ca_ext_id));
+            EXPECT_EQUAL(server->handshake_params.our_chain_and_key, test_cases[i].expected_chain);
+        }
+    };
+
+    /* Self-talk test: with a single certificate chain configured, the server
+     * ignores the certificate_authorities extension and always sends its one
+     * chain, even if the advertised CA names do not match it. */
+    if (s2n_is_tls13_fully_supported() && s2n_cert_authorities_supported_from_trust_store()) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+        EXPECT_EQUAL(s2n_config_get_num_default_certs(server_config), 1);
+
+        /* Client advertises the CA names of a DIFFERENT chain (RSA). */
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new_minimal(),
+                s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config,
+                S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(client_config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+        EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
+
+        /* With a single chain, the server does not even store the advertised
+         * CA names, and it sends its only chain. */
+        EXPECT_EQUAL(server->cert_authorities.size, 0);
+        EXPECT_EQUAL(server->handshake_params.our_chain_and_key, ecdsa_chain);
+    };
+
     /* Known value test: compare our extension to openssl s_server */
     if (s2n_is_rsa_pss_certs_supported() && s2n_cert_authorities_supported_from_trust_store()) {
         /* clang-format off */

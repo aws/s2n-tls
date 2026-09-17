@@ -32,5 +32,13 @@
 
 extern const s2n_extension_type s2n_cert_authorities_extension;
 
+struct s2n_cert_chain_and_key;
+
 bool s2n_cert_authorities_supported_from_trust_store();
 int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+
+/* Returns true (via *match) if any certificate in chain_and_key is issued by,
+ * or is itself, a CA advertised by the peer in the certificate_authorities
+ * extension. If no CA names were received, *match is false. */
+S2N_RESULT s2n_cert_authorities_chain_matches(struct s2n_connection *conn,
+        struct s2n_cert_chain_and_key *chain_and_key, bool *match);
