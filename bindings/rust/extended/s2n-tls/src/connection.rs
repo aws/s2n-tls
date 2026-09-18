@@ -769,7 +769,7 @@ impl Connection {
     ///
     /// Early data is sent before the handshake completes, so it is not forward secret and
     /// is vulnerable to replay attacks. See the
-    /// [early data usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md)
+    /// [early data usage guide](https://aws.github.io/s2n-tls/usage-guide/ch15-early-data.html)
     /// and implement anti-replay mitigation before using it.
     ///
     /// Corresponds to [`s2n_send_early_data`].
@@ -820,7 +820,7 @@ impl Connection {
     ///
     /// Early data is received before the handshake completes, so it is not forward secret
     /// and is vulnerable to replay attacks. See the
-    /// [early data usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md)
+    /// [early data usage guide](https://aws.github.io/s2n-tls/usage-guide/ch15-early-data.html)
     /// and implement anti-replay mitigation before accepting it.
     ///
     /// Corresponds to [`s2n_recv_early_data`].

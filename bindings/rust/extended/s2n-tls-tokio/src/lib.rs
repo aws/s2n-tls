@@ -78,7 +78,7 @@ where
     ///
     /// Early data is received before the handshake completes, so it is not forward secret
     /// and is vulnerable to replay attacks. See the
-    /// [early data usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md)
+    /// [early data usage guide](https://aws.github.io/s2n-tls/usage-guide/ch15-early-data.html)
     /// and implement anti-replay mitigation before accepting it.
     pub async fn accept_with_early_data<S>(
         &self,
@@ -135,7 +135,7 @@ where
     ///
     /// Early data is sent before the handshake completes, so it is not forward secret and
     /// is vulnerable to replay attacks. See the
-    /// [early data usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md)
+    /// [early data usage guide](https://aws.github.io/s2n-tls/usage-guide/ch15-early-data.html)
     /// and implement anti-replay mitigation before using it.
     pub async fn connect_with_early_data<S>(
         &self,
