@@ -706,6 +706,153 @@ impl Connection {
         unsafe { s2n_connection_handshake_complete(self.connection.as_ptr()) }
     }
 
+    /// Reports the current state of early data (0-RTT) for the connection.
+    ///
+    /// See [`EarlyDataStatus`] for all possible states.
+    ///
+    /// Corresponds to [`s2n_connection_get_early_data_status`].
+    pub fn early_data_status(&self) -> Result<EarlyDataStatus, Error> {
+        let mut status: s2n_early_data_status_t::Type = s2n_early_data_status_t::NOT_REQUESTED;
+        unsafe {
+            s2n_connection_get_early_data_status(self.connection.as_ptr(), &mut status)
+                .into_result()?;
+        }
+        EarlyDataStatus::try_from(status)
+    }
+
+    /// Reports the remaining size of the early data allowed by the connection.
+    ///
+    /// If early data was rejected or not requested, the remaining early data size is 0.
+    /// Otherwise, the remaining early data size is the maximum early data allowed by the
+    /// connection, minus the early data sent or received so far.
+    ///
+    /// Corresponds to [`s2n_connection_get_remaining_early_data_size`].
+    pub fn remaining_early_data_size(&self) -> Result<u32, Error> {
+        let mut size = 0;
+        unsafe {
+            s2n_connection_get_remaining_early_data_size(self.connection.as_ptr(), &mut size)
+                .into_result()?;
+        }
+        Ok(size)
+    }
+
+    /// Reports the maximum size of the early data allowed by the connection.
+    ///
+    /// This is the maximum amount of early data that can ever be sent and received for a
+    /// connection. It is not affected by the actual status of the early data, so can be
+    /// non-zero even if early data is rejected or not requested.
+    ///
+    /// Corresponds to [`s2n_connection_get_max_early_data_size`].
+    pub fn max_early_data_size(&self) -> Result<u32, Error> {
+        let mut size = 0;
+        unsafe {
+            s2n_connection_get_max_early_data_size(self.connection.as_ptr(), &mut size)
+                .into_result()?;
+        }
+        Ok(size)
+    }
+
+    /// Begins negotiation and sends early data (0-RTT) as a client.
+    ///
+    /// Call this instead of [`Self::poll_negotiate`] to begin a handshake that offers early
+    /// data; once it completes, call [`Self::poll_negotiate`] to finish the handshake.
+    /// Requires session resumption or an external PSK configured for early data (see
+    /// [`crate::psk::Builder::configure_early_data`]).
+    ///
+    /// Like [`Self::poll_send`], this is a partial-write API: `data` is the not-yet-sent
+    /// slice and `sent` accumulates the bytes sent. On [`Poll::Pending`], call it again
+    /// with the remainder (advance by `sent`); on `Poll::Ready(Ok(()))` all early data has
+    /// been sent (or is no longer accepted), so call [`Self::poll_negotiate`] next. Do NOT
+    /// re-pass bytes already reported as sent — s2n resends them as a second message.
+    ///
+    /// # Warning
+    ///
+    /// Early data is sent before the handshake completes, so it is not forward secret and
+    /// is vulnerable to replay attacks. See the
+    /// [early data usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md)
+    /// and implement anti-replay mitigation before using it.
+    ///
+    /// Corresponds to [`s2n_send_early_data`].
+    pub fn poll_send_early_data(
+        &mut self,
+        data: &[u8],
+        sent: &mut usize,
+    ) -> Poll<Result<(), Error>> {
+        let data_len: isize = data.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        // Drive through poll_negotiate_method for the same initializer trigger and
+        // async-callback loop as poll_negotiate (e.g. so a ConnectionInitializer can load
+        // a resumption ticket before the ClientHello). s2n reports this call's byte count
+        // in data_sent (even when blocked) and resets it each call, so accumulate into
+        // `sent` in the closure; poll_negotiate_method discards the closure's return value.
+        self.poll_negotiate_method(|conn| {
+            let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+            let mut data_sent: isize = 0;
+            let result = unsafe {
+                s2n_send_early_data(
+                    conn.as_ptr(),
+                    data.as_ptr(),
+                    data_len,
+                    &mut data_sent,
+                    &mut blocked,
+                )
+                .into_poll()
+            };
+            *sent += data_sent as usize;
+            result
+        })
+    }
+
+    /// Begins negotiation and receives early data (0-RTT) as a server.
+    ///
+    /// Call this instead of [`Self::poll_negotiate`] to begin a handshake that accepts
+    /// early data; once it completes, call [`Self::poll_negotiate`] to finish the
+    /// handshake. Requires session resumption or an external PSK configured for early data
+    /// (see [`crate::psk::Builder::configure_early_data`]).
+    ///
+    /// Like [`Self::poll_recv`], this is a partial-read API mirroring
+    /// [`Self::poll_send_early_data`]: `buf` is the not-yet-filled remainder and `received`
+    /// accumulates the bytes read. On [`Poll::Pending`], call it again with the remainder
+    /// (advance by `received`); on `Poll::Ready(Ok(()))` all early data has been received,
+    /// so call [`Self::poll_negotiate`] next. You must advance `buf` past bytes already
+    /// received — s2n writes from offset 0 and would overwrite them.
+    ///
+    /// # Warning
+    ///
+    /// Early data is received before the handshake completes, so it is not forward secret
+    /// and is vulnerable to replay attacks. See the
+    /// [early data usage guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md)
+    /// and implement anti-replay mitigation before accepting it.
+    ///
+    /// Corresponds to [`s2n_recv_early_data`].
+    pub fn poll_recv_early_data(
+        &mut self,
+        buf: &mut [u8],
+        received: &mut usize,
+    ) -> Poll<Result<(), Error>> {
+        let max_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_mut_ptr();
+        // Drive through poll_negotiate_method for the same initializer trigger and
+        // async-callback loop as poll_negotiate. s2n reports this call's byte count in
+        // data_received (even when blocked) and resets it each call, so accumulate into
+        // `received` in the closure; poll_negotiate_method discards the closure's return.
+        self.poll_negotiate_method(move |conn| {
+            let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+            let mut data_received: isize = 0;
+            let result = unsafe {
+                s2n_recv_early_data(
+                    conn.as_ptr(),
+                    buf_ptr,
+                    max_len,
+                    &mut data_received,
+                    &mut blocked,
+                )
+                .into_poll()
+            };
+            *received += data_received as usize;
+            result
+        })
+    }
+
     /// Encrypts and sends data on a connection where
     /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
