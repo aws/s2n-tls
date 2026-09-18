@@ -249,9 +249,9 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
         *san_found = true;
 
         /* try to validate an IP address if it's in the subject alt name. */
-        const unsigned char *ip_addr = current_name->d.iPAddress->data;
+        const unsigned char *ip_addr = ASN1_STRING_get0_data(current_name->d.iPAddress);
         RESULT_ENSURE_REF(ip_addr);
-        int ip_addr_len = current_name->d.iPAddress->length;
+        int ip_addr_len = ASN1_STRING_length(current_name->d.iPAddress);
         RESULT_ENSURE_GT(ip_addr_len, 0);
 
         RESULT_STACK_BLOB(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1);
