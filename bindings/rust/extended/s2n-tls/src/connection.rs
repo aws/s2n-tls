@@ -37,8 +37,6 @@ use std::{
 
 mod builder;
 pub use builder::*;
-
-// Gating out renegotiate feature so we don't have to think through its interaction with split.
 #[cfg(not(feature = "unstable-renegotiate"))]
 pub mod split;
 
@@ -729,6 +727,7 @@ impl Connection {
     ///
     /// Exclusively for use with the split Read/WriteHalf APIs. This is safe as we know
     /// that only the write half is able to call this API.
+    #[cfg(not(feature = "unstable-renegotiate"))]
     unsafe fn immutable_poll_send(&self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
@@ -765,6 +764,7 @@ impl Connection {
     ///
     /// Exclusively for use with the split Read/WriteHalf APIs. This is safe as we know
     /// that only the read half is able to call this API.
+    #[cfg(not(feature = "unstable-renegotiate"))]
     unsafe fn immutable_poll_recv(&self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
@@ -800,6 +800,7 @@ impl Connection {
         self.poll_recv_raw(buf_ptr, buf_len)
     }
 
+    #[cfg(not(feature = "unstable-renegotiate"))]
     unsafe fn immutable_poll_recv_uninitialized(
         &self,
         buf: &mut [MaybeUninit<u8>],
@@ -897,6 +898,7 @@ impl Connection {
     ///
     /// Exclusively for use with the split Read/WriteHalf APIs. This is safe as we know
     /// that only the write half is able to call this API.
+    #[cfg(not(feature = "unstable-renegotiate"))]
     unsafe fn immutable_poll_shutdown_send(&self) -> Poll<Result<(), Error>> {
         if !self.remaining_blinding_delay()?.is_zero() {
             return Poll::Pending;
