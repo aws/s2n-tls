@@ -161,6 +161,27 @@ int main(int argc, char **argv)
             }
         }
 
+        /* TLS 1.3 cipher suites should be ordered before non-TLS 1.3 cipher suites.
+         *
+         * The "test_all*" are exempt: they are master lookup tables that must 
+         * remain sorted by IANA value (see s2n_cipher_suite_from_iana)
+         */
+        const struct s2n_cipher_preferences *cipher_prefs = security_policy->cipher_preferences;
+        bool is_iana_ordered_lookup_table = (cipher_prefs == &cipher_preferences_test_all
+                || cipher_prefs == &cipher_preferences_test_all_fips);
+        if (!is_iana_ordered_lookup_table) {
+            bool seen_non_tls_13_cipher = false;
+            for (size_t i = 0; i < cipher_prefs->count; i++) {
+                bool is_tls_13_cipher = (cipher_prefs->suites[i]->minimum_required_tls_version == S2N_TLS13);
+                if (is_tls_13_cipher) {
+                    /* A TLS 1.3 cipher must not appear after a non-TLS 1.3 cipher. */
+                    EXPECT_FALSE(seen_non_tls_13_cipher);
+                } else {
+                    seen_non_tls_13_cipher = true;
+                }
+            }
+        }
+
         /* TLS 1.3 Cipher suites have TLS 1.3 Signature Algorithms Test */
         bool has_tls_13_cipher = false;
         for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
