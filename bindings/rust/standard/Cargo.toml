@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "benchmarks",
-    "integration", "integration-renegotiate",
+    "integration",
     "s2n-tls-hyper",
     "s2n-tls-metrics-schema",
     "s2n-tls-metrics-subscriber",
