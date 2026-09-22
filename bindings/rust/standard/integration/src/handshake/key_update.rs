@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::capability_check::{required_capability, Capability};
 use foreign_types::ForeignTypeRef;
 use openssl::ssl::{SslContextBuilder, SslFiletype, SslVersion};
 use s2n_tls::{
@@ -22,12 +23,12 @@ use tls_harness::{
 // reading a key update requested message. s2n-tls itself never sends key update requested
 // messages, so we use Openssl as a peer to generate the key update request.
 #[test]
-fn peer_requested_key_update_after_split() -> Result<(), Box<dyn std::error::Error>> {
+fn peer_requested_key_update_after_split() {
     required_capability(&[Capability::Tls13], || {
         const SERVER_DATA: &[u8] = b"beep boop";
         const CLIENT_DATA: &[u8] = b"boop beep";
 
-        let pair = key_update_test_pair()?;
+        let pair = key_update_test_pair().unwrap();
         let TlsConnPair {
             client,
             server,
@@ -48,7 +49,7 @@ fn peer_requested_key_update_after_split() -> Result<(), Box<dyn std::error::Err
         assert_eq!(rc, 1, "SSL_key_update should succeed");
 
         // This write will flush the key update message before sending SERVER_DATA.
-        server.write_all(SERVER_DATA)?;
+        server.write_all(SERVER_DATA).unwrap();
 
         // Decrypting SERVER_DATA correctly proves the read half handled the peer's key update.
         let mut recv_buffer = vec![0; SERVER_DATA.len()];
@@ -68,18 +69,16 @@ fn peer_requested_key_update_after_split() -> Result<(), Box<dyn std::error::Err
         // updating its receiving key. Decrypting CLIENT_DATA correctly proves the
         // write half's key update was accepted by the peer.
         let mut server_recv = vec![0; CLIENT_DATA.len()];
-        server.read_exact(&mut server_recv)?;
+        server.read_exact(&mut server_recv).unwrap();
         assert_eq!(server_recv, CLIENT_DATA);
 
-        let counts = read.key_update_counts()?;
+        let counts = read.key_update_counts().unwrap();
         assert_eq!(counts.recv_key_updates, 1, "read half updated the recv key");
         assert_eq!(
             counts.send_key_updates, 1,
             "write half updated the send key"
         );
-
-        Ok(())
-    })
+    });
 }
 
 fn key_update_test_pair(
