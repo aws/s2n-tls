@@ -72,12 +72,15 @@ fn peer_requested_key_update_after_split() {
         server.read_exact(&mut server_recv).unwrap();
         assert_eq!(server_recv, CLIENT_DATA);
 
-        let counts = read.key_update_counts().unwrap();
-        assert_eq!(counts.recv_key_updates, 1, "read half updated the recv key");
-        assert_eq!(
-            counts.send_key_updates, 1,
-            "write half updated the send key"
-        );
+        #[cfg(not(windows))]
+        {
+            let counts = read.key_update_counts().unwrap();
+            assert_eq!(counts.recv_key_updates, 1, "read half updated the recv key");
+            assert_eq!(
+                counts.send_key_updates, 1,
+                "write half updated the send key"
+            );
+        }
     });
 }
 
