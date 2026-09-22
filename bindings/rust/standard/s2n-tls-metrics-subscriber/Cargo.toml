@@ -39,7 +39,7 @@ s2n-tls-sys-internal = { path = "../s2n-tls-sys-internal" }
 serde_json = "1.0.141"
 ciborium = "0.2"
 dhat = "0.3"
-tabled = "0.21"
+tabled = "0.22"
 metrique-writer = { version = "0.1.19", features = ["test-util"] }
 metrique-writer-format-emf = "0.1.21"
 tls-harness = { path = "../tls-harness" }
