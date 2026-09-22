@@ -1,0 +1,10 @@
+[package]
+name = "integration-renegotiate"
+version = "0.1.0"
+edition = "2024"
+
+[dev-dependencies]
+openssl = { version = "0.10" }
+s2n-tls = { path = "../../extended/s2n-tls"}
+tls-harness = { path = "../tls-harness", features = ["renegotiate"] }
+

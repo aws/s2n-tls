@@ -91,8 +91,7 @@ mod tests {
         thread::{self},
     };
 
-    // Contains tedious recv logic to receive multiple records; in s2n-tls poll_recv only returns
-    // one record at a time.
+    // Helper recv function
     #[track_caller]
     fn receive<F>(mut poll_recv: F, mut recv_buffer: Vec<u8>, expected_output: Vec<u8>)
     where

@@ -1,5 +1,5 @@
 [features]
-default = ["renegotiate"]
+default = []
 boringssl = ["dep:btls"]
 renegotiate = ["s2n-tls/unstable-renegotiate"]
 
