@@ -68,6 +68,7 @@ typedef enum {
 } s2n_handshake_type_flag;
 
 S2N_RESULT s2n_handshake_type_set_flag(struct s2n_connection *conn, s2n_handshake_type_flag flag);
+S2N_RESULT s2n_handshake_type_unset_flag(struct s2n_connection *conn, s2n_handshake_type_flag flag);
 bool s2n_handshake_type_check_flag(struct s2n_connection *conn, s2n_handshake_type_flag flag);
 
 typedef enum {
