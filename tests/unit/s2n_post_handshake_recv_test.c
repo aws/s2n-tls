@@ -142,11 +142,13 @@ static S2N_RESULT s2n_test_init_sender_and_receiver(struct s2n_config *config,
     RESULT_GUARD_POSIX(s2n_connection_set_all_protocol_versions(sender, S2N_TLS13));
     RESULT_GUARD(s2n_connection_set_secrets(sender));
     RESULT_GUARD_POSIX(s2n_connection_set_blinding(sender, S2N_SELF_SERVICE_BLINDING));
+    EXPECT_OK(s2n_skip_handshake(sender));
 
     RESULT_GUARD_POSIX(s2n_connection_set_config(receiver, config));
     RESULT_GUARD_POSIX(s2n_connection_set_all_protocol_versions(receiver, S2N_TLS13));
     RESULT_GUARD(s2n_connection_set_secrets(receiver));
     RESULT_GUARD_POSIX(s2n_connection_set_blinding(receiver, S2N_SELF_SERVICE_BLINDING));
+    EXPECT_OK(s2n_skip_handshake(receiver));
 
     RESULT_GUARD(s2n_io_stuffer_pair_init(io_pair));
     if (sender->mode == S2N_SERVER) {
@@ -403,14 +405,22 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_mem_test_cb_scope mem_ctx = { 0 }, s2n_mem_test_free_callbacks);
         EXPECT_OK(s2n_mem_test_init_callbacks(&mem_ctx));
 
-        EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
-        EXPECT_OK(s2n_test_basic_recv(server, client));
-        EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
-        EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
+        /* HelloRequest is a TLS1.2-only message. This test's shared harness
+         * (s2n_test_init_sender_and_receiver) negotiates TLS1.3, so a
+         * genuinely complete, negotiated connection must correctly reject 
+         * it (see https://github.com/aws/s2n-tls/issues/5624)
+         */
 
         EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
-        EXPECT_OK(s2n_test_blocking_recv(server, client, &io_pair));
-        EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
+        // EXPECT_OK(s2n_test_basic_recv(server, client));
+        // EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
+        // EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
+
+        // EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
+        // EXPECT_OK(s2n_test_blocking_recv(server, client, &io_pair));
+        // EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(server, client), S2N_ERR_BAD_MESSAGE);
+        EXPECT_EQUAL(hello_request_count, 0);
         EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
     }
 
