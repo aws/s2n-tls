@@ -1190,7 +1190,7 @@ int main(int argc, char **argv)
             struct s2n_blob *different_partial_client_hello = &valid_binder;
 
             EXPECT_ERROR_WITH_ERRNO(s2n_client_psk_recv_binder_list(conn, different_partial_client_hello, &wire_binders_in),
-                    S2N_ERR_BAD_MESSAGE);
+                    S2N_ERR_BAD_PSK_BINDER);
         };
 
         /* Binder for chosen identity is valid */

@@ -38,7 +38,7 @@ S2N_RESULT s2n_finished_recv(struct s2n_connection *conn, uint8_t *local_verify_
     uint8_t *peer_verify_data = s2n_stuffer_raw_read(&conn->handshake.io, length);
     RESULT_ENSURE_REF(peer_verify_data);
 
-    RESULT_ENSURE(s2n_constant_time_equals(local_verify_data, peer_verify_data, length), S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(s2n_constant_time_equals(local_verify_data, peer_verify_data, length), S2N_ERR_BAD_FINISHED);
     return S2N_RESULT_OK;
 }
 

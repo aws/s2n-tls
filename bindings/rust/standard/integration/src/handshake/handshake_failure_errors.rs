@@ -10,7 +10,13 @@ use brass_aphid_wire_messages::{
     },
 };
 use openssl::ssl::{SslContextBuilder, SslVersion};
-use s2n_tls::{error::ErrorType, security::Policy, testing::TestPair};
+use s2n_tls::{
+    enums::PskHmac,
+    error::ErrorType,
+    psk::Psk,
+    security::{Policy, DEFAULT_TLS13},
+    testing::TestPair,
+};
 use tls_harness::{
     cohort::{s2n_tls::HostNameHandler, OpenSslConnection, S2NConnection},
     harness::TlsConfigBuilderPair,
@@ -417,4 +423,53 @@ fn mtls_tls13_transcript_signature_not_negotiable() {
 
         Ok(())
     });
+}
+
+/// A client and server with the same PSK identity but different secrets fail
+/// binder verification with S2N_ERR_BAD_PSK_BINDER.
+#[test]
+fn psk_binder_mismatch() {
+    required_capability_with_inner_result(&[Capability::Tls13], || {
+        const IDENTITY: &[u8] = b"shared identity";
+        let psk = |secret: &[u8]| -> Result<Psk, s2n_tls::error::Error> {
+            let mut builder = Psk::builder()?;
+            builder
+                .set_identity(IDENTITY)?
+                .set_secret(secret)?
+                .set_hmac(PskHmac::SHA256)?;
+            builder.build()
+        };
+
+        let mut config = s2n_tls::config::Builder::new();
+        config.set_security_policy(&DEFAULT_TLS13)?;
+        let config = config.build()?;
+
+        // sanity check: the handshake succeeds when the secrets match.
+        {
+            let shared = psk(b"the same secret on both sides")?;
+            let mut pair = TestPair::from_config(&config);
+            pair.client.append_psk(&shared)?;
+            pair.server.append_psk(&shared)?;
+            pair.handshake()?;
+            assert!(pair.server.handshake_complete());
+        }
+
+        let mut pair = TestPair::from_config(&config);
+        pair.client
+            .append_psk(&psk(b"the secret the client knows")?)?;
+        pair.server
+            .append_psk(&psk(b"the secret the server knows")?)?;
+
+        // The server selects the PSK by identity, then fails to verify the binder.
+        let error = pair.handshake().unwrap_err();
+        assert_eq!(error.kind(), ErrorType::ProtocolError);
+        assert_eq!(error.name(), "S2N_ERR_BAD_PSK_BINDER");
+        assert_eq!(
+            error.message(),
+            "PSK binder did not match the expected value"
+        );
+        assert!(!pair.server.handshake_complete());
+
+        Ok(())
+    })
 }

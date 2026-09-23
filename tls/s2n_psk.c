@@ -461,7 +461,8 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
 
     /* Verify the expected binder matches the given binder.
      * This operation must be constant time. */
-    POSIX_GUARD(s2n_tls13_mac_verify(&psk_keys, &expected_binder, binder_to_verify));
+    POSIX_ENSURE(s2n_constant_time_equals(expected_binder.data, binder_to_verify->data, psk_keys.size),
+            S2N_ERR_BAD_PSK_BINDER);
 
     return S2N_SUCCESS;
 }
