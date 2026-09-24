@@ -28,8 +28,6 @@ env:
 phases:
   install:
     commands:
-      # https://github.com/cli/cli/issues/13118
-      - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo -y
       - dnf update -y; dnf upgrade -y
   pre_build:
     commands:
