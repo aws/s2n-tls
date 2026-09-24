@@ -28,7 +28,7 @@ use std::{
 // NOTE: BoringSSL tests are disabled on macOS to avoid symbol collisions with
 // OpenSSL; see https://github.com/aws/s2n-tls/pull/5659 for details.
 #[cfg(all(feature = "boringssl", not(target_os = "macos")))]
-use boring::ssl::SslVersion;
+use btls::ssl::SslVersion;
 use rustls::ClientConfig;
 
 use s2n_tls::{
@@ -221,7 +221,7 @@ fn rustls_mtls_server(
 fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
 
-    let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Client);
+    let mut builder = btls::ssl::SslContextBuilder::new_test_config(Mode::Client);
     builder.set_trust(sig_type);
 
     builder
@@ -233,10 +233,10 @@ fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslCon
     builder
         .set_private_key_file(
             tls_harness::get_cert_path(PemType::ClientKey, sig_type),
-            boring::ssl::SslFiletype::PEM,
+            btls::ssl::SslFiletype::PEM,
         )
         .unwrap();
-    builder.set_verify(boring::ssl::SslVerifyMode::PEER);
+    builder.set_verify(btls::ssl::SslVerifyMode::PEER);
 
     // Pin the protocol version
     builder.set_min_proto_version(Some(version)).unwrap();
@@ -252,11 +252,11 @@ fn boringssl_mtls_client(sig_type: SigType, version: SslVersion) -> BoringSslCon
 fn boringssl_mtls_server(sig_type: SigType, version: SslVersion) -> BoringSslConfig {
     use tls_harness::harness::{Mode, TlsConfigBuilder};
 
-    let mut builder = boring::ssl::SslContextBuilder::new_test_config(Mode::Server);
+    let mut builder = btls::ssl::SslContextBuilder::new_test_config(Mode::Server);
     builder.set_chain(sig_type);
     builder.set_trust(sig_type);
     builder.set_verify(
-        boring::ssl::SslVerifyMode::PEER | boring::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
+        btls::ssl::SslVerifyMode::PEER | btls::ssl::SslVerifyMode::FAIL_IF_NO_PEER_CERT,
     );
 
     // Pin the protocol version

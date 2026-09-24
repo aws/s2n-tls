@@ -6,7 +6,7 @@ use crate::{
     harness::{self, Mode, TlsConfigBuilder, TlsConnection, TlsInfo, ViewIO},
     PemType,
 };
-use boring::ssl::{
+use btls::ssl::{
     ErrorCode, ShutdownResult, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod,
     SslSession, SslStream, SslVersion,
 };
@@ -175,11 +175,8 @@ impl TlsInfo for BoringSslConnection {
 impl TlsConfigBuilder for SslContextBuilder {
     type Config = BoringSslConfig;
 
-    fn new_test_config(mode: Mode) -> Self {
-        match mode {
-            Mode::Client => SslContext::builder(SslMethod::tls_client()).unwrap(),
-            Mode::Server => SslContext::builder(SslMethod::tls_server()).unwrap(),
-        }
+    fn new_test_config(_mode: Mode) -> Self {
+        SslContext::builder(SslMethod::tls()).unwrap()
     }
 
     fn set_chain(&mut self, sig_type: crate::SigType) {

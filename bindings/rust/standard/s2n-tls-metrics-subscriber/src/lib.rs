@@ -3,7 +3,7 @@
 
 mod bounded_set;
 mod client_issue;
-mod compatibility;
+pub mod compatibility;
 pub(crate) mod counter;
 pub mod detector;
 #[cfg(feature = "fuzzing")]
@@ -62,6 +62,14 @@ impl MetricRecord {
     #[cfg(test)]
     pub(crate) fn as_schema(&self) -> &s2n_tls_metrics_schema::record::MetricRecord {
         &self.0
+    }
+
+    /// Returns `true` if no handshakes (successful, failed, or synthetic) were aggregated.
+    pub(crate) fn is_empty(&self) -> bool {
+        let handshake = &self.0.handshake;
+        handshake.handshake_success_count == 0
+            && handshake.handshake_failure_count == 0
+            && handshake.synthetic_traffic_count == 0
     }
 }
 

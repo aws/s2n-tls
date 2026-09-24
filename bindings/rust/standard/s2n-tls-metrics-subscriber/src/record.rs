@@ -62,8 +62,10 @@ impl NegotiatedParameters {
             }
         };
 
-        let group = success.group().and_then(|g| g.parse().ok());
-        let signature = conn.signature_scheme().and_then(|s| s.parse().ok());
+        let group = success.group().and_then(Group::from_iana_description);
+        let signature = conn
+            .signature_scheme()
+            .and_then(Signature::from_s2n_description);
 
         Ok(Self {
             version,
@@ -99,6 +101,12 @@ pub(crate) struct HandshakeRecordInProgress {
     // we do not attempt to detect supported parameters for SSLv2 formatted client
     // hellos
     sslv2_client_hello: AtomicU64,
+
+    /// TLS 1.3 handshakes that required a HelloRetryRequest, and therefore an
+    /// additional round trip. This is detected from the handshake type, which is
+    /// available on both the client and server side of a connection.
+    hello_retry_request_count: AtomicU64,
+
     supported_protocols: Counter<PROTOCOL_COUNT, Version>,
     supported_ciphers: Counter<CIPHER_COUNT, Cipher>,
     supported_groups: Counter<GROUP_COUNT, Group>,
@@ -167,6 +175,7 @@ impl HandshakeRecordInProgress {
             negotiated_signatures: Counter::new(),
 
             sslv2_client_hello: Default::default(),
+            hello_retry_request_count: Default::default(),
             supported_groups: Counter::new(),
             supported_ciphers: Counter::new(),
             supported_protocols: Counter::new(),
@@ -281,6 +290,22 @@ impl HandshakeRecordInProgress {
         }
         if let Some(sig) = negotiated.signature {
             self.negotiated_signatures.increment(&sig);
+        }
+
+        // An HRR costs an additional round trip, so it's tracked separately from
+        // the negotiated parameters that it was used to negotiate. The
+        // HELLO_RETRY_REQUEST flag only appears in the TLS 1.3 handshake type
+        // labels, so it can't be confused with a TLS 1.2 flag.
+        match conn.handshake_type() {
+            Ok(handshake_type) => {
+                if handshake_type.contains("HELLO_RETRY_REQUEST") {
+                    self.hello_retry_request_count
+                        .fetch_add(1, Ordering::Relaxed);
+                }
+            }
+            // Not treated as an internal failure: the rest of the record is
+            // still accurate, so continue recording telemetry.
+            Err(e) => tracing::error!("failed to retrieve handshake type: {e}"),
         }
 
         // Compatibility based on the negotiated parameters. Unlike the client
@@ -486,6 +511,7 @@ impl HandshakeRecordInProgress {
             negotiated_signatures: self.negotiated_signatures.freeze(),
 
             sslv2_client_hello: self.sslv2_client_hello.load(Ordering::Relaxed),
+            hello_retry_request_count: self.hello_retry_request_count.load(Ordering::Relaxed),
             supported_protocols: self.supported_protocols.freeze(),
             supported_ciphers: self.supported_ciphers.freeze(),
             supported_groups: self.supported_groups.freeze(),
@@ -543,13 +569,42 @@ impl Drop for HandshakeRecordInProgress {
 
 #[cfg(test)]
 mod tests {
-    use crate::test_utils::{ARBITRARY_POLICY_1, TestEndpoint};
+    use crate::test_utils::{
+        ARBITRARY_POLICY_1, P256_PREFERRING_POLICY, STRONGLY_PREFERRED_GROUPS_POLICY, TestEndpoint,
+    };
     use s2n_tls_metrics_schema::{
         counter::FrozenCounter,
         static_lists::{Cipher, FiniteCounter},
     };
 
     use super::*;
+
+    /// A handshake that requires a HelloRetryRequest increments
+    /// `hello_retry_request_count`, and one that doesn't leaves it at zero.
+    #[test]
+    fn record_contents_hello_retry_request() {
+        // the server strongly prefers secp384r1, but the client key shares
+        // secp256r1, so the server sends an HRR.
+        let hrr_endpoint = TestEndpoint::with_server_policy(&STRONGLY_PREFERRED_GROUPS_POLICY);
+        hrr_endpoint.client_handshake(&P256_PREFERRING_POLICY);
+        hrr_endpoint.subscriber.finish_record();
+
+        let records = hrr_endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+        assert_eq!(record.handshake_success_count, 1);
+        assert_eq!(record.hello_retry_request_count, 1);
+
+        // the client key shares the group that the server prefers, so no HRR
+        // is needed.
+        let endpoint = TestEndpoint::with_server_policy(&STRONGLY_PREFERRED_GROUPS_POLICY);
+        endpoint.client_handshake(&STRONGLY_PREFERRED_GROUPS_POLICY);
+        endpoint.subscriber.finish_record();
+
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+        assert_eq!(record.handshake_success_count, 1);
+        assert_eq!(record.hello_retry_request_count, 0);
+    }
 
     #[test]
     fn record_contents_negotiated_parameters() {
@@ -609,48 +664,54 @@ mod tests {
             .selected_key_exchange_group()
             .unwrap()
             .to_owned();
-        let expected_group_element: Group = expected_group.parse().unwrap();
+        let expected_group_element = Group::from_iana_description(&expected_group).unwrap();
         let slot = expected_group_element.slot_from_key().unwrap();
         assert_eq!(record.negotiated_groups.slots()[slot], 1);
 
         let expected_sig = result.client.signature_scheme().unwrap().to_owned();
-        let expected_sig_element: Signature = expected_sig.parse().unwrap();
+        let expected_sig_element: Signature =
+            Signature::from_s2n_description(&expected_sig).unwrap();
         let slot = expected_sig_element.slot_from_key().unwrap();
         assert_eq!(record.negotiated_signatures.slots()[slot], 1);
     }
 
     #[test]
     fn record_contents_supported_parameters() {
-        const EXPECTED_VERSIONS: &[&str] = &["TLSv1_3", "TLSv1_2"];
-        const EXPECTED_CIPHERS: &[&str] = &[
-            "TLS_AES_256_GCM_SHA384",
-            "TLS_AES_128_GCM_SHA256",
-            "TLS_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
-            "TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384",
-            "TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384",
-            "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256",
+        let expected_protocols: Vec<Version> = vec![Version::TLS_1_2, Version::TLS_1_3];
+        let expected_ciphers: Vec<Cipher> = vec![
+            Cipher::from_iana_description("TLS_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_CHACHA20_POLY1305_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384").unwrap(),
+            Cipher::from_iana_description("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256").unwrap(),
         ];
-        const EXPECTED_GROUPS: &[&str] = &["secp256r1", "secp384r1", "secp521r1", "x25519"];
-        const EXPECTED_SIGS: &[&str] = &[
-            "ecdsa_sha256",
-            "ecdsa_sha384",
-            "ecdsa_sha512",
-            "rsa_pkcs1_sha256",
-            "rsa_pkcs1_sha384",
-            "rsa_pkcs1_sha512",
-            "rsa_pss_rsae_sha256",
-            "rsa_pss_rsae_sha384",
-            "rsa_pss_rsae_sha512",
-            "rsa_pss_pss_sha256",
-            "rsa_pss_pss_sha384",
-            "rsa_pss_pss_sha512",
+        let expected_groups: Vec<Group> = vec![
+            Group::from_iana_description("secp256r1").unwrap(),
+            Group::from_iana_description("secp384r1").unwrap(),
+            Group::from_iana_description("secp521r1").unwrap(),
+            Group::from_iana_description("x25519").unwrap(),
+        ];
+        let expected_sigs: Vec<Signature> = vec![
+            Signature::from_s2n_description("ecdsa_sha256").unwrap(),
+            Signature::from_s2n_description("ecdsa_sha384").unwrap(),
+            Signature::from_s2n_description("ecdsa_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pkcs1_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pss_rsae_sha512").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha256").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha384").unwrap(),
+            Signature::from_s2n_description("rsa_pss_pss_sha512").unwrap(),
         ];
 
         let endpoint = TestEndpoint::new();
@@ -662,19 +723,13 @@ mod tests {
 
         fn assert_supported_matches<const N: usize, T>(
             counter: &FrozenCounter<N, T>,
-            expected: &[&str],
+            expected: &[T],
         ) where
-            T: FiniteCounter<N> + std::fmt::Display + std::str::FromStr<Err = ()>,
+            T: FiniteCounter<N> + std::fmt::Display,
         {
             let expected_slots: Vec<usize> = expected
                 .iter()
-                .map(|description| {
-                    description
-                        .parse::<T>()
-                        .unwrap_or_else(|()| panic!("unknown description {description}"))
-                        .slot_from_key()
-                        .unwrap()
-                })
+                .map(|description| description.slot_from_key().unwrap())
                 .collect();
 
             for (slot, &count) in counter.slots().iter().enumerate() {
@@ -687,10 +742,10 @@ mod tests {
             }
         }
 
-        assert_supported_matches(&record.supported_protocols, EXPECTED_VERSIONS);
-        assert_supported_matches(&record.supported_ciphers, EXPECTED_CIPHERS);
-        assert_supported_matches(&record.supported_groups, EXPECTED_GROUPS);
-        assert_supported_matches(&record.supported_signatures, EXPECTED_SIGS);
+        assert_supported_matches(&record.supported_protocols, &expected_protocols);
+        assert_supported_matches(&record.supported_ciphers, &expected_ciphers);
+        assert_supported_matches(&record.supported_groups, &expected_groups);
+        assert_supported_matches(&record.supported_signatures, &expected_sigs);
     }
 
     #[test]
@@ -740,18 +795,17 @@ mod tests {
         );
     }
 
-    /// A record with no handshakes should be entirely empty/default.
+    /// A record with no handshakes should not be exported at all.
     #[test]
     fn empty_record() {
         let endpoint = TestEndpoint::new();
 
         endpoint.subscriber.finish_record();
         let records = endpoint.sink.records.lock().unwrap();
-        let mut record = records[0].as_schema().handshake.clone();
-
-        // ignore the freeze time, since that "default" value is set to the Unix Epoch.
-        record.freeze_time = SystemTime::UNIX_EPOCH;
-        assert_eq!(record, FrozenHandshakeRecord::default());
+        assert!(
+            records.is_empty(),
+            "an empty record (no handshakes) should not be exported"
+        );
     }
 
     /// ARBITRARY_POLICY_1 (20240503 / default_tls13) should be compatible with
