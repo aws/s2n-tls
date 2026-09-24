@@ -1284,8 +1284,8 @@ S2N_API extern int s2n_config_set_session_tickets_onoff(struct s2n_config *confi
 /**
  * Enable or disable session caching.
  * 
- * @note Session caching will not be turned on unless all three session cache callbacks are set
- * prior to calling this function.
+ * @note Session caching will not be active unless all three session cache callbacks are also set.
+ * The callbacks can be set before or after calling this function.
  *
  * @param config The configuration object being updated
  * @param enabled The configuration object being updated. Set to 1 to enable. Set to 0 to disable.
