@@ -31,7 +31,7 @@ Have you already configure a trust store to be able to trust your peer's certifi
 s2n-tls sleeps for a random period between 10 and 30 seconds after specific errors occur to avoid leaking any secret information via timing data. This technique is called blinding and it is utilized to prevent timing side-channel attacks. See [blinding](usage-guide/topics/ch03-error-handling.md#blinding).
 
 ### Which security policy should I use if I want to make sure that it will never be altered?
-Our numbered security policies are guaranteed to never change. We will not alter or update them based on changing cryptography standards. However, our named security policies (like “default” or “default_tls13”) change based on new cryptography standards that come out. See [security policies](usage-guide/topics/ch06-security-policies.md).
+Our numbered security policies are guaranteed to never change. We will not alter or update them based on changing cryptography standards. However, our named security policies (like “default” or “default_fips”) change based on new cryptography standards that come out. See [security policies](usage-guide/topics/ch06-security-policies.md).
 
 ### Why does s2n-tls have a dependency on OpenSSL? Isn't s2n-tls a replacement for OpenSSL?
 OpenSSL includes both a TLS library, called libssl, and a cryptography library, called libcrypto. s2n-tls implements a TLS library, but does not implement a cryptography library. Instead, s2n-tls links to a separate libcrypto in order to perform cryptographic operations. Libcryptos other than OpenSSL can be used, such as [AWS-LC](https://github.com/aws/aws-lc).

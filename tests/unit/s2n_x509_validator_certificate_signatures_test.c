@@ -86,13 +86,14 @@ int main(int argc, char **argv)
             X509_free(cert);
         };
 
-        /* Connection using the default_tls13 security policy does not validate SHA-1 signatures in certificates */
+        /* Connection using a security policy with certificate_signature_preferences does not validate SHA-1 signatures in certificates */
         {
             struct s2n_connection *conn = NULL;
             struct s2n_config *config = s2n_config_new();
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+            /* 20240503 is a security policy with a certificate_signature_preferences list that rejects SHA-1 */
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240503"));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
@@ -112,13 +113,13 @@ int main(int argc, char **argv)
             X509_free(cert);
         };
 
-        /* Connection using the default_tls13 security policy ignores a SHA-1 signature on a root certificate */
+        /* Connection using a security policy with certificate_signature_preferences ignores a SHA-1 signature on a root certificate */
         {
             struct s2n_connection *conn = NULL;
             struct s2n_config *config = s2n_config_new();
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240503"));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             EXPECT_SUCCESS(s2n_read_test_pem(S2N_SHA1_ROOT_SIGNATURE_CA_CERT, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
