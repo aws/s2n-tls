@@ -1617,6 +1617,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
         struct s2n_blob mem = { 0 };
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+        POSIX_GUARD(s2n_blob_zero(&mem));
 
         struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
         POSIX_ENSURE_REF(new_node);
@@ -1627,6 +1628,18 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
         POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
         POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
+
+        /* Populate the cert info for every cert, and the public key and key
+         * type for the leaf cert, matching s2n_cert_chain_and_key_load() */
+        POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(cert, &new_node->info));
+
+        if (cert_idx == 0) {
+            DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            POSIX_GUARD_RESULT(s2n_pkey_from_x509(cert, &public_key, &pkey_type));
+            POSIX_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+            POSIX_GUARD(s2n_cert_set_cert_type(new_node, pkey_type));
+        }
     }
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);
