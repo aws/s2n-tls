@@ -190,6 +190,15 @@ int s2n_client_hello_free_raw_message(struct s2n_client_hello *client_hello)
     client_hello->cipher_suites.data = NULL;
     client_hello->extensions.raw.data = NULL;
 
+    /* Null out all parsed extension data pointers that alias raw_message.
+     * Without this, freed-but-non-NULL pointers remain accessible via
+     * s2n_client_hello_get_extension_by_id after the handshake is freed.
+     */
+    for (size_t i = 0; i < S2N_PARSED_EXTENSIONS_COUNT; i++) {
+        client_hello->extensions.parsed_extensions[i].extension.data = NULL;
+        client_hello->extensions.parsed_extensions[i].extension.size = 0;
+    }
+
     return 0;
 }
 
