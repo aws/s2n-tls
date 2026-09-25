@@ -162,11 +162,16 @@ S2N_RESULT s2n_server_nst_write(struct s2n_connection *conn, uint32_t *lifetime_
     struct s2n_stuffer output = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&output, session_ticket));
 
-    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+    /* The lookup returns a pointer into the shared, unsynchronized config->ticket_keys array.
+     * A concurrent call to s2n_config_add_ticket_crypto_key (key rotation) can reallocate,
+     * shift, or overwrite that array, invalidating the pointer. Copy the key to the stack
+     * immediately so later operations never dereference memory another thread might change. */
+    struct s2n_ticket_key *key_ptr = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE(key_ptr != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+    struct s2n_ticket_key key = *key_ptr;
 
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, lifetime_hint_in_secs));
-    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, &output));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key.intro_timestamp, lifetime_hint_in_secs));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, &key, &output));
 
     return S2N_RESULT_OK;
 }
@@ -302,8 +307,13 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(output);
 
-    struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
-    RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+    /* The lookup returns a pointer into the shared, unsynchronized config->ticket_keys array.
+     * A concurrent call to s2n_config_add_ticket_crypto_key (key rotation) can reallocate,
+     * shift, or overwrite that array, invalidating the pointer. Copy the key to the stack
+     * immediately so later operations never dereference memory another thread might change. */
+    struct s2n_ticket_key *key_ptr = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+    RESULT_ENSURE(key_ptr != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
+    struct s2n_ticket_key key = *key_ptr;
 
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
@@ -314,7 +324,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(output, &message_size));
 
     uint32_t ticket_lifetime_in_secs = 0;
-    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key->intro_timestamp, &ticket_lifetime_in_secs));
+    RESULT_GUARD(s2n_generate_ticket_lifetime(conn, key.intro_timestamp, &ticket_lifetime_in_secs));
 
     RESULT_ENSURE(ticket_lifetime_in_secs > 0, S2N_ERR_ZERO_LIFETIME_TICKET);
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(output, ticket_lifetime_in_secs));
@@ -346,7 +356,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     /* Write ticket */
     struct s2n_stuffer_reservation ticket_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(output, &ticket_size));
-    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, key, output));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, &key, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&ticket_size));
 
     RESULT_GUARD_POSIX(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
