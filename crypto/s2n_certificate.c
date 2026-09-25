@@ -233,8 +233,13 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
 
         if (san_name->type == GEN_DNS) {
             /* Decoding isn't necessary here since a DNS SAN name is ASCII(type V_ASN1_IA5STRING) */
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
             unsigned char *san_str = san_name->d.dNSName->data;
             const size_t san_str_len = san_name->d.dNSName->length;
+#else
+            const unsigned char *san_str = ASN1_STRING_get0_data(san_name->d.dNSName);
+            const size_t san_str_len = ASN1_STRING_length(san_name->d.dNSName);
+#endif
             struct s2n_blob *san_blob = NULL;
             POSIX_GUARD_RESULT(s2n_array_pushback(chain_and_key->san_names, (void **) &san_blob));
             if (!san_blob) {
@@ -271,19 +276,28 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
     POSIX_ENSURE_REF(chain_and_key->cn_names);
     POSIX_ENSURE_REF(x509_cert);
 
-    X509_NAME *subject = X509_get_subject_name(x509_cert);
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
+    X509_NAME_ENTRY *name_entry;
+    ASN1_STRING *asn1_str;
+    X509_NAME *subject;
+#else
+    const X509_NAME_ENTRY *name_entry;
+    const ASN1_STRING *asn1_str;
+    const X509_NAME *subject;
+#endif
+    subject = X509_get_subject_name(x509_cert);
     if (!subject) {
         return 0;
     }
 
     int lastpos = -1;
     while ((lastpos = X509_NAME_get_index_by_NID(subject, NID_commonName, lastpos)) >= 0) {
-        X509_NAME_ENTRY *name_entry = X509_NAME_get_entry(subject, lastpos);
+        name_entry = X509_NAME_get_entry(subject, lastpos);
         if (!name_entry) {
             continue;
         }
 
-        ASN1_STRING *asn1_str = X509_NAME_ENTRY_get_data(name_entry);
+        asn1_str = X509_NAME_ENTRY_get_data(name_entry);
         if (!asn1_str) {
             continue;
         }
@@ -727,11 +741,16 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
     POSIX_ENSURE_GTE(len, 0);
     if (out_data != NULL) {
         POSIX_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-        /* ASN1_STRING_data() returns an internal pointer to the data.
-        * Since this is an internal pointer it should not be freed or modified in any way.
-        * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
-        */
+        /* ASN1_STRING_get0_data(x) returns an internal pointer to the data of
+         * x. Since this is an internal pointer it should not be freed or
+         * modified in any way.
+         * Ref: https://docs.openssl.org/master/man3/ASN1_STRING_length/
+         */
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
         unsigned char *internal_data = ASN1_STRING_data(asn1_str);
+#else
+        const unsigned char *internal_data = ASN1_STRING_get0_data(asn1_str);
+#endif
         POSIX_ENSURE_REF(internal_data);
         POSIX_CHECKED_MEMCPY(out_data, internal_data, len);
     }
@@ -794,7 +813,15 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
     POSIX_ENSURE_REF(asn1_obj_in);
 
     for (size_t loc = 0; loc < ext_count; loc++) {
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
         ASN1_OCTET_STRING *asn1_str = NULL;
+        X509_EXTENSION *x509_ext;
+        ASN1_OBJECT *asn1_obj;
+#else
+        const ASN1_OCTET_STRING *asn1_str = NULL;
+        const X509_EXTENSION *x509_ext;
+        const ASN1_OBJECT *asn1_obj;
+#endif
         bool match_found = false;
 
         /* Retrieve the x509 extension at location loc.
@@ -803,7 +830,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
          * The returned extension is an internal pointer which must not be freed up by the application.
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext.html.
          */
-        X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
+        x509_ext = X509_get_ext(x509_cert, loc);
         POSIX_ENSURE_REF(x509_ext);
 
         /* Retrieve the extension object/OID/extnId.
@@ -811,7 +838,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
          * The returned pointer is an internal value which must not be freed up.
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_object.html.
          */
-        ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
+        asn1_obj = X509_EXTENSION_get_object(x509_ext);
         POSIX_ENSURE_REF(asn1_obj);
 
         /* OBJ_cmp() compares two ASN1_OBJECT objects. If the two are identical 0 is returned.
@@ -834,11 +861,16 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
             if (ext_value != NULL) {
                 POSIX_ENSURE_GTE(len, 0);
                 POSIX_ENSURE(*ext_value_len >= (uint32_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-                /* ASN1_STRING_data() returns an internal pointer to the data.
-                 * Since this is an internal pointer it should not be freed or modified in any way.
-                 * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
+                /* ASN1_STRING_get0_data(x) returns an internal pointer to the data of
+                 * x. Since this is an internal pointer it should not be freed or
+                 * modified in any way.
+                 * Ref: https://docs.openssl.org/master/man3/ASN1_STRING_length/
                  */
+#if OPENSSL_VERSION_NUMBER < 0x40000000L
                 unsigned char *internal_data = ASN1_STRING_data(asn1_str);
+#else
+                const unsigned char *internal_data = ASN1_STRING_get0_data(asn1_str);
+#endif
                 POSIX_ENSURE_REF(internal_data);
                 POSIX_CHECKED_MEMCPY(ext_value, internal_data, len);
             }
