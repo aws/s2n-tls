@@ -39,7 +39,6 @@ typedef enum {
      * - certificate keys: (if present)
      *   - <certificate_key_name>
      * - pq: (if present)
-     *   - revision: <pq_hybrid_draft_revision>
      *   - kems: (if present)
      *     -- <kem_name>
      *   - kem groups:
