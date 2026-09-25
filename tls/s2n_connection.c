@@ -353,9 +353,12 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
     }
 
-    /* New validator is fully initialized. Swap it in. */
-    s2n_x509_validator_wipe(&conn->x509_validator);
-    conn->x509_validator = new_validator;
+    /* Keep the new validator staged in a local until all fallible steps below
+     * succeed. Swapping it into conn before conn->config is committed would, on
+     * any early return, leave the connection validating against the new config's
+     * trust store while still referencing the old config.
+     */
+    DEFER_CLEANUP(struct s2n_x509_validator validator_to_commit = new_validator, s2n_x509_validator_wipe);
 
     conn->tickets_to_send = config->initial_tickets_to_send;
 
@@ -404,6 +407,14 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     if (config->ocsp_status_requested_by_s2n && conn->mode == S2N_CLIENT) {
         conn->request_ocsp_status = true;
     }
+
+    /* All fallible work has succeeded. Commit the validator and config together
+     * as the final, infallible step. Disarm the cleanup so the now-installed
+     * validator is not freed on return.
+     */
+    s2n_x509_validator_wipe(&conn->x509_validator);
+    conn->x509_validator = validator_to_commit;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(validator_to_commit);
 
     conn->config = config;
     return S2N_SUCCESS;
