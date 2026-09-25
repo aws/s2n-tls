@@ -64,7 +64,10 @@ static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *c
 
         const uint8_t *name_bytes = NULL;
         size_t name_size = 0;
-        RESULT_GUARD_OSSL(X509_NAME_get0_der(name, &name_bytes, &name_size),
+        /* Some libcryptos (AWS-LC) return a const X509_NAME* from
+         * X509_get_subject_name but still take a non-const X509_NAME* in
+         * X509_NAME_get0_der, which only reads the name. Cast to bridge that. */
+        RESULT_GUARD_OSSL(X509_NAME_get0_der((X509_NAME *) (uintptr_t) name, &name_bytes, &name_size),
                 S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
         RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&output, name_size));
