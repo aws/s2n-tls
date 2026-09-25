@@ -201,6 +201,11 @@ struct s2n_handshake {
     /* Indicates that this is a renegotiation handshake */
     unsigned renegotiation : 1;
 
+    /* Indicates that required_hash_algs has been narrowed based on the
+     * connection's security policy. Set lazily on the first transcript update,
+     * when the effective security policy is final. */
+    unsigned required_hash_algs_narrowed : 1;
+
     s2n_state_machine state_machine;
 };
 
