@@ -45,5 +45,8 @@ case "$TESTS" in
     cmake --build ./build -j "$(nproc)"
     CTEST_PARALLEL_LEVEL="$(nproc)" cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
     ;;
+  "interning")
+    ./codebuild/bin/test_libcrypto_interning.sh
+    ;;
   *) echo "Unknown test"; exit 1;;
 esac
