@@ -48,8 +48,9 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
     int rc = 0;
     const char *protocols[] = { "h2", "http/1.1" };
 
-    /* Give the server a chance to listen */
-    sleep(1);
+    /* The socketpair underlying io_pair is valid from the moment of fork, so
+     * the child can start the handshake immediately. The kernel will buffer
+     * writes until the parent starts reading. No pre-negotiate sleep needed. */
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
@@ -96,8 +97,9 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
     s2n_connection_free(conn);
     s2n_config_free(config);
 
-    /* Give the server a chance to a void a sigpipe */
-    sleep(1);
+    /* SIGPIPE is handled at the test's signal level (or ignored via
+     * SIGPIPE policy), so no post-shutdown sleep is needed to avoid a race
+     * with the server trying to send while we tear down. */
 
     s2n_cleanup();
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
