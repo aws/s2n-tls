@@ -44,6 +44,7 @@ option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" ON)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(S2N_USE_CRYPTO_SHARED_LIBS "For S2N to use shared libs in Findcrypto" OFF)
+option(S2N_AWSLC_DIST_PKG "Link against a distribution-packaged AWS-LC (built with ENABLE_DIST_PKG)" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
@@ -281,6 +282,24 @@ if (S2N_INTERN_LIBCRYPTO)
     # Restore the old BUILD_SHARED_LIBS value
     set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS_BACKUP})
     message(STATUS "Enabling libcrypto interning")
+endif()
+
+if (S2N_AWSLC_DIST_PKG)
+    # Config mode can resolve libcrypto before Findcrypto runs, so verify the
+    # resolved target is actually the dist package. Fail rather than fall back.
+    set(DIST_PKG_LOCATION "")
+    foreach(LOCATION_PROPERTY IMPORTED_LOCATION IMPORTED_LOCATION_RELEASE IMPORTED_LOCATION_RELWITHDEBINFO IMPORTED_LOCATION_MINSIZEREL IMPORTED_LOCATION_DEBUG IMPORTED_LOCATION_NOCONFIG)
+        get_target_property(DIST_PKG_LOCATION ${LINK_LIB} ${LOCATION_PROPERTY})
+        if (DIST_PKG_LOCATION)
+            break()
+        endif()
+    endforeach()
+    if (NOT DIST_PKG_LOCATION MATCHES "libcrypto-awslc")
+        message(FATAL_ERROR
+            "S2N_AWSLC_DIST_PKG is set, but libcrypto resolved to "
+            "'${DIST_PKG_LOCATION}' instead of a distribution-packaged AWS-LC "
+            "(libcrypto-awslc).")
+    endif()
 endif()
 
 if (NOT DEFINED CMAKE_AR)
