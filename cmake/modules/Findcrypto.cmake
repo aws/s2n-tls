@@ -31,29 +31,68 @@ if (TARGET crypto OR TARGET AWS::crypto)
     set(CRYPTO_FOUND true)
     set(crypto_FOUND true)
 else()
-    find_path(crypto_INCLUDE_DIR
-        NAMES openssl/crypto.h
-        HINTS
-        "${CMAKE_PREFIX_PATH}"
-        "${CMAKE_INSTALL_PREFIX}"
-        PATH_SUFFIXES include
-    )
+    if (S2N_AWSLC_DIST_PKG)
+        # ENABLE_DIST_PKG installs suffixed names (libcrypto-awslc, include/aws-lc/)
+        # that the default search cannot find. Fail rather than fall back.
+        find_path(crypto_AWSLC_DIST_INCLUDE_ROOT
+            NAMES aws-lc/openssl/crypto.h
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES include
+        )
+        if (crypto_AWSLC_DIST_INCLUDE_ROOT)
+            # Sources include <openssl/...>, so point at the aws-lc/ subdirectory.
+            set(crypto_INCLUDE_DIR "${crypto_AWSLC_DIST_INCLUDE_ROOT}/aws-lc")
+        endif()
 
-    find_library(crypto_SHARED_LIBRARY
-        NAMES libcrypto.so libcrypto.dylib
-        HINTS
-        "${CMAKE_PREFIX_PATH}"
-        "${CMAKE_INSTALL_PREFIX}"
-        PATH_SUFFIXES build/crypto build lib64 lib
-    )
+        find_library(crypto_SHARED_LIBRARY
+            NAMES libcrypto-awslc.so libcrypto-awslc.dylib
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES lib64 lib
+        )
 
-    find_library(crypto_STATIC_LIBRARY
-        NAMES libcrypto.a
-        HINTS
-        "${CMAKE_PREFIX_PATH}"
-        "${CMAKE_INSTALL_PREFIX}"
-        PATH_SUFFIXES build/crypto build lib64 lib
-    )
+        find_library(crypto_STATIC_LIBRARY
+            NAMES libcrypto-awslc.a
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES lib64 lib
+        )
+
+        if (NOT crypto_INCLUDE_DIR OR NOT (crypto_SHARED_LIBRARY OR crypto_STATIC_LIBRARY))
+            message(FATAL_ERROR
+                "S2N_AWSLC_DIST_PKG is set, but a distribution-packaged AWS-LC was not found "
+                "(searched for include/aws-lc/openssl/crypto.h and libcrypto-awslc). "
+                "Install the AWS-LC distribution package or unset S2N_AWSLC_DIST_PKG.")
+        endif()
+    else()
+        find_path(crypto_INCLUDE_DIR
+            NAMES openssl/crypto.h
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES include
+        )
+
+        find_library(crypto_SHARED_LIBRARY
+            NAMES libcrypto.so libcrypto.dylib
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES build/crypto build lib64 lib
+        )
+
+        find_library(crypto_STATIC_LIBRARY
+            NAMES libcrypto.a
+            HINTS
+            "${CMAKE_PREFIX_PATH}"
+            "${CMAKE_INSTALL_PREFIX}"
+            PATH_SUFFIXES build/crypto build lib64 lib
+        )
+    endif()
 
     if (NOT crypto_LIBRARY)
         if (BUILD_SHARED_LIBS OR S2N_USE_CRYPTO_SHARED_LIBS)
