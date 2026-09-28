@@ -93,21 +93,51 @@ int s2n_sslv2_record_header_parse(
     return 0;
 }
 
+/**
+ * - `conn`: connection with record header available in internal buffers
+ * - `header`: output parameter, populated after the header is parsed
+ */
 int s2n_record_header_parse(
         struct s2n_connection *conn,
-        uint8_t *content_type,
-        uint16_t *fragment_length)
+        struct s2n_record_header *header)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
     S2N_ERROR_IF(s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH, S2N_ERR_BAD_MESSAGE);
 
-    POSIX_GUARD(s2n_stuffer_read_uint8(in, content_type));
+    POSIX_GUARD(s2n_stuffer_read_uint8(in, &header->content_type));
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    /* Once the protocol version is established, reject records with
+     * content_type values outside the valid TLS set {20, 21, 22, 23}.
+     * This is the earliest possible rejection point, before any buffer
+     * allocation or cryptographic work.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.1
+     *# type:  The higher-level protocol used to process the enclosed
+     *#    fragment.
+     *
+     * Before the protocol version is established, we must be lenient
+     * because the first record (ClientHello) may arrive before we know
+     * the protocol version.
+     */
+    if (conn->actual_protocol_version_established) {
+        switch (header->content_type) {
+            case TLS_CHANGE_CIPHER_SPEC:
+            case TLS_ALERT:
+            case TLS_HANDSHAKE:
+            case TLS_APPLICATION_DATA:
+                break;
+            default:
+                POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+        }
+    }
 
-    const uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, &header->version));
+    uint8_t major_version = header->version >> 8;
+    uint8_t minor_version = header->version & 0xFF;
+
+    /* s2n has it's own legacy format for storing version numbers */
+    const uint8_t version = (major_version * 10) + minor_version;
     /* We record the protocol version in the first record seen by the server for fingerprinting usecases */
     if (!conn->client_hello.record_version_recorded) {
         conn->client_hello.legacy_record_version = version;
@@ -137,7 +167,7 @@ int s2n_record_header_parse(
      *# endpoint that receives a record that exceeds this length MUST
      *# terminate the connection with a "record_overflow" alert.
      */
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, &header->length));
     POSIX_GUARD(s2n_stuffer_reread(in));
 
     return 0;
@@ -158,18 +188,64 @@ int s2n_record_header_parse(
  * of existing interpretation of TLS 1.2 alerts. */
 static bool s2n_is_tls13_plaintext_content(struct s2n_connection *conn, uint8_t content_type)
 {
-    return conn->actual_protocol_version == S2N_TLS13 && (content_type == TLS_ALERT || content_type == TLS_CHANGE_CIPHER_SPEC);
+    if (conn->actual_protocol_version != S2N_TLS13) {
+        return false;
+    }
+
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
+     *# The outer opaque_type field of a TLSCiphertext record
+     *# is always set to the value 23 (application_data)
+     *
+     * Plaintext alerts are only valid during the handshake (e.g., if
+     * certificate validation fails before encryption is established).
+     * After the handshake completes, RFC 8446 Section 5.2 requires all
+     * records to be encrypted, so post-handshake alerts must arrive as
+     * APPLICATION_DATA records with an inner content type of ALERT.
+     *
+     * Accepting plaintext alerts post-handshake would allow an on-path
+     * attacker to flip the outer content_type of an encrypted record
+     * from APPLICATION_DATA (0x17) to ALERT (0x15), routing the raw
+     * AEAD ciphertext through the null cipher and into the alert parser.
+     * If the first two ciphertext bytes happen to form a close_notify
+     * (probability 1/256) or user_canceled (probability 1/256), the
+     * record is silently consumed — either as a fake shutdown or as a
+     * discarded warning — without incrementing the AEAD sequence number.
+     * This enables repeated, non-desynchronizing attempts at targeted
+     * connection kills or silent record drops.
+     */
+    if (content_type == TLS_ALERT && !s2n_handshake_is_complete(conn)) {
+        return true;
+    }
+
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5
+     *# An implementation may receive an unencrypted record of type
+     *# change_cipher_spec consisting of the single byte value 0x01
+     *# at any time after the first ClientHello message has been
+     *# sent or received and before the peer's Finished message has
+     *# been received
+     *
+     * CCS is only valid during the handshake. Once the handshake is
+     * complete, a CCS record is a protocol violation and must not be
+     * routed through the plaintext path, as that would allow it to
+     * bypass the content_type validation in s2n_record_parse.
+     */
+    if (content_type == TLS_CHANGE_CIPHER_SPEC && !s2n_handshake_is_complete(conn)) {
+        return true;
+    }
+
+    return false;
 }
 
 int s2n_record_parse(struct s2n_connection *conn)
 {
-    uint8_t content_type = 0;
-    uint16_t encrypted_length = 0;
-    POSIX_GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
+    struct s2n_record_header header = { 0 };
+    POSIX_GUARD(s2n_record_header_parse(conn, &header));
 
     struct s2n_crypto_parameters *current_client_crypto = conn->client;
     struct s2n_crypto_parameters *current_server_crypto = conn->server;
-    if (s2n_is_tls13_plaintext_content(conn, content_type)) {
+    if (s2n_is_tls13_plaintext_content(conn, header.content_type)) {
         POSIX_ENSURE_REF(conn->initial);
         conn->client = conn->initial;
         conn->server = conn->initial;
@@ -189,7 +265,7 @@ int s2n_record_parse(struct s2n_connection *conn)
         session_key = &conn->server->server_key;
     }
 
-    if (s2n_is_tls13_plaintext_content(conn, content_type)) {
+    if (s2n_is_tls13_plaintext_content(conn, header.content_type)) {
         conn->client = current_client_crypto;
         conn->server = current_server_crypto;
     }
@@ -197,21 +273,43 @@ int s2n_record_parse(struct s2n_connection *conn)
     /* The NULL stream cipher MUST NEVER be used for ApplicationData.
      * If ApplicationData is unencrypted, we can't trust it. */
     if (cipher_suite->record_alg->cipher == &s2n_null_cipher) {
-        POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
+        POSIX_ENSURE(header.content_type != TLS_APPLICATION_DATA, S2N_ERR_DECRYPT);
+    }
+
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.2
+     *# The outer opaque_type field of a TLSCiphertext record
+     *# is always set to the value 23 (application_data)
+     *
+     * For TLS 1.3 encrypted records, the outer content_type MUST be
+     * TLS_APPLICATION_DATA. The AEAD AAD hardcodes this value, so the
+     * outer byte is not covered by the authentication tag. Without this
+     * check, records with unrecognized content_type values would be
+     * discarded after decryption without surfacing an error, which
+     * violates the record integrity guarantees of TLS 1.3.
+     *
+     * This check only applies to encrypted records (non-null cipher).
+     * During the handshake, plaintext records with other content_types
+     * (HANDSHAKE, ALERT, CCS) are legitimate and handled by
+     * s2n_is_tls13_plaintext_content above.
+     */
+    if (conn->actual_protocol_version == S2N_TLS13
+            && cipher_suite->record_alg->cipher != &s2n_null_cipher) {
+        POSIX_ENSURE(header.content_type == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
     }
 
     switch (cipher_suite->record_alg->cipher->type) {
         case S2N_AEAD:
-            POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         case S2N_CBC:
-            POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         case S2N_COMPOSITE:
-            POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         case S2N_STREAM:
-            POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, &header, implicit_iv, mac, sequence_number, session_key));
             break;
         default:
             POSIX_BAIL(S2N_ERR_CIPHER_TYPE);

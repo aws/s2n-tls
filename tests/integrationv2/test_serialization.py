@@ -1,15 +1,16 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import pytest
 import copy
 import os
 from enum import Enum, auto
 
+import pytest
+
+from common import Ciphers, Protocols, ProviderOptions, random_str
 from configuration import available_ports
-from common import Ciphers, ProviderOptions, Protocols, random_str
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from providers import S2N, Provider
+from utils import get_parameter_name, invalid_test_parameters, to_bytes
 
 SERVER_STATE_FILE = "server_state"
 CLIENT_STATE_FILE = "client_state"
@@ -95,17 +96,11 @@ def test_server_serialization_backwards_compat(
 
     for results in client.get_results():
         results.assert_success()
-        assert (
-            to_bytes("Actual protocol version: {}".format(protocol.value))
-            in results.stdout
-        )
+        assert to_bytes(f"Actual protocol version: {protocol.value}") in results.stdout
 
     for results in server.get_results():
         results.assert_success()
-        assert (
-            to_bytes("Actual protocol version: {}".format(protocol.value))
-            in results.stdout
-        )
+        assert to_bytes(f"Actual protocol version: {protocol.value}") in results.stdout
 
     assert os.path.exists(server_state_file)
     assert os.path.exists(client_state_file)

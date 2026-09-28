@@ -20,8 +20,7 @@
 int s2n_record_parse_aead(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,
@@ -29,8 +28,7 @@ int s2n_record_parse_aead(
 int s2n_record_parse_cbc(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,
@@ -38,8 +36,7 @@ int s2n_record_parse_cbc(
 int s2n_record_parse_composite(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,
@@ -47,8 +44,7 @@ int s2n_record_parse_composite(
 int s2n_record_parse_stream(
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_connection *conn,
-        uint8_t content_type,
-        uint16_t encrypted_length,
+        struct s2n_record_header *header,
         uint8_t *implicit_iv,
         struct s2n_hmac_state *mac,
         uint8_t *sequence_number,

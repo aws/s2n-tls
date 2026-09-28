@@ -1,15 +1,16 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import pytest
 import tempfile
 
+import pytest
+
+from common import Protocols, ProviderOptions
 from configuration import ALL_TEST_CURVES, PROTOCOLS
-from common import ProviderOptions, Protocols
-from fixtures import managed_process  # noqa: F401
-from global_flags import get_flag, S2N_PROVIDER_VERSION
-from providers import Provider, S2N
-from utils import invalid_test_parameters, get_parameter_name
 from constants import TEST_CERT_DIRECTORY
+from fixtures import managed_process  # noqa: F401
+from global_flags import S2N_PROVIDER_VERSION, get_flag
+from providers import S2N, Provider
+from utils import get_parameter_name, invalid_test_parameters
 
 TEST_PROTOCOLS = [x for x in PROTOCOLS if x.value < Protocols.TLS13.value]
 S2N_RENEG_OPTION = "--renegotiation"

@@ -313,6 +313,10 @@ static S2N_RESULT s2n_tls13_deserialize_session_state(struct s2n_connection *con
     uint8_t protocol_version = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
     RESULT_ENSURE_GTE(protocol_version, S2N_TLS13);
+    /* Clients don't know which protocol version will be negotiated at this stage */
+    if (conn->mode == S2N_SERVER) {
+        RESULT_ENSURE(protocol_version == conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+    }
 
     uint8_t iana_id[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, iana_id, S2N_TLS_CIPHER_SUITE_LEN));
@@ -663,7 +667,7 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
         uint64_t now)
 {
     double total_weight = 0;
-    struct s2n_ticket_key_weight ticket_keys_weight[S2N_MAX_TICKET_KEYS];
+    struct s2n_ticket_key_weight ticket_keys_weight[S2N_MAX_TICKET_KEYS] = { 0 };
     struct s2n_ticket_key *ticket_key = NULL;
 
     /* Compute weight of encrypt-decrypt keys */
@@ -962,7 +966,7 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
 int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index)
 {
     int num_of_expired_keys = 0;
-    int expired_keys_index[S2N_MAX_TICKET_KEYS];
+    int expired_keys_index[S2N_MAX_TICKET_KEYS] = { 0 };
     struct s2n_ticket_key *ticket_key = NULL;
 
     if (expired_key_index != -1) {

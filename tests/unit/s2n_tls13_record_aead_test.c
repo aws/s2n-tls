@@ -101,28 +101,31 @@ int main(int argc, char **argv)
     /* Test s2n_tls13_aead_aad_init() */
     {
         s2n_stack_blob(aad, S2N_TLS13_AAD_LEN, S2N_TLS13_AAD_LEN);
-        EXPECT_OK(s2n_tls13_aead_aad_init(662, 12, &aad));
+        struct s2n_record_header header = {
+            .content_type = TLS_APPLICATION_DATA,
+            .version = 0x0303,
+            .length = 662 + 12,
+        };
+        EXPECT_OK(s2n_tls13_aead_aad_init(&header, &aad));
         S2N_BLOB_FROM_HEX(expected_aad, "17030302a2");
         S2N_BLOB_EXPECT_EQUAL(expected_aad, aad);
 
         /* record length 16640 should be valid */
         EXPECT_SUCCESS(s2n_blob_zero(&aad));
-        EXPECT_OK(s2n_tls13_aead_aad_init(16628, 12, &aad));
+        header.length = 16628 + 12;
+        EXPECT_OK(s2n_tls13_aead_aad_init(&header, &aad));
 
         /* record length 16641 should be invalid */
         EXPECT_SUCCESS(s2n_blob_zero(&aad));
-        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_aead_aad_init(16629, 12, &aad), S2N_ERR_RECORD_LIMIT);
+        header.length = 16629 + 12;
+        EXPECT_ERROR_WITH_ERRNO(s2n_tls13_aead_aad_init(&header, &aad), S2N_ERR_RECORD_LIMIT);
 
         /* Test failure case: No AAD should be invalid */
-        EXPECT_SUCCESS(s2n_blob_zero(&aad));
-        EXPECT_ERROR(s2n_tls13_aead_aad_init(16629, 12, NULL));
-
-        /* Test failure case: 0-length tag should be invalid */
-        EXPECT_SUCCESS(s2n_blob_zero(&aad));
-        EXPECT_ERROR(s2n_tls13_aead_aad_init(16628, 0, &aad));
+        EXPECT_ERROR(s2n_tls13_aead_aad_init(&header, NULL));
 
         /* Test failure case: invalid record length (-1) should be invalid */
-        EXPECT_ERROR(s2n_tls13_aead_aad_init(-1, 0, &aad));
+        header.length = UINT16_MAX;
+        EXPECT_ERROR(s2n_tls13_aead_aad_init(&header, &aad));
     }
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite with TLS 1.3 test vectors */
@@ -147,11 +150,15 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
 
         /* Test parsing of tls 1.3 aead record */
+        struct s2n_record_header record_header = {
+            .content_type = TLS_APPLICATION_DATA,
+            .version = 0x0303,
+            .length = protected_record.size,
+        };
         EXPECT_SUCCESS(s2n_record_parse_aead(
                 cipher_suite,
                 conn,
-                0, /* content_type doesn't matter for TLS 1.3 */
-                protected_record.size,
+                &record_header,
                 iv.data, /* implicit_iv */
                 NULL,    /* mac not used for TLS 1.3 */
                 conn->secure->client_sequence_number,
@@ -178,31 +185,31 @@ int main(int argc, char **argv)
 
         /* Repeat the test to prove RESET_TEST works */
         RESET_TEST
-        EXPECT_SUCCESS(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
+        EXPECT_SUCCESS(s2n_record_parse_aead(cipher_suite, conn, &record_header,
                 iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test record parsing failure from aead tag change */
         RESET_TEST
         conn->in.blob.data[protected_record.size - 2]++;
-        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
+        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, &record_header,
                 iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test incorrect ciphertext changes fails parsing */
         RESET_TEST
         conn->in.blob.data[0]++;
-        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
+        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, &record_header,
                 iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test wrong sequence number fails parsing */
         RESET_TEST
         conn->secure->client_sequence_number[7] = 1;
-        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
+        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, &record_header,
                 iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         /* Test IV changes fails parsing */
         RESET_TEST
         iv.data[0]++;
-        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, 0, protected_record.size,
+        EXPECT_FAILURE(s2n_record_parse_aead(cipher_suite, conn, &record_header,
                 iv.data, NULL, conn->secure->client_sequence_number, &session_key));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -313,11 +320,15 @@ int main(int argc, char **argv)
         };
 
         /* Decrypt payload */
+        struct s2n_record_header decrypt_header = {
+            .content_type = TLS_APPLICATION_DATA,
+            .version = 0x0303,
+            .length = encrypted.size,
+        };
         EXPECT_SUCCESS(s2n_record_parse_aead(
                 cipher_suite,
                 conn,
-                0, /* content_type */
-                encrypted.size,
+                &decrypt_header,
                 iv.data, /* implicit_iv */
                 NULL,    /* mac not used for TLS 1.3 */
                 conn->secure->client_sequence_number,

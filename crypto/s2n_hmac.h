@@ -68,6 +68,7 @@ int s2n_hmac_new(struct s2n_hmac_state *state);
 S2N_RESULT s2n_hmac_state_validate(struct s2n_hmac_state *state);
 int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen);
 int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size);
+int s2n_hmac_update_u16(struct s2n_hmac_state *state, const uint16_t data);
 int s2n_hmac_digest(struct s2n_hmac_state *state, void *out, uint32_t size);
 int s2n_hmac_digest_two_compression_rounds(struct s2n_hmac_state *state, void *out, uint32_t size);
 int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);

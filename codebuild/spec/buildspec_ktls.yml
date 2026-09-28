@@ -28,7 +28,9 @@ env:
 phases:
   install:
     commands:
-      - yum update -y; yum upgrade -y
+      # https://github.com/cli/cli/issues/13118
+      - dnf config-manager --add-repo https://cli.github.com/packages/rpm/gh-cli.repo -y
+      - dnf update -y; dnf upgrade -y
   pre_build:
     commands:
       - id; groupadd nixbld||true
@@ -42,11 +44,10 @@ phases:
       - export PATH=$HOME/.nix-profile/bin:$PATH
       # Turn on flakes
       - mkdir -p ~/.config/nix; echo "experimental-features = nix-command flakes" >> ~/.config/nix/nix.conf
-      # Configure S3 bucket as a nix substituter
-      - echo "extra-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
-      - echo "extra-trusted-substituters = $NIX_CACHE_BUCKET" >> ~/.config/nix/nix.conf
-      - echo "require-sigs = false" >> ~/.config/nix/nix.conf
-      - if [[ $(date +%u) -eq 0 ]]; then nix store gc;fi
+      - nix store gc --quiet
+      - nix store verify --store $NIX_CACHE_BUCKET || true
+      # Populate the store from the nix cache
+      - nix copy --from $NIX_CACHE_BUCKET --all  --no-check-sigs || true
       # Load the TLS kernel module
       - sudo modprobe tls
       - echo "Checking that the TLS kernel mod loaded..."; test $(sudo lsmod|grep -c tls) = 1
@@ -54,7 +55,3 @@ phases:
     commands:
       - nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
       - S2N_CMAKE_OPTIONS="-DASAN=ON" nix develop .#awslc --command bash -c  'source ./nix/shell.sh && clean && configure && unit'
-  post_build:
-    commands:
-      - nix copy --to $NIX_CACHE_BUCKET .#cache-awslc
-

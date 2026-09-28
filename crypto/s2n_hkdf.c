@@ -355,7 +355,7 @@ int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, c
     POSIX_ENSURE_REF(output);
 
     /* Per RFC8446: 7.1, a HKDF label is a 2 byte length field, and two 1...255 byte arrays with a one byte length field each. */
-    uint8_t hkdf_label_buf[2 + 256 + 256];
+    uint8_t hkdf_label_buf[2 + 256 + 256] = { 0 };
     struct s2n_blob hkdf_label_blob = { 0 };
     struct s2n_stuffer hkdf_label = { 0 };
 

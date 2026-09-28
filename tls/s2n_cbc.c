@@ -63,7 +63,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     int currently_in_hash_block = hmac->currently_in_hash_block;
 
     /* Check the MAC */
-    uint8_t check_digest[S2N_MAX_DIGEST_LEN];
+    uint8_t check_digest[S2N_MAX_DIGEST_LEN] = { 0 };
     POSIX_ENSURE_LTE(mac_digest_size, sizeof(check_digest));
     POSIX_GUARD(s2n_hmac_digest_two_compression_rounds(hmac, check_digest, mac_digest_size));
 

@@ -1,22 +1,23 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
+
 import pytest
 
+from common import ProviderOptions, data_bytes
 from configuration import (
-    available_ports,
+    ALL_TEST_CERTS,
     ALL_TEST_CIPHERS,
     ALL_TEST_CURVES,
-    ALL_TEST_CERTS,
     PROTOCOLS,
+    available_ports,
 )
-from common import ProviderOptions, data_bytes
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS, SSLv3Provider
+from providers import S2N, GnuTLS, JavaSSL, OpenSSL, Provider, SSLv3Provider
 from utils import (
-    invalid_test_parameters,
-    get_parameter_name,
     get_expected_s2n_version,
+    get_parameter_name,
+    invalid_test_parameters,
     to_bytes,
 )
 
@@ -79,15 +80,14 @@ def test_s2n_server_happy_path(
     for server_results in server.get_results():
         server_results.assert_success()
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
+            to_bytes(f"Actual protocol version: {expected_version}")
             in server_results.stdout
         )
         assert random_bytes in server_results.stdout
 
         if provider is not S2N:
             assert (
-                to_bytes("Cipher negotiated: {}".format(cipher.name))
-                in server_results.stdout
+                to_bytes(f"Cipher negotiated: {cipher.name}") in server_results.stdout
             )
 
 
@@ -149,7 +149,7 @@ def test_s2n_client_happy_path(
     for client_results in client.get_results():
         client_results.assert_success()
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
+            to_bytes(f"Actual protocol version: {expected_version}")
             in client_results.stdout
         )
 
@@ -160,5 +160,5 @@ def test_s2n_client_happy_path(
         server_results.assert_success()
         # Avoid debugging information that sometimes gets inserted after the first character.
         assert any(
-            [random_bytes[1:] in stream for stream in server_results.output_streams()]
+            random_bytes[1:] in stream for stream in server_results.output_streams()
         )

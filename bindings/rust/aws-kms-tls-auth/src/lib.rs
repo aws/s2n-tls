@@ -66,14 +66,11 @@ const ONE_HOUR: Duration = Duration::from_secs(3_600);
 
 #[cfg(test)]
 mod integration_tests {
-    use aws_config::Region;
-    use aws_sdk_kms::Client;
-    use tracing_subscriber::EnvFilter;
 
     use crate::{
         provider::PskProvider,
         receiver::PskReceiver,
-        test_utils::{configs_from_callbacks, handshake, KMS_KEY_ARN_A, KMS_KEY_ARN_B},
+        test_utils::{handshake, KMS_KEY_ARN_A, KMS_KEY_ARN_B},
     };
 
     use super::*;

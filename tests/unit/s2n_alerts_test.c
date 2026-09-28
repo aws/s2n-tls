@@ -68,6 +68,12 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_BAD_MESSAGE, &alert));
                 EXPECT_EQUAL(S2N_TLS_ALERT_UNEXPECTED_MESSAGE, alert);
+
+                EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_BAD_FINISHED, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_DECRYPT_ERROR, alert);
+
+                EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_BAD_PSK_BINDER, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_DECRYPT_ERROR, alert);
             }
 
             /* Test unknown mapping */
@@ -85,6 +91,16 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_error_get_alert(i, &alert));
             EXPECT_EQUAL(alert, S2N_TLS_ALERT_INTERNAL_ERROR);
         }
+    }
+
+    /* s2n_error_get_alert: unknown error type maps to internal_error */
+    {
+        uint8_t alert = 0;
+        /* Fabricate an error code whose type bits exceed S2N_ERR_T_USAGE.
+         * This exercises the default case added to s2n_error_get_alert. */
+        int fabricated_error = ((S2N_ERR_T_USAGE + 1) << S2N_ERR_NUM_VALUE_BITS);
+        EXPECT_SUCCESS(s2n_error_get_alert(fabricated_error, &alert));
+        EXPECT_EQUAL(alert, S2N_TLS_ALERT_INTERNAL_ERROR);
     }
 
     /* Test S2N_TLS_ALERT_CLOSE_NOTIFY and close_notify_received */

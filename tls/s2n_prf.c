@@ -620,9 +620,11 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
-    struct s2n_blob master_secret, md5, sha;
-    uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
+    struct s2n_blob master_secret = { 0 };
+    struct s2n_blob md5 = { 0 };
+    struct s2n_blob sha = { 0 };
+    uint8_t md5_digest[MD5_DIGEST_LENGTH] = { 0 };
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH] = { 0 };
     uint8_t client_finished_label[] = "client finished";
     struct s2n_blob client_finished = { 0 };
     struct s2n_blob label = { 0 };
@@ -678,9 +680,11 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->handshake.hashes);
 
-    struct s2n_blob master_secret, md5, sha;
-    uint8_t md5_digest[MD5_DIGEST_LENGTH];
-    uint8_t sha_digest[SHA384_DIGEST_LENGTH];
+    struct s2n_blob master_secret = { 0 };
+    struct s2n_blob md5 = { 0 };
+    struct s2n_blob sha = { 0 };
+    uint8_t md5_digest[MD5_DIGEST_LENGTH] = { 0 };
+    uint8_t sha_digest[SHA384_DIGEST_LENGTH] = { 0 };
     uint8_t server_finished_label[] = "server finished";
     struct s2n_blob server_finished = { 0 };
     struct s2n_blob label = { 0 };

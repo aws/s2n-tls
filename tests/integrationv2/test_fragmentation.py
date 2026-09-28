@@ -1,19 +1,19 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
+
 import pytest
 
-from configuration import available_ports, PROTOCOLS
-from common import ProviderOptions, Ciphers, Certificates, data_bytes
+from common import Certificates, Ciphers, ProviderOptions, data_bytes
+from configuration import PROTOCOLS, available_ports
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL, GnuTLS
+from providers import S2N, GnuTLS, OpenSSL, Provider
 from utils import (
-    invalid_test_parameters,
-    get_parameter_name,
     get_expected_s2n_version,
+    get_parameter_name,
+    invalid_test_parameters,
     to_bytes,
 )
-
 
 CIPHERS_TO_TEST = [
     Ciphers.AES256_SHA,
@@ -55,9 +55,7 @@ def test_s2n_server_framented_data(
     frag_len,
 ):
     if provider is OpenSSL and "openssl-1.0.2" in provider.get_version():
-        pytest.skip(
-            "{} does not allow setting max fragmentation for packets".format(provider)
-        )
+        pytest.skip(f"{provider} does not allow setting max fragmentation for packets")
 
     port = next(available_ports)
 
@@ -91,7 +89,7 @@ def test_s2n_server_framented_data(
     for server_results in server.get_results():
         server_results.assert_success()
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
+            to_bytes(f"Actual protocol version: {expected_version}")
             in server_results.stdout
         )
 

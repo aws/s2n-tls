@@ -40,11 +40,13 @@ jobs:
           submodules: true
 
       # The consumer's MSRV is the toolchain we build with.
+      # s2n-quic declares its MSRV via the rust-version field in Cargo.toml
+      # (the rust-toolchain file was removed in aws/s2n-quic#3180).
       - uses: SebRollen/toml-action@v1.2.0
         id: consumer_msrv
         with:
-          file: 's2n-quic/rust-toolchain'
-          field: 'toolchain.channel'
+          file: 's2n-quic/quic/s2n-quic/Cargo.toml'
+          field: 'package.rust-version'
 
       # s2n-tls's own MSRV, read only for a readable log line.
       - uses: SebRollen/toml-action@v1.2.0
@@ -61,7 +63,7 @@ jobs:
 
       # go is required for generate.sh to build aws-lc-rs in FIPS mode.
       - name: Install go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '>=1.18'
 

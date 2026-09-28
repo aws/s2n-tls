@@ -89,7 +89,7 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
          */
         POSIX_GUARD(s2n_flush(conn, blocked));
 
-        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE] = { 0 };
         struct s2n_blob key_update_blob = { 0 };
         POSIX_GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
 

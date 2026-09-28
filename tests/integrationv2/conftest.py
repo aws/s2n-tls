@@ -1,8 +1,10 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import os
+
 import pytest
-from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
+
+from global_flags import S2N_FIPS_MODE, S2N_PROVIDER_VERSION, set_flag
 from providers import S2N, JavaSSL, OpenSSL
 
 PATH_CONFIGURATION_KEY = pytest.StashKey()

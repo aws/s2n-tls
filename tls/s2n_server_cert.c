@@ -42,7 +42,7 @@ int s2n_server_cert_recv(struct s2n_connection *conn)
     DEFER_CLEANUP(s2n_cert_public_key public_key = { 0 }, s2n_pkey_free);
     POSIX_GUARD(s2n_pkey_zero_init(&public_key));
 
-    s2n_pkey_type actual_cert_pkey_type;
+    s2n_pkey_type actual_cert_pkey_type = 0;
     struct s2n_blob cert_chain = { 0 };
     cert_chain.size = size_of_all_certificates;
     cert_chain.data = s2n_stuffer_raw_read(&in, size_of_all_certificates);

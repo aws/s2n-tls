@@ -43,7 +43,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required for generate.sh to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '>=1.18'
 
@@ -217,7 +217,7 @@ jobs:
 
       - name: Cache OpenSSL 1.0.2
         id: cache-openssl
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: ~/openssl-102/install
           # The sha256 suffix pins the cache to a specific source tarball.
@@ -282,7 +282,7 @@ jobs:
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
       # go required to build aws-lc-rs in FIPS mode
       - name: Install go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '>=1.18'
 
@@ -558,7 +558,7 @@ jobs:
           rustup override set nightly
 
       - name: Install go
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version: '>=1.18'
 

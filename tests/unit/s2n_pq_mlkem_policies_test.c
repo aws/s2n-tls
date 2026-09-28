@@ -134,9 +134,12 @@ const char *tls_version_exceptions[] = {
     "CloudFront-TLS-1-0-2014-sha256",
     "CloudFront-TLS-1-0-2016",
     "CloudFront-TLS-1-1-2016",
+    "ELBSecurityPolicy-TLS13-1-0-PQ-2025-09",
+    "ELBSecurityPolicy-TLS13-1-0-FIPS-PQ-2025-09",
     "test_all",
     "20260520",
     "20260520_gcm",
+    "20200207_pq",
 };
 
 const size_t mlkem_list_size = s2n_array_len(mlkem_list);

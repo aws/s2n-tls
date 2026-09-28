@@ -632,6 +632,88 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
+    /* Test: s2n_async_pkey_op_apply rejects concurrent s2n_send/s2n_recv on the same conn.
+     *
+     * s2n_async_pkey_op_apply mutates conn->handshake state that s2n_send/s2n_recv also
+     * access. s2n-tls does not synchronize access to a single s2n_connection, so calling
+     * apply() concurrently with send/recv on the same conn from another thread is
+     * undefined behavior. The send_in_use / recv_in_use reentrancy flags let us detect
+     * the common misuse case and return S2N_ERR_REENTRANCY instead of silently racing.
+     *
+     * We intentionally do NOT guard against negotiate_in_use, because the supported
+     * synchronous async_pkey pattern invokes apply() from inside the async_pkey callback
+     * which runs on the s2n_negotiate call stack with negotiate_in_use == true.
+     */
+    {
+        /* send_in_use causes apply() to fail with S2N_ERR_REENTRANCY */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            conn->config->async_pkey_cb = async_pkey_signature_callback;
+
+            EXPECT_FALSE(s2n_result_is_ok(
+                    s2n_async_pkey_sign(conn, S2N_SIGNATURE_ECDSA, &digest, s2n_async_sign_complete)));
+            EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_BLOCKED);
+            EXPECT_NOT_NULL(pkey_op);
+
+            /* Simulate another thread currently inside s2n_send on this conn. */
+            conn->send_in_use = true;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_REENTRANCY);
+
+            /* The op is still usable once the conflicting operation is done. */
+            conn->send_in_use = false;
+            EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+
+            EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+            pkey_op = NULL;
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* recv_in_use causes apply() to fail with S2N_ERR_REENTRANCY */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            conn->config->async_pkey_cb = async_pkey_signature_callback;
+
+            EXPECT_FALSE(s2n_result_is_ok(
+                    s2n_async_pkey_sign(conn, S2N_SIGNATURE_ECDSA, &digest, s2n_async_sign_complete)));
+            EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_BLOCKED);
+            EXPECT_NOT_NULL(pkey_op);
+
+            conn->recv_in_use = true;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_REENTRANCY);
+
+            conn->recv_in_use = false;
+            EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+
+            EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+            pkey_op = NULL;
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+
+        /* negotiate_in_use does NOT block apply(): the synchronous async_pkey pattern
+         * relies on being able to call apply() from inside a callback that runs on the
+         * s2n_negotiate call stack. */
+        {
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+            EXPECT_NOT_NULL(conn);
+            conn->config->async_pkey_cb = async_pkey_signature_callback;
+
+            EXPECT_FALSE(s2n_result_is_ok(
+                    s2n_async_pkey_sign(conn, S2N_SIGNATURE_ECDSA, &digest, s2n_async_sign_complete)));
+            EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_BLOCKED);
+            EXPECT_NOT_NULL(pkey_op);
+
+            conn->negotiate_in_use = true;
+            EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
+            conn->negotiate_in_use = false;
+
+            EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
+            pkey_op = NULL;
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        }
+    }
+
     /* Test: decrypt offload. */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -648,11 +730,11 @@ int main(int argc, char **argv)
 
         EXPECT_FALSE(s2n_result_is_ok(s2n_async_pkey_decrypt(conn, &encrypted_data, &decrypted_data, s2n_async_decrypt_complete)));
         EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_BLOCKED);
-        EXPECT_EQUAL(3, offload_callback_count);
+        EXPECT_EQUAL(9, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
         EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
-        EXPECT_EQUAL(4, offload_callback_count);
+        EXPECT_EQUAL(10, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }
@@ -665,11 +747,11 @@ int main(int argc, char **argv)
 
         EXPECT_FALSE(s2n_result_is_ok(s2n_async_pkey_sign(conn, S2N_SIGNATURE_ECDSA, &digest, async_pkey_invalid_complete)));
         EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_CALLBACK_FAILED);
-        EXPECT_EQUAL(5, offload_callback_count);
+        EXPECT_EQUAL(11, offload_callback_count);
 
         EXPECT_FAILURE(s2n_async_pkey_op_apply(pkey_op, conn));
         EXPECT_SUCCESS(s2n_async_pkey_op_free(pkey_op));
-        EXPECT_EQUAL(5, offload_callback_count);
+        EXPECT_EQUAL(11, offload_callback_count);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

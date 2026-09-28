@@ -1,7 +1,8 @@
 [workspace]
 members = [
+    "async-crl-validation",
     "client-hello-config-resolution",
-    "hyper-server-client", "key-logging",
+    "hyper-server-client", "io-callbacks", "key-logging",
     "mutual-tls",
     "tokio-server-client",
 ]

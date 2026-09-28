@@ -1,16 +1,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
+
 import pytest
 
-from configuration import available_ports, ALL_TEST_CIPHERS, PROTOCOLS
-from common import Certificates, ProviderOptions, Protocols, data_bytes, Signatures
+from common import Certificates, Protocols, ProviderOptions, Signatures, data_bytes
+from configuration import ALL_TEST_CIPHERS, PROTOCOLS, available_ports
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, GnuTLS, OpenSSL
+from providers import S2N, GnuTLS, OpenSSL, Provider
 from utils import (
-    invalid_test_parameters,
-    get_parameter_name,
     get_expected_s2n_version,
+    get_parameter_name,
+    invalid_test_parameters,
     to_bytes,
 )
 
@@ -40,12 +41,11 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
     expected_version = get_expected_s2n_version(protocol, provider)
     if is_complete:
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
-            in results.stdout
+            to_bytes(f"Actual protocol version: {expected_version}") in results.stdout
         )
     else:
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
+            to_bytes(f"Actual protocol version: {expected_version}")
             not in results.stdout
         )
 

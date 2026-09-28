@@ -17,10 +17,10 @@
 #include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_kem_preferences.h"
+#include "tls/s2n_policy_writer.h"
 #include "tls/s2n_security_policies.h"
 
 /* Include C file directly to access static functions */
@@ -44,14 +44,8 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
     const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
     PTR_ENSURE_REF(client_default);
 
-    for (int i = 0; server_policy->strongly_preferred_groups != NULL && i < server_policy->strongly_preferred_groups->count; i++) {
-        for (int j = 0; j < client_policy->kem_preferences->tls13_kem_group_count; j++) {
-            if (server_policy->strongly_preferred_groups->iana_ids[i] == client_policy->kem_preferences->tls13_kem_groups[j]->iana_id
-                    && s2n_kem_group_is_available(client_policy->kem_preferences->tls13_kem_groups[j])) {
-                return client_policy->kem_preferences->tls13_kem_groups[j];
-            }
-        }
-    }
+    /* Strongly preferred groups only apply to ECC curves and do not affect PQ negotiation.
+     * PQ negotiation always takes priority over strongly preferred ECC groups. */
 
     for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];

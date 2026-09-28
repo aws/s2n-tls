@@ -12,14 +12,7 @@ libfuzzer-sys = "0.4"
 aws-kms-tls-auth = {path = ".."}
 
 [[bin]]
-name = "client_hello"
-path = "fuzz_targets/client_hello.rs"
-test = false
-doc = false
-bench = false
-
-[[bin]]
-name = "psk_client_hello"
+name = "psk-client-hello"
 path = "fuzz_targets/psk_client_hello.rs"
 test = false
 doc = false

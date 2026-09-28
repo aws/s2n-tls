@@ -95,6 +95,11 @@ to establish a TLS connection with the peer.
 To perform the handshake, call `s2n_negotiate()` until it either returns **S2N_SUCCESS**
 or returns **S2N_FAILURE** without a **S2N_ERR_T_BLOCKED** error.
 
+To check whether the handshake has fully completed, use `s2n_connection_handshake_complete()`.
+Don't rely on `handshake_type` or `s2n_connection_get_handshake_type_name()` as a completion
+signal: those describe which messages are part of the negotiated handshake, not whether the
+handshake has actually finished.
+
 For an example of how to perform a basic handshake, see [examples/s2n_negotiate.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c)
 
 ## Application Data

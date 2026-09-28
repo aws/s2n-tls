@@ -81,7 +81,7 @@ fn first_client_hello_not_available_after_hrr() {
         let s2n_client_hello = pair.server.connection().client_hello().unwrap();
 
         let raw = s2n_client_hello.raw_message().unwrap();
-        let (parsed, _) = ClientHello::decode_from(&raw).unwrap();
+        let (parsed, _) = ClientHello::decode_from(raw.as_slice()).unwrap();
 
         let stored_key_shares = parsed.key_share().unwrap();
 

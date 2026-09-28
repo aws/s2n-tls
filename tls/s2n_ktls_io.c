@@ -450,6 +450,15 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
     return S2N_SUCCESS;
 }
 
+/**
+ * If this function successfully completes with a record-type other than application
+ * data, then we are guaranteed that the full record payload is available.
+ * 
+ * > Each recvmsg() call must process either 
+ * > - only contiguous DATA records (any number of them) 
+ * > - one non-DATA record
+ * > https://nvd.nist.gov/vuln/detail/CVE-2025-39682
+ */
 int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
 {
     POSIX_ENSURE_REF(conn);
