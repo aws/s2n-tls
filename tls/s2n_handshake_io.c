@@ -1062,8 +1062,6 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
                 POSIX_ENSURE(!s2n_constant_time_equals(conn->secrets.version.tls12.master_secret,
                                      zero_block, S2N_TLS_SECRET_LEN),
                         S2N_ERR_KEY_CHECK);
-                /* Clear CLIENT_AUTH on the abbreviated path (see below). */
-                POSIX_GUARD_RESULT(s2n_handshake_type_unset_flag(conn, CLIENT_AUTH));
                 return S2N_SUCCESS;
             }
 
