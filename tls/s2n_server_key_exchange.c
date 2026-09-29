@@ -297,7 +297,7 @@ int s2n_dhe_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     struct s2n_stuffer *out = &conn->handshake.io;
 
     /* Duplicate the DH key from the config */
-    POSIX_GUARD(s2n_dh_params_copy(conn->config->dhparams, &conn->kex_params.server_dh_params));
+    POSIX_GUARD(s2n_dh_params_copy(&conn->config->dhparams, &conn->kex_params.server_dh_params));
 
     /* Generate an ephemeral key */
     POSIX_GUARD(s2n_dh_generate_ephemeral_key(&conn->kex_params.server_dh_params));

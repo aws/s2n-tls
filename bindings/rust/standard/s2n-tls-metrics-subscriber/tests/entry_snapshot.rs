@@ -25,10 +25,23 @@ impl TelemetrySink for CaptureSink {
 /// is stable across runs.
 fn normalize(value: &mut serde_json::Value) {
     if let Some(obj) = value.as_object_mut() {
-        // Zero out timing fields
+        // Redact timing fields. The timings are emitted with an occurrence
+        // count (so consumers can compute an average), and that count *is*
+        // deterministic, so only the duration itself is replaced: the snapshot
+        // still asserts on how many handshakes the durations cover.
         for key in ["handshake_duration_us", "handshake_compute_us"] {
-            if obj.contains_key(key) {
-                obj.insert(key.to_owned(), serde_json::json!("<DURATION>"));
+            match obj.get_mut(key) {
+                // `{"Values": [<duration>], "Counts": [<n>]}`
+                Some(serde_json::Value::Object(metric)) => {
+                    if let Some(values) = metric.get_mut("Values").and_then(|v| v.as_array_mut()) {
+                        for value in values {
+                            *value = serde_json::json!("<DURATION>");
+                        }
+                    }
+                }
+                // A bare duration, emitted when there's a single occurrence.
+                Some(other) => *other = serde_json::json!("<DURATION>"),
+                None => {}
             }
         }
         // Zero out the EMF timestamp
@@ -97,8 +110,13 @@ fn entry_emf_snapshot() {
             .unwrap();
         c.build().unwrap()
     };
-    let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
-    pair.handshake().unwrap();
+    // Two successful handshakes, so the occurrence count attached to the timing
+    // metrics is visible in the snapshot and distinguishable from the (single)
+    // failed handshake below, which contributes no timing at all.
+    for _ in 0..2 {
+        let mut pair = s2n_tls::testing::TestPair::from_configs(&client_config, &server_config);
+        pair.handshake().unwrap();
+    }
 
     // Failed handshake: client does not trust the server cert, shuts down
     // (sending close_notify), and the server receives the alert.

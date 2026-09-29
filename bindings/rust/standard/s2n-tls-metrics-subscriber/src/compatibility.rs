@@ -7,6 +7,48 @@
 use crate::{parsing::ClientHelloSupportedParameters, record::NegotiatedParameters};
 use s2n_tls_metrics_schema::static_lists::{Cipher, Group, Signature, Version};
 
+/// A read-only view of a single compatibility profile's allow-lists.
+///
+/// This exposes only the static allow-list data for a profile; it does not
+/// expose any handshake-evaluation behavior.
+#[derive(Debug, Clone, Copy)]
+pub struct TlsProfileSpec {
+    pub allowed_versions: &'static [Version],
+    pub allowed_ciphers: &'static [Cipher],
+    pub allowed_groups: &'static [Group],
+    pub allowed_signatures: &'static [Signature],
+}
+
+/// Stable identifiers for the TLS compatibility profiles measured by this crate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CompatibilityProfile {
+    General20251201,
+    Fips20251201,
+    Cnsa1,
+    Cnsa2,
+}
+
+impl CompatibilityProfile {
+    /// Returns the read-only allow-list [`TlsProfileSpec`] for this profile.
+    pub fn spec(self) -> TlsProfileSpec {
+        fn spec_of<P: TlsProfile>() -> TlsProfileSpec {
+            TlsProfileSpec {
+                allowed_versions: P::ALLOWED_VERSIONS,
+                allowed_ciphers: P::ALLOWED_CIPHERS,
+                allowed_groups: P::ALLOWED_GROUPS,
+                allowed_signatures: P::ALLOWED_SIGNATURES,
+            }
+        }
+
+        match self {
+            CompatibilityProfile::General20251201 => spec_of::<General20251201>(),
+            CompatibilityProfile::Fips20251201 => spec_of::<Fips20251201>(),
+            CompatibilityProfile::Cnsa1 => spec_of::<Cnsa1>(),
+            CompatibilityProfile::Cnsa2 => spec_of::<Cnsa2>(),
+        }
+    }
+}
+
 pub(crate) trait TlsProfile {
     const ALLOWED_VERSIONS: &[Version];
     const ALLOWED_CIPHERS: &[Cipher];

@@ -82,6 +82,9 @@
 //! #### Warning:
 //! While performing the new handshake, `poll_recv` will write, not just read.
 //! This may violate assumptions your application is making about IO operations.
+//! Additionally the renegotiate feature is fundamentally incompatible with other Connection recv
+//! functions, like in the split feature: `Connection::split::ReadHalf::poll_recv`. Do not call them
+//! if you turn on the renegotiate feature, they will not correctly perform renegotiation.
 //!
 //! ## Detailed limitations
 //!

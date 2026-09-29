@@ -185,6 +185,9 @@ impl<S: TelemetrySink> AggregatedMetricsSubscriber<S> {
             attribution: self.inner.attribution.clone().into_schema(),
             handshake,
         });
+        if record.is_empty() {
+            return;
+        }
         export_pipeline.sink.export_record(record);
         self.inner
             .last_export_epoch_ms
@@ -239,19 +242,13 @@ impl<S: TelemetrySink> Drop for MetricSubscriberInner<S> {
         let Ok(handshake) = export_pipeline.metric_receiver.try_recv() else {
             return;
         };
-        // Don't export an empty record. If no handshakes (successful, failed, or
-        // synthetic) were aggregated since the last export, there's nothing
-        // meaningful to report, so skip the export entirely.
-        if handshake.handshake_success_count == 0
-            && handshake.handshake_failure_count == 0
-            && handshake.synthetic_traffic_count == 0
-        {
-            return;
-        }
         let record = MetricRecord::new(s2n_tls_metrics_schema::record::MetricRecord {
             attribution: self.attribution.clone().into_schema(),
             handshake,
         });
+        if record.is_empty() {
+            return;
+        }
         export_pipeline.sink.export_record(record);
     }
 }
@@ -367,20 +364,19 @@ mod tests {
         endpoint.client_handshake(&ARBITRARY_POLICY_1);
         endpoint.subscriber.finish_record();
 
-        // Third: empty record (no handshakes)
+        // Third: no handshakes
         endpoint.subscriber.finish_record();
 
         let records = endpoint.sink.records.lock().unwrap();
         assert_eq!(
             records.len(),
-            3,
-            "expected 3 records from 3 finish_record calls"
+            2,
+            "expected 2 records; the empty finish_record call should be skipped"
         );
 
         // Verify handshake counts
         assert_eq!(records[0].as_schema().handshake.handshake_success_count, 2);
         assert_eq!(records[1].as_schema().handshake.handshake_success_count, 1);
-        assert_eq!(records[2].as_schema().handshake.handshake_success_count, 0);
     }
 
     /// Dropping the subscriber should flush any events aggregated since the
