@@ -1,0 +1,5 @@
+# Re-enables the TLS_RSA_* suites that current JDKs disable by default.
+# Loaded only for tests that request static RSA key exchange, so every other
+# JavaSSL run keeps the JDK's real policy. test_sslv2_client_hello cannot avoid
+# static RSA: SSLv2-formatted ClientHellos do not carry ECDHE.
+jdk.tls.disabledAlgorithms=
