@@ -15,6 +15,7 @@
 
 #include "s2n_crl.h"
 
+#include "crypto/s2n_openssl_x509.h"
 #include "tls/s2n_connection.h"
 
 struct s2n_crl *s2n_crl_new(void)
@@ -81,11 +82,7 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash)
     POSIX_ENSURE_REF(crl->crl);
     POSIX_ENSURE_REF(hash);
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_CONST_X509_GETTERS)
-    const X509_NAME *crl_name = X509_CRL_get_issuer(crl->crl);
-#else
-    X509_NAME *crl_name = X509_CRL_get_issuer(crl->crl);
-#endif
+    S2N_X509_CONST X509_NAME *crl_name = X509_CRL_get_issuer(crl->crl);
     POSIX_ENSURE_REF(crl_name);
 
     /* X509_NAME_hash takes a non-const X509_NAME* even on libcryptos (AWS-LC)

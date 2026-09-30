@@ -16,6 +16,7 @@
 
 #include <openssl/x509.h>
 
+#include "crypto/s2n_openssl_x509.h"
 #include "utils/s2n_safety.h"
 
 bool s2n_cert_authorities_supported_from_trust_store()
@@ -55,11 +56,7 @@ static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *c
             continue;
         }
 
-    #if defined(S2N_LIBCRYPTO_SUPPORTS_CONST_X509_GETTERS)
-        const X509_NAME *name = X509_get_subject_name(cert);
-    #else
-        X509_NAME *name = X509_get_subject_name(cert);
-    #endif
+        S2N_X509_CONST X509_NAME *name = X509_get_subject_name(cert);
         RESULT_ENSURE(name, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
         const uint8_t *name_bytes = NULL;

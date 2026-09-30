@@ -93,14 +93,10 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
     RESULT_ENSURE_REF(cert);
     RESULT_ENSURE_REF(info);
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_CONST_X509_GETTERS)
-    const X509_NAME *issuer_name = X509_get_issuer_name(cert);
-    const X509_NAME *subject_name = X509_get_subject_name(cert);
-#else
-    X509_NAME *issuer_name = X509_get_issuer_name(cert);
-    X509_NAME *subject_name = X509_get_subject_name(cert);
-#endif
+    S2N_X509_CONST X509_NAME *issuer_name = X509_get_issuer_name(cert);
     RESULT_ENSURE_REF(issuer_name);
+
+    S2N_X509_CONST X509_NAME *subject_name = X509_get_subject_name(cert);
     RESULT_ENSURE_REF(subject_name);
 
     if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
