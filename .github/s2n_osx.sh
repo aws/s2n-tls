@@ -16,8 +16,8 @@
 set -eu
 
 export CTEST_OUTPUT_ON_FAILURE=1
-BREWINSTLLPATH=$(brew --prefix openssl)
-OPENSSL_INSTALL_DIR="${BREWINSTLLPATH:-"/opt/homebrew/Cellar/openssl"}"
+BREWINSTLLPATH=$(brew --prefix openssl@3)
+OPENSSL_INSTALL_DIR="${BREWINSTLLPATH:-"/opt/homebrew/opt/openssl@3"}"
 
 echo "Using OpenSSL at $OPENSSL_INSTALL_DIR"
 # Build with debug symbols
