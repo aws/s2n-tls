@@ -35,6 +35,7 @@
 #include "tls/s2n_ktls.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_array.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
@@ -117,6 +118,7 @@ static int s2n_config_init(struct s2n_config *config)
 
     POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
     POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
+    POSIX_ENSURE_REF(config->all_cert_chains = s2n_array_new(sizeof(struct s2n_cert_chain_and_key *)));
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
 
@@ -138,6 +140,10 @@ static int s2n_config_cleanup(struct s2n_config *config)
     POSIX_GUARD(s2n_config_free_dhparams(config));
     POSIX_GUARD(s2n_free(&config->application_protocols));
     POSIX_GUARD(s2n_free(&config->cert_authorities));
+    if (config->all_cert_chains != NULL) {
+        /* The array holds borrowed chain pointers; only free the array storage. */
+        POSIX_GUARD_RESULT(s2n_array_free_p(&config->all_cert_chains));
+    }
     POSIX_GUARD_RESULT(s2n_map_free(config->domain_name_to_cert_map));
 
     POSIX_CHECKED_MEMSET(config, 0, sizeof(struct s2n_config));
@@ -538,6 +544,31 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
+/* Record a configured chain in the config's complete, ordered list of chains.
+ * The list stores borrowed pointers so server-side selection can iterate over
+ * every configured chain (not just the single default per key type) when
+ * matching the client's certificate_authorities extension. Adding the same
+ * chain pointer more than once is a no-op. */
+int s2n_config_track_cert_chain(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(cert_key_pair);
+    POSIX_ENSURE_REF(config->all_cert_chains);
+    uint32_t len = 0;
+    POSIX_GUARD_RESULT(s2n_array_num_elements(config->all_cert_chains, &len));
+    for (uint32_t i = 0; i < len; i++) {
+        struct s2n_cert_chain_and_key **existing = NULL;
+        POSIX_GUARD_RESULT(s2n_array_get(config->all_cert_chains, i, (void **) &existing));
+        if (existing != NULL && *existing == cert_key_pair) {
+            return S2N_SUCCESS;
+        }
+    }
+    struct s2n_cert_chain_and_key **slot = NULL;
+    POSIX_GUARD_RESULT(s2n_array_pushback(config->all_cert_chains, (void **) &slot));
+    POSIX_ENSURE_REF(slot);
+    *slot = cert_key_pair;
+    return S2N_SUCCESS;
+}
 static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
@@ -577,6 +608,9 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     if (s2n_pkey_check_key_exists(cert_key_pair->private_key) != S2N_SUCCESS) {
         config->no_signing_key = true;
     }
+    /* Track every successfully added chain so certificate_authorities-based
+     * selection can consider chains beyond the single per-type default. */
+    POSIX_GUARD(s2n_config_track_cert_chain(config, cert_key_pair));
 
     return S2N_SUCCESS;
 }
@@ -758,6 +792,8 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
         POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
+        /* Track for certificate_authorities-based selection. */
+        POSIX_GUARD(s2n_config_track_cert_chain(config, cert_key_pairs[i]));
     }
 
     config->default_certs_are_explicit = 1;

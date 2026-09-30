@@ -27,6 +27,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_openssl_x509.h"
+#include "tls/extensions/s2n_cert_authorities.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_array.h"
@@ -515,6 +516,18 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
     bool first_entry = true;
     while (cur_cert) {
         POSIX_ENSURE_REF(cur_cert);
+
+        /* A server omits CA certificates that the client already advertised in
+         * its certificate_authorities extension. The leaf (first_entry) is
+         * always sent. In all other cases skip is false and the full chain is
+         * sent as usual. */
+        bool skip = false;
+        POSIX_GUARD_RESULT(s2n_cert_authorities_should_skip_cert(conn, cur_cert, first_entry, &skip));
+        if (skip) {
+            cur_cert = cur_cert->next;
+            continue;
+        }
+
         POSIX_GUARD(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
         POSIX_GUARD(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
 
@@ -526,11 +539,15 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
         if (conn->actual_protocol_version >= S2N_TLS13) {
             if (first_entry) {
                 POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, out));
-                first_entry = false;
             } else {
                 POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, out));
             }
         }
+
+        /* Track the first written (leaf) certificate. This must be maintained
+         * for all protocol versions, since it also determines which entries are
+         * eligible for pruning (the leaf is never pruned). */
+        first_entry = false;
         cur_cert = cur_cert->next;
     }
 

@@ -116,6 +116,13 @@ struct s2n_config {
      * does not have a reference to. */
     struct s2n_map *domain_name_to_cert_map;
     struct certs_by_type default_certs_by_type;
+    /* An ordered list of every certificate chain configured on this config
+     * (borrowed pointers; ownership stays with default_certs_by_type / the
+     * application). Unlike default_certs_by_type, which holds only one chain
+     * per key type, this retains ALL configured chains so that server-side
+     * selection can pick among multiple chains of the same key type based on
+     * the client's certificate_authorities extension. */
+    struct s2n_array *all_cert_chains;
     struct s2n_blob application_protocols;
     s2n_clock_time_nanoseconds wall_clock;
     s2n_clock_time_nanoseconds monotonic_clock;
@@ -262,6 +269,7 @@ int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 void s2n_wipe_static_configs(void);
 struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 int s2n_config_get_num_default_certs(const struct s2n_config *config);
+int s2n_config_track_cert_chain(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
 S2N_RESULT s2n_config_monotonic_clock(struct s2n_config *config, uint64_t *output);
 

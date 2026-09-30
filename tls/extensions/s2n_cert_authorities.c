@@ -16,6 +16,8 @@
 
 #include <openssl/x509.h>
 
+#include "crypto/s2n_certificate.h"
+#include "crypto/s2n_openssl_x509.h"
 #include "utils/s2n_safety.h"
 
 bool s2n_cert_authorities_supported_from_trust_store()
@@ -88,7 +90,9 @@ int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *o
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);
-    POSIX_ENSURE_EQ(conn->mode, S2N_SERVER);
+    /* The certificate_authorities extension may be sent by a server in the
+     * CertificateRequest message or by a client in the ClientHello message.
+     * See https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4 */
     struct s2n_blob *cert_authorities = &conn->config->cert_authorities;
     POSIX_GUARD(s2n_stuffer_write_uint16(out, cert_authorities->size));
     POSIX_GUARD(s2n_stuffer_write(out, cert_authorities));
@@ -100,13 +104,20 @@ int s2n_cert_authorities_recv(struct s2n_connection *conn, struct s2n_stuffer *i
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);
 
-    /* For now, we don't support receiving certificate authorities on the
-     * server side. s2n-tls doesn't send them from clients today.
+    /* A client reads the CA list from a server's CertificateRequest so that
+     * the cert_request_cb callback can use it to select a client certificate.
+     * Only allocate the buffer if that callback is set, to save time and
+     * memory for other customers.
      *
-     * Only allocate the buffer if the callback which reads it is set, to save
-     * time and memory for other customers.
+     * A server reads the CA list from a client's ClientHello so that it can
+     * choose which server certificate chain to send. Only store it when more
+     * than one certificate chain is configured; with a single chain the server
+     * always sends that chain, so parsing the list would be wasted work.
      */
-    if (conn->mode == S2N_CLIENT && conn->config->cert_request_cb) {
+    bool store_for_client = (conn->mode == S2N_CLIENT && conn->config->cert_request_cb);
+    bool store_for_server = (conn->mode == S2N_SERVER
+            && s2n_config_get_num_default_certs(conn->config) > 1);
+    if (store_for_client || store_for_server) {
         uint16_t length = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &length));
         POSIX_GUARD(s2n_stuffer_extract_blob(in, &conn->cert_authorities));
@@ -114,6 +125,162 @@ int s2n_cert_authorities_recv(struct s2n_connection *conn, struct s2n_stuffer *i
     }
 
     return S2N_SUCCESS;
+}
+
+/* Compare a single certificate's issuer and subject distinguished names against
+ * the list of CA names advertised by the peer in the certificate_authorities
+ * extension. Returns true (via *found) if the given DER-encoded name is present
+ * in the list. */
+static S2N_RESULT s2n_cert_authorities_contains_name(struct s2n_blob *ca_names,
+        const uint8_t *name, size_t name_size, bool *found)
+{
+    RESULT_ENSURE_REF(ca_names);
+    RESULT_ENSURE_REF(found);
+    *found = false;
+
+    if (name == NULL || name_size == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Iterate over the advertised CA names: each entry is uint16 length
+     * followed by the DER encoding of an X509_NAME. */
+    struct s2n_stuffer iterator = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&iterator, ca_names));
+    while (s2n_stuffer_data_available(&iterator) > 0) {
+        uint16_t entry_len = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&iterator, &entry_len));
+        uint8_t *entry = s2n_stuffer_raw_read(&iterator, entry_len);
+        RESULT_ENSURE_REF(entry);
+
+        if (entry_len == name_size && memcmp(entry, name, name_size) == 0) {
+            *found = true;
+            return S2N_RESULT_OK;
+        }
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/* Returns true (via *match) if the certificate's issuer or subject name is
+ * present in the peer's advertised certificate_authorities list. */
+static S2N_RESULT s2n_cert_authorities_cert_matches(struct s2n_blob *ca_names,
+        struct s2n_cert *cert, bool *match)
+{
+    RESULT_ENSURE_REF(ca_names);
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(match);
+    *match = false;
+
+    DEFER_CLEANUP(X509 *x509 = NULL, X509_free_pointer);
+    RESULT_GUARD(s2n_openssl_x509_parse(&cert->raw, &x509));
+    RESULT_ENSURE_REF(x509);
+
+    /* A certificate is a match if the peer advertised the issuer of this cert
+     * (this cert was issued by a trusted CA) or the subject of this cert (this
+     * cert is itself one of the advertised CAs, e.g. a CA in the chain). */
+    X509_NAME *issuer = X509_get_issuer_name(x509);
+    X509_NAME *subject = X509_get_subject_name(x509);
+    X509_NAME *dns[2] = { issuer, subject };
+    for (size_t i = 0; i < s2n_array_len(dns); i++) {
+        if (dns[i] == NULL) {
+            continue;
+        }
+        const uint8_t *name = NULL;
+        size_t name_size = 0;
+        RESULT_GUARD_OSSL(X509_NAME_get0_der(dns[i], &name, &name_size),
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        RESULT_GUARD(s2n_cert_authorities_contains_name(ca_names, name, name_size, match));
+        if (*match) {
+            return S2N_RESULT_OK;
+        }
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/* Returns true (via *advertised) if the certificate's SUBJECT name is present
+ * in the peer's advertised certificate_authorities list, i.e. the peer already
+ * has this certificate and it does not need to be sent. */
+static S2N_RESULT s2n_cert_authorities_subject_advertised(struct s2n_blob *ca_names,
+        struct s2n_cert *cert, bool *advertised)
+{
+    RESULT_ENSURE_REF(ca_names);
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(advertised);
+    *advertised = false;
+
+    DEFER_CLEANUP(X509 *x509 = NULL, X509_free_pointer);
+    RESULT_GUARD(s2n_openssl_x509_parse(&cert->raw, &x509));
+    RESULT_ENSURE_REF(x509);
+
+    X509_NAME *subject = X509_get_subject_name(x509);
+    if (subject == NULL) {
+        return S2N_RESULT_OK;
+    }
+    const uint8_t *name = NULL;
+    size_t name_size = 0;
+    RESULT_GUARD_OSSL(X509_NAME_get0_der(subject, &name, &name_size),
+            S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+    RESULT_GUARD(s2n_cert_authorities_contains_name(ca_names, name, name_size, advertised));
+
+    return S2N_RESULT_OK;
+}
+
+/* Returns true (via *match) if any certificate in the given chain is issued by,
+ * or is itself, one of the CAs advertised by the peer in the
+ * certificate_authorities extension. */
+S2N_RESULT s2n_cert_authorities_chain_matches(struct s2n_connection *conn,
+        struct s2n_cert_chain_and_key *chain_and_key, bool *match)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(chain_and_key);
+    RESULT_ENSURE_REF(match);
+    *match = false;
+
+    /* No CA names were advertised, so there is nothing to match against. */
+    if (conn->cert_authorities.size == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_ENSURE_REF(chain_and_key->cert_chain);
+    struct s2n_cert *cert = chain_and_key->cert_chain->head;
+    while (cert != NULL) {
+        RESULT_GUARD(s2n_cert_authorities_cert_matches(&conn->cert_authorities, cert, match));
+        if (*match) {
+            return S2N_RESULT_OK;
+        }
+        cert = cert->next;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_cert_authorities_should_skip_cert(struct s2n_connection *conn,
+        struct s2n_cert *cert, bool is_leaf, bool *skip)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(skip);
+    *skip = false;
+
+    /* Only a server prunes its chain, and only using the CA names a client
+     * advertised in its ClientHello. conn->cert_authorities is only populated
+     * for a server when the client sent the extension. */
+    if (conn->mode != S2N_SERVER || conn->cert_authorities.size == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    /* The leaf (end-entity) certificate is always sent: it is not a CA the
+     * client could already have, and the client needs it to authenticate the
+     * server. */
+    if (is_leaf) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Skip this CA certificate if the client advertised its subject name,
+     * indicating the client already has it and does not need it sent. */
+    RESULT_GUARD(s2n_cert_authorities_subject_advertised(&conn->cert_authorities, cert, skip));
+    return S2N_RESULT_OK;
 }
 
 static bool s2n_cert_authorities_should_send(struct s2n_connection *conn)

@@ -81,6 +81,12 @@ static const s2n_extension_type *const client_hello_extensions[] = {
     &s2n_psk_key_exchange_modes_extension,
     &s2n_client_early_data_indication_extension,
     &s2n_client_ems_extension,
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
+     *# The client MAY send the "certificate_authorities" extension in the
+     *# ClientHello message.
+     */
+    &s2n_cert_authorities_extension,
     &s2n_client_psk_extension /* MUST be last */
 };
 
@@ -133,12 +139,6 @@ static const s2n_extension_type *const cert_req_extensions[] = {
     &s2n_server_signature_algorithms_extension,
     &s2n_server_cert_status_request_extension,
     /**
-     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
-     *= type=exception
-     *= reason=Currently only supported for servers -- no client use case
-     *# The client MAY send the "certificate_authorities" extension in the
-     *# ClientHello message.
-     *
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
      *# The server MAY send it in the CertificateRequest message.
      */

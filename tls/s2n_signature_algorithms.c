@@ -18,9 +18,11 @@
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
+#include "tls/extensions/s2n_cert_authorities.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_handshake.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
@@ -174,6 +176,41 @@ static bool s2n_signature_algorithm_is_supported_by_peer(
     return s2n_result_is_ok(s2n_signature_algorithms_validate_supported_by_peer(conn, iana));
 }
 
+/* When acting as a server that received the certificate_authorities extension
+ * and has more than one certificate chain configured, we prefer to send a chain
+ * that the client indicated it trusts. This returns true (via *preferred) if the
+ * cert chain associated with the candidate signature scheme is issued by, or is
+ * itself, one of the CAs advertised by the client.
+ *
+ * When no CA names were received (conn->cert_authorities is empty) or only a
+ * single chain is configured, conn->cert_authorities is never populated, so this
+ * always reports false and certificate selection is unchanged. */
+static bool s2n_signature_scheme_matches_cert_authorities(struct s2n_connection *conn,
+        const struct s2n_signature_scheme *candidate)
+{
+    if (conn == NULL || conn->mode != S2N_SERVER || conn->cert_authorities.size == 0) {
+        return false;
+    }
+
+    s2n_pkey_type cert_type = S2N_PKEY_TYPE_UNKNOWN;
+    if (candidate == &s2n_null_sig_scheme) {
+        cert_type = S2N_PKEY_TYPE_RSA;
+    } else if (s2n_result_is_error(s2n_signature_algorithm_get_pkey_type(candidate->sig_alg, &cert_type))) {
+        return false;
+    }
+
+    struct s2n_cert_chain_and_key *chain = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
+    if (chain == NULL) {
+        return false;
+    }
+
+    bool match = false;
+    if (s2n_result_is_error(s2n_cert_authorities_chain_matches(conn, chain, &match))) {
+        return false;
+    }
+    return match;
+}
+
 S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -205,6 +242,11 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
     RESULT_ENSURE_REF(signature_preferences);
 
     const struct s2n_signature_scheme *fallback_candidate = NULL;
+
+    /* The first peer-supported candidate, used when no candidate's certificate
+     * chain matches the CA names advertised in the certificate_authorities
+     * extension. This preserves the default selection order. */
+    const struct s2n_signature_scheme *peer_supported_candidate = NULL;
 
     /* We use local preference order, not peer preference order, so we iterate
      * over the local preferences instead of over the options offered by the peer.
@@ -265,8 +307,17 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
         bool is_peer_supported = s2n_signature_algorithm_is_supported_by_peer(
                 conn, candidate->iana_value);
         if (is_peer_supported) {
-            *chosen_sig_scheme = candidate;
-            return S2N_RESULT_OK;
+            /* If the client advertised certificate_authorities and more than one
+             * certificate chain is configured, prefer a candidate whose chain the
+             * client indicated it trusts. Otherwise, fall back to the first
+             * peer-supported candidate to preserve the default selection order. */
+            if (s2n_signature_scheme_matches_cert_authorities(conn, candidate)) {
+                *chosen_sig_scheme = candidate;
+                return S2N_RESULT_OK;
+            }
+            if (peer_supported_candidate == NULL) {
+                peer_supported_candidate = candidate;
+            }
         }
 
         /**
@@ -314,7 +365,12 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
         }
     }
 
-    if (fallback_candidate) {
+    /* No candidate's certificate chain matched the advertised CA names. Use the
+     * first peer-supported candidate, which is exactly what would have been
+     * chosen if the certificate_authorities extension had not been considered. */
+    if (peer_supported_candidate) {
+        *chosen_sig_scheme = peer_supported_candidate;
+    } else if (fallback_candidate) {
         *chosen_sig_scheme = fallback_candidate;
     } else {
         RESULT_BAIL(S2N_ERR_NO_VALID_SIGNATURE_SCHEME);

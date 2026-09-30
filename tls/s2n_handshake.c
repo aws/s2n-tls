@@ -17,10 +17,12 @@
 
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_cert_authorities.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_tls.h"
+#include "utils/s2n_array.h"
 #include "utils/s2n_map.h"
 #include "utils/s2n_safety.h"
 
@@ -315,10 +317,56 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+/* Among all configured chains of the given key type, return the first whose
+ * chain is issued by (or is itself) one of the CAs the client advertised in its
+ * certificate_authorities extension. Returns NULL if none match, if the client
+ * sent no such extension, or if we are not a server. This lets selection pick a
+ * chain other than the single per-type default when the client's advertised CAs
+ * point at a different same-key-type chain. */
+static struct s2n_cert_chain_and_key *s2n_cert_chain_matching_cert_authorities(
+        struct s2n_connection *conn, const s2n_pkey_type cert_type)
+{
+    if (conn == NULL || conn->mode != S2N_SERVER || conn->cert_authorities.size == 0) {
+        return NULL;
+    }
+    if (conn->config == NULL || conn->config->all_cert_chains == NULL) {
+        return NULL;
+    }
+    uint32_t len = 0;
+    if (s2n_result_is_error(s2n_array_num_elements(conn->config->all_cert_chains, &len))) {
+        return NULL;
+    }
+    for (uint32_t i = 0; i < len; i++) {
+        struct s2n_cert_chain_and_key **candidate = NULL;
+        if (s2n_result_is_error(s2n_array_get(conn->config->all_cert_chains, i, (void **) &candidate))) {
+            return NULL;
+        }
+        if (candidate == NULL || *candidate == NULL) {
+            continue;
+        }
+        /* Only consider chains of the requested key type. */
+        if (s2n_cert_chain_and_key_get_pkey_type(*candidate) != cert_type) {
+            continue;
+        }
+        bool match = false;
+        if (s2n_result_is_error(s2n_cert_authorities_chain_matches(conn, *candidate, &match))) {
+            continue;
+        }
+        if (match) {
+            return *candidate;
+        }
+    }
+    return NULL;
+}
+
 /* Find the optimal certificate of a specific type.
  * The priority of set of certificates to choose from:
  * 1. Certificates that match the client's ServerName extension.
- * 2. Default certificates
+ * 2. A chain matching the client's certificate_authorities extension, when the
+ *    default pick for this key type does not itself match. This allows picking
+ *    among multiple chains of the same key type (e.g. two ECDSA chains that
+ *    differ only in their issuing CA).
+ * 3. Default certificates
  */
 struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_connection *conn, const s2n_pkey_type cert_type)
 {
@@ -328,10 +376,29 @@ struct s2n_cert_chain_and_key *s2n_get_compatible_cert_chain_and_key(struct s2n_
     }
     if (conn->handshake_params.wc_sni_match_exists) {
         return conn->handshake_params.wc_sni_matches[cert_type];
-    } else {
-        /* We don't have any name matches. Use the default certificate that works with the key type. */
-        return conn->config->default_certs_by_type.certs[cert_type];
     }
+
+    /* We don't have any name matches. Use the default certificate that works with the key type. */
+    struct s2n_cert_chain_and_key *default_chain = conn->config->default_certs_by_type.certs[cert_type];
+
+    /* If the client advertised a certificate_authorities extension and the
+     * default chain for this key type is NOT issued by one of those CAs, prefer
+     * another configured chain of the same key type that IS. This is what lets
+     * the server disambiguate between multiple chains of the same key type
+     * instead of always sending the first-configured (default) one. */
+    bool default_matches = false;
+    if (conn->mode == S2N_SERVER && conn->cert_authorities.size != 0 && default_chain != NULL) {
+        if (s2n_result_is_error(s2n_cert_authorities_chain_matches(conn, default_chain, &default_matches))) {
+            default_matches = false;
+        }
+    }
+    if (!default_matches) {
+        struct s2n_cert_chain_and_key *ca_match = s2n_cert_chain_matching_cert_authorities(conn, cert_type);
+        if (ca_match != NULL) {
+            return ca_match;
+        }
+    }
+    return default_chain;
 }
 
 /* This method will work when testing S2N, and for the EndOfEarlyData message.
