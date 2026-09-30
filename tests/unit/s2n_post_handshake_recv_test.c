@@ -412,13 +412,6 @@ int main(int argc, char **argv)
          */
 
         EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
-        // EXPECT_OK(s2n_test_basic_recv(server, client));
-        // EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
-        // EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
-
-        // EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
-        // EXPECT_OK(s2n_test_blocking_recv(server, client, &io_pair));
-        // EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
         EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(server, client), S2N_ERR_BAD_MESSAGE);
         EXPECT_EQUAL(hello_request_count, 0);
         EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
