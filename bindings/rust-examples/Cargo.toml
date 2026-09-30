@@ -3,6 +3,7 @@ members = [
     "async-crl-validation",
     "client-hello-config-resolution",
     "hyper-server-client", "io-callbacks", "key-logging",
+    "mutual-tls",
     "tokio-server-client",
 ]
 resolver = "2"
