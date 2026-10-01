@@ -15,6 +15,7 @@
 
 #include "tls/s2n_crl.h"
 
+#include "crypto/s2n_openssl_x509.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
@@ -125,7 +126,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(crl->crl);
 
         /* Make sure an OpenSSL operation succeeds on the internal X509_CRL */
-        X509_NAME *crl_name = X509_CRL_get_issuer(crl->crl);
+        S2N_X509_CONST X509_NAME *crl_name = X509_CRL_get_issuer(crl->crl);
         POSIX_ENSURE_REF(crl_name);
     };
 
