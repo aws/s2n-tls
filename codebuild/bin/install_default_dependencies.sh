@@ -43,6 +43,12 @@ if [[ "$S2N_LIBCRYPTO" == "openssl-3.0-fips" && ! -d "$OPENSSL_3_FIPS_INSTALL_DI
     codebuild/bin/install_openssl_3_0.sh "$(mktemp -d)" "$OPENSSL_3_FIPS_INSTALL_DIR" "$OS_NAME" fips > /dev/null ;
 fi
 
+# Download and Install Openssl 4.0
+if [[ "$S2N_LIBCRYPTO" == "openssl-4.0" && ! -d "$OPENSSL_4_0_INSTALL_DIR" ]]; then
+    mkdir -p "$OPENSSL_4_0_INSTALL_DIR"
+    codebuild/bin/install_openssl_4_0.sh "$(mktemp -d)" "$OPENSSL_4_0_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+fi
+
 # Download and Install Openssl 1.0.2
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" && ! -d "$OPENSSL_1_0_2_INSTALL_DIR" ]]; then
     mkdir -p "$OPENSSL_1_0_2_INSTALL_DIR"||true
