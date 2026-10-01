@@ -1352,6 +1352,54 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->x509_validator.state, INIT);
     };
 
+    /* Test: a set_config that fails AFTER validator init leaves the connection
+     * completely unchanged (no silent trust-store switch). */
+    {
+        DEFER_CLEANUP(struct s2n_config *config_old = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config_old);
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config_old));
+        EXPECT_EQUAL(conn->config, config_old);
+        EXPECT_EQUAL(conn->x509_validator.state, INIT);
+        struct s2n_x509_trust_store *old_trust_store = conn->x509_validator.trust_store;
+
+        /* A cert with no private key and no async pkey callback makes set_config
+         * fail at the S2N_ERR_NO_PRIVATE_KEY check, which runs after validator init.
+         */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_only_chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_only_chain,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_pkey_free(cert_only_chain->private_key));
+        EXPECT_SUCCESS(s2n_pkey_zero_init(cert_only_chain->private_key));
+
+        DEFER_CLEANUP(struct s2n_config *config_bad = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config_bad);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_bad, cert_only_chain));
+        EXPECT_TRUE(config_bad->no_signing_key);
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config_bad),
+                S2N_ERR_NO_PRIVATE_KEY);
+
+        /* Still the old config, and still bound to the old trust store. Before
+         * the fix the validator was already swapped to config_bad's trust store.
+         */
+        EXPECT_EQUAL(conn->config, config_old);
+        EXPECT_EQUAL(conn->x509_validator.state, INIT);
+        EXPECT_EQUAL(conn->x509_validator.trust_store, old_trust_store);
+
+        /* config_bad (freed on scope exit) is no longer referenced by the
+         * validator, and a subsequent successful set_config still works.
+         */
+        EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config_bad, s2n_test_async_pkey_fn));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config_bad));
+        EXPECT_EQUAL(conn->config, config_bad);
+        EXPECT_EQUAL(conn->x509_validator.state, INIT);
+    };
+
     /* Test: domain_name_to_cert_map remains usable after s2n_map_add fails
      *
      * Regression test: s2n_config_update_domain_name_to_cert_map
