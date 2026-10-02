@@ -1213,6 +1213,128 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(tickets_sent, 1);
     };
 
+    /* Regression tests: TLS1.3 resumption must be refused when the server
+     * requires client auth, since a resumed handshake skips the
+     * CertificateRequest and would otherwise bypass mTLS.
+     */
+    {
+        /* Server uses an RSA cert; the client uses an ECDSA cert for its mTLS
+         * identity. Each side trusts the other's CA. */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *server_chain = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&server_chain,
+                "rsae", "pkcs", "2048", "sha256"));
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&client_chain,
+                "ec", "ecdsa", "p256", "sha256"));
+
+        char server_ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
+        EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(server_ca_path, "rsae", "pkcs", "2048", "sha256"));
+        char client_ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
+        EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(client_ca_path, "ec", "ecdsa", "p256", "sha256"));
+
+        /* Client presents its ECDSA cert if asked, but uses OPTIONAL so it can
+         * connect to both the public (no client auth) and mTLS servers. */
+        DEFER_CLEANUP(struct s2n_config *mtls_client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(mtls_client_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(mtls_client_config, client_chain));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(mtls_client_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(mtls_client_config, server_ca_path, NULL));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(mtls_client_config, S2N_CERT_AUTH_OPTIONAL));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(mtls_client_config, true));
+        DEFER_CLEANUP(struct s2n_stuffer mtls_session_data = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&mtls_session_data, 0));
+        EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(mtls_client_config,
+                s2n_test_session_ticket_cb, &mtls_session_data));
+
+        /* "Public" server: no client auth, issues tickets. */
+        DEFER_CLEANUP(struct s2n_config *public_server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(public_server_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(public_server_config, server_chain));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(public_server_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(public_server_config, true));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(public_server_config));
+
+        /* mTLS server: requires client auth, shares the public server's ticket key. */
+        DEFER_CLEANUP(struct s2n_config *mtls_server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(mtls_server_config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(mtls_server_config, server_chain));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(mtls_server_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(mtls_server_config, client_ca_path, NULL));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(mtls_server_config, S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(mtls_server_config, true));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(mtls_server_config));
+
+        /* A ticket minted without client auth cannot resume against an mTLS server. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_NOT_NULL(server_conn);
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+            /* Obtain a resumption ticket from the public (no client auth) server. */
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, mtls_client_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, public_server_config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+            EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
+            EXPECT_TRUE(s2n_stuffer_data_available(&mtls_session_data) > 0);
+
+            /* Attempt to resume against the mTLS server using that ticket. */
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, mtls_client_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, mtls_server_config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            size_t session_len = s2n_stuffer_data_available(&mtls_session_data);
+            EXPECT_SUCCESS(s2n_connection_set_session(client_conn, mtls_session_data.blob.data, session_len));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            /* Ticket refused: full handshake, CertificateRequest sent, client cert used. */
+            EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
+            EXPECT_FALSE(server_conn->handshake.handshake_type & NO_CLIENT_CERT);
+            EXPECT_TRUE(server_conn->handshake_params.client_cert_chain.size > 0);
+
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        };
+
+        /* A server with client auth does not issue tickets. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, mtls_client_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, mtls_server_config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
+
+            uint16_t tickets_sent = 0;
+            EXPECT_SUCCESS(s2n_connection_get_tickets_sent(server_conn, &tickets_sent));
+            EXPECT_EQUAL(tickets_sent, 0);
+
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        };
+    };
+
     /* Clean-up */
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(tls12_server_config));

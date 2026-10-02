@@ -17,6 +17,5 @@ certificate signature schemes:
 - ecdsa_sha384
 - rsa_pkcs1_sha384
 pq:
-- revision: 5
 - kem groups:
 -- MLKEM1024

@@ -600,7 +600,12 @@ class JavaSSL(Provider):
         pytest.skip("JavaSSL does not support server mode at this time")
 
     def setup_client(self):
-        cmd_line = ["java", "-classpath", "bin", "SSLSocketClient"]
+        cmd_line = ["java"]
+        # Current JDKs disable TLS_RSA_*, so the JDK drops the suite before
+        # sending a ClientHello. Re-enable it only where a test asks for it.
+        if (self.options.cipher.iana_standard_name or "").startswith("TLS_RSA_"):
+            cmd_line.append("-Djava.security.properties=bin/java.security.override")
+        cmd_line += ["-classpath", "bin", "SSLSocketClient"]
 
         if self.options.port is not None:
             cmd_line.extend([self.options.port])
