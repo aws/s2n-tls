@@ -1094,6 +1094,10 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 skip_cache_lookup:
     if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {
+        /* An abbreviated handshake has no CertificateRequest, so clear CLIENT_AUTH
+         * (set earlier for S2N_CERT_AUTH_REQUIRED). Otherwise handshake_type would
+         * be NEGOTIATED|CLIENT_AUTH, which has no row in the handshakes[][] table. */
+        POSIX_GUARD_RESULT(s2n_handshake_type_unset_flag(conn, CLIENT_AUTH));
         return S2N_SUCCESS;
     }
 

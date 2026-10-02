@@ -25,6 +25,13 @@ S2N_RESULT s2n_handshake_type_set_flag(struct s2n_connection *conn, s2n_handshak
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_handshake_type_unset_flag(struct s2n_connection *conn, s2n_handshake_type_flag flag)
+{
+    RESULT_ENSURE_REF(conn);
+    conn->handshake.handshake_type &= ~(flag);
+    return S2N_RESULT_OK;
+}
+
 bool s2n_handshake_type_check_flag(struct s2n_connection *conn, s2n_handshake_type_flag flag)
 {
     return conn && (conn->handshake.handshake_type & flag);
