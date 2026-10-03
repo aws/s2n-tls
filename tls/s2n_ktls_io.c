@@ -329,7 +329,7 @@ static S2N_RESULT s2n_ktls_update_bufs_with_offset(const struct iovec **bufs, si
     /* If possible, use the existing stack memory in `mem` for the copy.
      * Otherwise, we need to allocate sufficient new heap memory. */
     if (size > mem->size) {
-        RESULT_GUARD_POSIX(s2n_alloc(mem, size));
+        RESULT_GUARD_POSIX(s2n_realloc(mem, size));
     }
 
     struct iovec *new_bufs = (struct iovec *) (void *) mem->data;

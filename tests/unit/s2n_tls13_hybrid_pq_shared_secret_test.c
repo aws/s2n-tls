@@ -422,7 +422,7 @@ static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc)
      * input buffer. */
 
     DEFER_CLEANUP(struct s2n_blob priv_ecc_blob = { 0 }, s2n_free);
-    POSIX_GUARD(s2n_alloc(&priv_ecc_blob, key_len));
+    POSIX_GUARD(s2n_realloc(&priv_ecc_blob, key_len));
     for (size_t i = 0; i < key_len; i++) {
         priv_ecc_blob.data[i] = priv_ecc[i];
     }
@@ -470,7 +470,7 @@ static int set_up_conns(struct s2n_connection *client_conn, struct s2n_connectio
     /* Populate the client's PQ private key with something - it doesn't have to be a
      * legitimate private key since it doesn't get used in the shared secret derivation,
      * but we want to make sure its definitely been freed after shared secret calculation */
-    POSIX_GUARD(s2n_alloc(&client_conn->kex_params.client_kem_group_params.kem_params.private_key, 2));
+    POSIX_GUARD(s2n_realloc(&client_conn->kex_params.client_kem_group_params.kem_params.private_key, 2));
     struct s2n_stuffer private_key_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&private_key_stuffer,
             &client_conn->kex_params.client_kem_group_params.kem_params.private_key));
