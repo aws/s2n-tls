@@ -217,6 +217,7 @@ S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_m
 /**
  * Allocate a new blob on the heap.
  * 
+ * If the blob already holds an allocation, it is freed first.
  * The blob will be _growable_.
  * 
  * This blob owns the underlying memory, which will be freed when `s2n_free` is 
@@ -226,6 +227,15 @@ int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     POSIX_ENSURE_REF(b);
+
+    /* Free any pre-existing allocation to prevent memory leaks.
+     * Without this, zeroing the blob below would orphan the previous buffer
+     * since s2n_realloc only frees when b->allocated is non-zero.
+     */
+    if (b->allocated) {
+        POSIX_GUARD(s2n_free(b));
+    }
+
     const struct s2n_blob temp = { 0 };
     *b = temp;
     POSIX_GUARD(s2n_realloc(b, size));
