@@ -316,3 +316,36 @@ impl From<SerializationVersion> for s2n_serialization_version::Type {
         }
     }
 }
+
+/// The status of early data (0-RTT) on a connection.
+///
+/// Corresponds to [`s2n_early_data_status_t`].
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum EarlyDataStatus {
+    /// Early data is in progress.
+    Ok,
+    /// The client did not request early data, so none was sent or received.
+    NotRequested,
+    /// The client requested early data, but the server rejected the request.
+    ///
+    /// Early data may have been sent, but was not received.
+    Rejected,
+    /// All early data was successfully sent and received.
+    End,
+}
+
+impl TryFrom<s2n_early_data_status_t::Type> for EarlyDataStatus {
+    type Error = Error;
+
+    fn try_from(input: s2n_early_data_status_t::Type) -> Result<Self, Self::Error> {
+        let status = match input {
+            s2n_early_data_status_t::OK => Self::Ok,
+            s2n_early_data_status_t::NOT_REQUESTED => Self::NotRequested,
+            s2n_early_data_status_t::REJECTED => Self::Rejected,
+            s2n_early_data_status_t::END => Self::End,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(status)
+    }
+}

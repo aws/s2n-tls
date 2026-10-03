@@ -1117,6 +1117,25 @@ impl Builder {
         Ok(self)
     }
 
+    /// Sets the maximum bytes of early data (0-RTT) the server will accept.
+    ///
+    /// The default is 0, meaning the server rejects all early data. A non-zero value lets
+    /// the server accept early data from a resuming client: the limit is stored in the
+    /// tickets it issues, so it must be set before the initial handshake. For external
+    /// PSKs, use [`crate::psk::Builder::configure_early_data`] instead.
+    ///
+    /// Corresponds to [`s2n_config_set_server_max_early_data_size`].
+    pub fn set_server_max_early_data_size(
+        &mut self,
+        max_early_data_size: u32,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_server_max_early_data_size(self.as_mut_ptr(), max_early_data_size)
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Sets the expected connection serialization version. Must be set
     /// before serializing the connection.
     ///
