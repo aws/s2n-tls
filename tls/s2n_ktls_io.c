@@ -266,6 +266,25 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
 
     RESULT_GUARD(s2n_ktls_get_control_data(&msg, S2N_TLS_GET_RECORD_TYPE, record_type));
 
+    /* Validate that record_type is a legitimate post-handshake TLS ContentType.
+     *
+     * kTLS is only enabled after the handshake completes, so the only valid
+     * record types on this path are:
+     * - TLS_ALERT (21): close_notify or error alerts
+     * - TLS_HANDSHAKE (22): post-handshake messages (e.g., KeyUpdate)
+     * - TLS_APPLICATION_DATA (23): normal data
+     *
+     * TLS_CHANGE_CIPHER_SPEC (20) is explicitly excluded because CCS is only
+     * valid before the peer's Finished message is received (RFC 8446 Section 5,
+     * paragraph 3), and kTLS is never active during the handshake.
+     *
+     * "If a TLS implementation receives an unexpected record type, it MUST
+     * terminate the connection with an 'unexpected_message' alert."
+     * - RFC 8446 Section 5
+     */
+    RESULT_ENSURE(*record_type >= TLS_ALERT, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(*record_type <= TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
+
     *blocked = S2N_NOT_BLOCKED;
     *bytes_read = result;
     return S2N_RESULT_OK;
