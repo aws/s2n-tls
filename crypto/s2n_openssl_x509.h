@@ -23,6 +23,22 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
+/* OpenSSL 4.0 and AWS-LC return const pointers from the X509 getters. Older
+ * OpenSSL returns non-const. Qualify the declaration instead of duplicating it.
+ */
+#if defined(S2N_LIBCRYPTO_SUPPORTS_CONST_X509_GETTERS)
+    #define S2N_X509_CONST const
+#else
+    #define S2N_X509_CONST
+#endif
+
+/* ASN1_STRING_data was removed in OpenSSL 4.0. Its replacement returns const. */
+#if defined(S2N_LIBCRYPTO_SUPPORTS_ASN1_STRING_GET0_DATA)
+    #define S2N_ASN1_STRING_DATA(str) ASN1_STRING_get0_data(str)
+#else
+    #define S2N_ASN1_STRING_DATA(str) ASN1_STRING_data(str)
+#endif
+
 #define S2N_MAX_ALLOWED_CERT_TRAILING_BYTES 3
 
 DEFINE_POINTER_CLEANUP_FUNC(X509 *, X509_free);

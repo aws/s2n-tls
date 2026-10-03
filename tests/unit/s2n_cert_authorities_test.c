@@ -24,6 +24,77 @@
 
 int s2n_parse_client_hello(struct s2n_connection *conn);
 
+/* Compares two cert_authorities extension payloads as unordered sets of
+ * DER-encoded names. X509_STORE object enumeration order is not specified
+ * and differs between libcrypto versions, so the extension's entry order
+ * is not stable across libcryptos.
+ */
+static S2N_RESULT s2n_test_cert_authorities_match(const uint8_t *expected_bytes,
+        size_t expected_size, uint8_t *actual_bytes, size_t actual_size)
+{
+    RESULT_ENSURE_EQ(expected_size, actual_size);
+
+    struct s2n_blob expected_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&expected_blob, (uint8_t *) expected_bytes, expected_size));
+    struct s2n_stuffer expected_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&expected_stuffer, &expected_blob));
+
+    struct s2n_blob actual_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&actual_blob, actual_bytes, actual_size));
+    struct s2n_stuffer actual_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&actual_stuffer, &actual_blob));
+
+    /* extension type + extension size + CA list size */
+    for (size_t i = 0; i < 3; i++) {
+        uint16_t expected_u16 = 0, actual_u16 = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&expected_stuffer, &expected_u16));
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&actual_stuffer, &actual_u16));
+        RESULT_ENSURE_EQ(expected_u16, actual_u16);
+    }
+
+    /* Collect the expected DER names, then check off each actual name against them */
+    struct {
+        uint8_t *data;
+        uint16_t size;
+        bool found;
+    } expected_names[10] = { 0 };
+    size_t expected_count = 0;
+    while (s2n_stuffer_data_available(&expected_stuffer) > 0) {
+        RESULT_ENSURE_LT(expected_count, s2n_array_len(expected_names));
+        uint16_t size = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&expected_stuffer, &size));
+        expected_names[expected_count].size = size;
+        expected_names[expected_count].data = s2n_stuffer_raw_read(&expected_stuffer, size);
+        RESULT_ENSURE_REF(expected_names[expected_count].data);
+        expected_count++;
+    }
+
+    size_t actual_count = 0;
+    while (s2n_stuffer_data_available(&actual_stuffer) > 0) {
+        uint16_t size = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&actual_stuffer, &size));
+        uint8_t *data = s2n_stuffer_raw_read(&actual_stuffer, size);
+        RESULT_ENSURE_REF(data);
+        actual_count++;
+
+        bool match = false;
+        for (size_t i = 0; i < expected_count; i++) {
+            if (expected_names[i].found || expected_names[i].size != size) {
+                continue;
+            }
+            if (memcmp(expected_names[i].data, data, size) == 0) {
+                expected_names[i].found = true;
+                match = true;
+                break;
+            }
+        }
+        RESULT_ENSURE_EQ(match, true);
+    }
+    RESULT_ENSURE_EQ(expected_count, actual_count);
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -398,7 +469,8 @@ int main(int argc, char **argv)
 
             uint8_t *output_bytes = s2n_stuffer_raw_read(&output, output_size);
             EXPECT_NOT_NULL(output_bytes);
-            EXPECT_BYTEARRAY_EQUAL(test_cases[i].expected_bytes, output_bytes, output_size);
+            EXPECT_OK(s2n_test_cert_authorities_match(test_cases[i].expected_bytes,
+                    test_cases[i].expected_bytes_size, output_bytes, output_size));
         }
     };
 

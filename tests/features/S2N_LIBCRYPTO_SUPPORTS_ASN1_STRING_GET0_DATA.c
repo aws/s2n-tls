@@ -13,17 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include <openssl/asn1.h>
 
-#include "crypto/s2n_ecc_evp.h"
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
+int main()
+{
+    /* ASN1_STRING_get0_data() replaces both direct ASN1_STRING member access
+     * and ASN1_STRING_data(), which were removed in OpenSSL 4.0.
+     */
+    const ASN1_STRING *asn1_str = NULL;
+    const unsigned char *data = ASN1_STRING_get0_data(asn1_str);
+    (void) data;
 
-#define S2N_SIZE_OF_EXTENSION_TYPE      2
-#define S2N_SIZE_OF_EXTENSION_DATA_SIZE 2
-#define S2N_SIZE_OF_CLIENT_SHARES_SIZE  2
-#define S2N_SIZE_OF_NAMED_GROUP         2
-#define S2N_SIZE_OF_KEY_SHARE_SIZE      2
-
-S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);
-int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);
+    return 0;
+}

@@ -13,6 +13,5 @@ certificate signature schemes:
 certificate keys:
 - mldsa_87
 pq:
-- revision: 5
 - kem groups:
 -- MLKEM1024
