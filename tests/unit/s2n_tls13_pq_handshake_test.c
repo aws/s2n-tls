@@ -128,7 +128,7 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
 
 int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
-        const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected, bool len_prefix_expected)
+        const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected)
 {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
     POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
@@ -180,11 +180,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
-        /* Client should always determine whether the KEM group used len_prefixed format, and server should match client's behavior. */
-        POSIX_ENSURE_EQ(len_prefix_expected, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
-        POSIX_ENSURE_EQ(len_prefix_expected, s2n_tls13_client_must_use_hybrid_kem_length_prefix(client_sec_policy->kem_preferences));
-        POSIX_ENSURE_EQ(server_conn->kex_params.client_kem_group_params.kem_params.len_prefixed, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
-
         POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         if (expected_kem_group->curve != &s2n_ecc_curve_none) {
@@ -387,8 +382,7 @@ int main()
         .kem_count = 0,
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(mlkem768_test_groups),
-        .tls13_kem_groups = mlkem768_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
+        .tls13_kem_groups = mlkem768_test_groups
     };
 
     const struct s2n_security_policy mlkem768_test_policy = {
@@ -407,8 +401,7 @@ int main()
         .kem_count = 0,
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(mlkem1024_test_groups),
-        .tls13_kem_groups = mlkem1024_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
+        .tls13_kem_groups = mlkem1024_test_groups
     };
 
     const struct s2n_security_policy mlkem1024_test_policy = {
@@ -427,8 +420,7 @@ int main()
         .kem_count = 0,
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(pure_mlkem1024_test_groups),
-        .tls13_kem_groups = pure_mlkem1024_test_groups,
-        .tls13_pq_hybrid_draft_revision = 5
+        .tls13_kem_groups = pure_mlkem1024_test_groups
     };
 
     const struct s2n_security_policy pure_mlkem1024_test_policy = {
@@ -451,7 +443,6 @@ int main()
         const struct s2n_kem_group *expected_kem_group;
         const struct s2n_ecc_named_curve *expected_curve;
         bool hrr_expected;
-        bool len_prefix_expected;
     };
 
     /* Self talk test with each TLS 1.3 KemGroup we support */
@@ -466,8 +457,7 @@ int main()
             .kem_count = 0,
             .kems = NULL,
             .tls13_kem_group_count = 1,
-            .tls13_kem_groups = &kem_group,
-            .tls13_pq_hybrid_draft_revision = 5
+            .tls13_kem_groups = &kem_group
         };
 
         const struct s2n_security_policy singleton_test_policy = {
@@ -484,11 +474,10 @@ int main()
             .expected_kem_group = kem_group,
             .expected_curve = NULL,
             .hrr_expected = false,
-            .len_prefix_expected = false,
         };
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(test_vec.client_policy, test_vec.server_policy,
-                test_vec.expected_kem_group, test_vec.expected_curve, test_vec.hrr_expected, test_vec.len_prefix_expected));
+                test_vec.expected_kem_group, test_vec.expected_curve, test_vec.hrr_expected));
     }
 
     /* ML-KEM is only available on newer versions of AWS-LC. If it's
@@ -518,7 +507,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = false,
-                .len_prefix_expected = true,
         },
 
         /* Server does not support PQ; client sends a PQ key share, but no EC shares;
@@ -529,7 +517,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = true,
-                .len_prefix_expected = true,
         },
 
         /* Server supports PQ, but client does not. Client sent an EC share,
@@ -540,7 +527,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = false,
-                .len_prefix_expected = true,
         },
 
         /* Server supports PQ, but client does not. Client did not send any EC shares,
@@ -551,7 +537,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = default_curve,
                 .hrr_expected = true,
-                .len_prefix_expected = true,
         },
 
         /* Confirm that MLKEM768 is negotiable */
@@ -561,7 +546,6 @@ int main()
                 .expected_kem_group = null_if_no_mlkem_768,
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
-                .len_prefix_expected = false,
         },
 
         /* Confirm that MLKEM1024 is negotiable */
@@ -571,7 +555,6 @@ int main()
                 .expected_kem_group = null_if_no_mlkem_1024,
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
-                .len_prefix_expected = false,
         },
 
         /* Confirm that pure MLKEM1024 is negotiable; fall back to EC when MLKEM is not supported. */
@@ -581,7 +564,6 @@ int main()
                 .expected_kem_group = null_if_no_pure_mlkem_1024,
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = false,
-                .len_prefix_expected = false,
         },
 
         /* Client supports pure MLKEM but did not send that key share. Pure MLKEM should be negotiated after exchanging HRR.
@@ -592,7 +574,6 @@ int main()
                 .expected_kem_group = null_if_no_pure_mlkem_1024,
                 .expected_curve = ec_if_no_mlkem,
                 .hrr_expected = hrr_expected_if_mlkem,
-                .len_prefix_expected = false,
         },
 
         /* Client supports p384 but did not send that key share when connecting to server that strongly prefers p384. */
@@ -602,7 +583,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = &s2n_ecc_curve_secp384r1,
                 .hrr_expected = true,
-                .len_prefix_expected = false,
         },
         {
                 .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
@@ -610,7 +590,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = &s2n_ecc_curve_secp384r1,
                 .hrr_expected = true,
-                .len_prefix_expected = false,
         },
         {
                 .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
@@ -618,7 +597,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = &s2n_ecc_curve_secp384r1,
                 .hrr_expected = true,
-                .len_prefix_expected = false,
         },
         {
                 .client_policy = &security_policy_20240503, /* Will send p256 KeyShare, but also supports p384 at lower priority */
@@ -626,7 +604,6 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = &s2n_ecc_curve_secp384r1,
                 .hrr_expected = true,
-                .len_prefix_expected = false,
         },
     };
 
@@ -637,7 +614,6 @@ int main()
         const struct s2n_kem_group *kem_group = vector->expected_kem_group;
         const struct s2n_ecc_named_curve *curve = vector->expected_curve;
         bool hrr_expected = vector->hrr_expected;
-        bool len_prefix_expected = vector->len_prefix_expected;
 
         /* Print Test Vector Info for easier debugging on failure. */
         {
@@ -645,7 +621,7 @@ int main()
             const char *curve_str = (curve == NULL) ? "NULL" : curve->name;
             fprintf(stderr, "\n\nRunning test (%zu/%zu)...\n", i + 1, s2n_array_len(test_vectors));
             fflush(stderr);
-            fprintf(stderr, "Test Vector: kem_group: %s, curve: %s, hrr_expected: %d, len_prefix_expected: %d\n", kem_group_str, curve_str, hrr_expected, len_prefix_expected);
+            fprintf(stderr, "Test Vector: kem_group: %s, curve: %s, hrr_expected: %d\n", kem_group_str, curve_str, hrr_expected);
             fflush(stderr);
             uint32_t output_size = 0;
             fprintf(stderr, "\nClient Security Policy: \n");
@@ -701,7 +677,7 @@ int main()
             POSIX_ENSURE_EQ(kem_group->iana_id, predicted_kem_group->iana_id);
         }
 
-        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));
+        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected));
     }
 
     END_TEST();
