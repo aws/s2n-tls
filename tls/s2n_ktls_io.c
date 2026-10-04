@@ -329,7 +329,32 @@ static S2N_RESULT s2n_ktls_update_bufs_with_offset(const struct iovec **bufs, si
     /* If possible, use the existing stack memory in `mem` for the copy.
      * Otherwise, we need to allocate sufficient new heap memory. */
     if (size > mem->size) {
-        RESULT_GUARD_POSIX(s2n_realloc(mem, size));
+        if (s2n_blob_is_growable(mem)) {
+            RESULT_GUARD_POSIX(s2n_realloc(mem, size));
+        } else {
+            /* mem is a static/stack-backed blob from s2n_blob_init.
+             * We cannot realloc it, so we need to allocate a new heap blob.
+             * Allocate and prepare the replacement blob separately, only replacing
+             * the original after all operations succeed to ensure failure-atomicity. */
+            struct s2n_blob heap_mem = { 0 };
+            if (s2n_alloc(&heap_mem, size) != S2N_SUCCESS) {
+                return S2N_RESULT_ERROR;
+            }
+
+            /* Perform the data copy into the new heap blob */
+            struct iovec *new_bufs = (struct iovec *) (void *) heap_mem.data;
+            if (s2n_ensure_memmove_trace(new_bufs, *bufs, size) == NULL) {
+                s2n_free(&heap_mem);
+                return S2N_RESULT_ERROR;
+            }
+            new_bufs[0].iov_base = (uint8_t *) new_bufs[0].iov_base + offs;
+            new_bufs[0].iov_len = new_bufs[0].iov_len - offs;
+
+            /* Only now that everything succeeded, replace the original blob */
+            *mem = heap_mem;
+            *bufs = new_bufs;
+            return S2N_RESULT_OK;
+        }
     }
 
     struct iovec *new_bufs = (struct iovec *) (void *) mem->data;
