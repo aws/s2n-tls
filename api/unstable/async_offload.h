@@ -87,7 +87,13 @@ S2N_API extern int s2n_config_set_async_offload_callback(struct s2n_config *conf
  * Retrying s2n_negotiate() will produce the same result until s2n_async_offload_op_perform() is completed.
  * 
  * s2n_async_offload_op_perform() can only be called once for each triggered operation.
- * 
+ *
+ * The `op` is owned by s2n-tls and is freed together with its s2n_connection. The
+ * application MUST ensure any thread executing s2n_async_offload_op_perform() for a
+ * connection has finished before that connection is freed (s2n_connection_free) or
+ * reused (s2n_connection_wipe). s2n-tls does not synchronize with the perform thread,
+ * so freeing or wiping a connection during a perform call may cause a use-after-free.
+ *
  * @param op An opaque object representing the async operation
  */
 S2N_API extern int s2n_async_offload_op_perform(struct s2n_async_offload_op *op);

@@ -4,14 +4,75 @@
 //! This module holds utilities for checking when a client is compatible with some
 //! particular TLS Profile.
 
-use crate::parsing::ClientHelloSupportedParameters;
+use crate::{parsing::ClientHelloSupportedParameters, record::NegotiatedParameters};
 use s2n_tls_metrics_schema::static_lists::{Cipher, Group, Signature, Version};
+
+/// A read-only view of a single compatibility profile's allow-lists.
+///
+/// This exposes only the static allow-list data for a profile; it does not
+/// expose any handshake-evaluation behavior.
+#[derive(Debug, Clone, Copy)]
+pub struct TlsProfileSpec {
+    pub allowed_versions: &'static [Version],
+    pub allowed_ciphers: &'static [Cipher],
+    pub allowed_groups: &'static [Group],
+    pub allowed_signatures: &'static [Signature],
+}
+
+/// Stable identifiers for the TLS compatibility profiles measured by this crate.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum CompatibilityProfile {
+    General20251201,
+    Fips20251201,
+    Cnsa1,
+    Cnsa2,
+}
+
+impl CompatibilityProfile {
+    /// Returns the read-only allow-list [`TlsProfileSpec`] for this profile.
+    pub fn spec(self) -> TlsProfileSpec {
+        fn spec_of<P: TlsProfile>() -> TlsProfileSpec {
+            TlsProfileSpec {
+                allowed_versions: P::ALLOWED_VERSIONS,
+                allowed_ciphers: P::ALLOWED_CIPHERS,
+                allowed_groups: P::ALLOWED_GROUPS,
+                allowed_signatures: P::ALLOWED_SIGNATURES,
+            }
+        }
+
+        match self {
+            CompatibilityProfile::General20251201 => spec_of::<General20251201>(),
+            CompatibilityProfile::Fips20251201 => spec_of::<Fips20251201>(),
+            CompatibilityProfile::Cnsa1 => spec_of::<Cnsa1>(),
+            CompatibilityProfile::Cnsa2 => spec_of::<Cnsa2>(),
+        }
+    }
+}
 
 pub(crate) trait TlsProfile {
     const ALLOWED_VERSIONS: &[Version];
     const ALLOWED_CIPHERS: &[Cipher];
     const ALLOWED_GROUPS: &[Group];
     const ALLOWED_SIGNATURES: &[Signature];
+
+    /// returns true if the values actually negotiated during a handshake are
+    /// all permitted by this [`TlsProfile`].
+    ///
+    /// A handshake with no negotiated group or signature (e.g. a group or
+    /// signature that isn't recognized) is considered incompatible, matching
+    /// the conservative behavior of [`TlsProfile::supported`].
+    fn negotiated_compatible(negotiated: &NegotiatedParameters) -> bool {
+        let version_ok = Self::ALLOWED_VERSIONS.contains(&negotiated.version);
+        let cipher_ok = Self::ALLOWED_CIPHERS.contains(&negotiated.cipher);
+        let group_ok = negotiated
+            .group
+            .is_some_and(|group| Self::ALLOWED_GROUPS.contains(&group));
+        let signature_ok = negotiated
+            .signature
+            .is_some_and(|signature| Self::ALLOWED_SIGNATURES.contains(&signature));
+
+        version_ok && cipher_ok && group_ok && signature_ok
+    }
 
     /// returns true if a client could handshake with this [`TlsProfile`]
     fn supported(client_hello: &ClientHelloSupportedParameters) -> bool {
@@ -290,5 +351,51 @@ mod tests {
         let supported_parameters = ClientHelloSupportedParameters::new(ch).unwrap();
         assert!(Cnsa1::supported(&supported_parameters));
         assert!(Cnsa2::supported(&supported_parameters));
+    }
+
+    /// Unit tests for `negotiated_compatible`, which evaluates the actually
+    /// negotiated parameters rather than the client hello.
+    #[test]
+    fn negotiated_compatible_evaluates_all_parameters() {
+        // A fully CNSA1-compliant set of negotiated parameters.
+        let cnsa1_negotiated = NegotiatedParameters {
+            version: Version::TLS_1_2,
+            cipher: Cipher::TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+            group: Some(Group::secp384r1),
+            signature: Some(Signature::ecdsa_secp384r1_sha384),
+        };
+        assert!(Cnsa1::negotiated_compatible(&cnsa1_negotiated));
+        // CNSA1 params are also within the General/Fips allow-lists.
+        assert!(General20251201::negotiated_compatible(&cnsa1_negotiated));
+        assert!(Fips20251201::negotiated_compatible(&cnsa1_negotiated));
+        // but not CNSA2, which requires TLS 1.3 / MLKEM1024 / mldsa87.
+        assert!(!Cnsa2::negotiated_compatible(&cnsa1_negotiated));
+
+        // A single disallowed parameter (here the group) makes the whole set
+        // incompatible, even though every other value is allowed.
+        let wrong_group = NegotiatedParameters {
+            version: Version::TLS_1_2,
+            cipher: Cipher::TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+            group: Some(Group::x25519),
+            signature: Some(Signature::ecdsa_secp384r1_sha384),
+        };
+        assert!(!Cnsa1::negotiated_compatible(&wrong_group));
+
+        // A missing group or signature is treated conservatively as incompatible.
+        let missing_group = NegotiatedParameters {
+            version: Version::TLS_1_3,
+            cipher: Cipher::TLS_AES_256_GCM_SHA384,
+            group: None,
+            signature: Some(Signature::rsa_pss_rsae_sha256),
+        };
+        assert!(!General20251201::negotiated_compatible(&missing_group));
+
+        let missing_signature = NegotiatedParameters {
+            version: Version::TLS_1_3,
+            cipher: Cipher::TLS_AES_256_GCM_SHA384,
+            group: Some(Group::x25519),
+            signature: None,
+        };
+        assert!(!General20251201::negotiated_compatible(&missing_signature));
     }
 }

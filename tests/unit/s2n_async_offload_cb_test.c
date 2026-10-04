@@ -45,6 +45,23 @@ int s2n_async_offload_test_callback(struct s2n_connection *conn, struct s2n_asyn
     return data->result;
 }
 
+/* A perform that always fails. s2n_async_offload_op_perform() only advances the
+ * op to S2N_ASYNC_COMPLETE on success, so using this leaves the op stuck in
+ * S2N_ASYNC_INVOKED, reproducing the failed-perform state that broke teardown. */
+static S2N_RESULT s2n_async_offload_test_failing_perform(struct s2n_async_offload_op *op)
+{
+    RESULT_BAIL(S2N_ERR_VERIFY_SIGNATURE);
+}
+
+/* Frees the heap allocation owned by the op below, so this regression test also
+ * exercises the op_data_free path (and lets valgrind confirm no leak). */
+static S2N_RESULT s2n_async_offload_test_op_data_free(struct s2n_async_offload_op *op)
+{
+    RESULT_ENSURE_REF(op);
+    RESULT_GUARD_POSIX(s2n_free(&op->op_data.async_pkey_verify.signature));
+    return S2N_RESULT_OK;
+}
+
 static int s2n_test_handshake_async(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
         struct s2n_async_offload_cb_test *data)
 {
@@ -98,23 +115,6 @@ int main(int argc, char *argv[])
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(NULL), S2N_ERR_NULL);
         struct s2n_async_offload_op test_op = { 0 };
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(&test_op), S2N_ERR_INVALID_STATE);
-    }
-
-    /* Test: s2n_async_offload_op_wipe refuses to wipe an in-flight op */
-    {
-        struct s2n_async_offload_op op = { 0 };
-
-        /* Wipe succeeds when not invoked */
-        op.async_state = S2N_ASYNC_NOT_INVOKED;
-        EXPECT_OK(s2n_async_offload_op_wipe(&op));
-
-        /* Wipe succeeds when complete */
-        op.async_state = S2N_ASYNC_COMPLETE;
-        EXPECT_OK(s2n_async_offload_op_wipe(&op));
-
-        /* Wipe fails when still in flight */
-        op.async_state = S2N_ASYNC_INVOKED;
-        EXPECT_ERROR_WITH_ERRNO(s2n_async_offload_op_wipe(&op), S2N_ERR_ASYNC_BLOCKED);
     }
 
     /* clang-format off */
@@ -237,6 +237,34 @@ int main(int argc, char *argv[])
                 EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS12);
             }
         }
+    }
+
+    /* Regression test: a failed s2n_async_offload_op_perform() leaves the op in
+     * S2N_ASYNC_INVOKED. s2n_connection_free() must still fully tear the
+     * connection down (returning S2N_SUCCESS) rather than short-circuiting on the
+     * in-flight op and leaking the connection. */
+    {
+        struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(conn);
+
+        struct s2n_async_offload_op *op = &conn->async_offload_op;
+        op->conn = conn;
+        op->type = S2N_ASYNC_OFFLOAD_PKEY_VERIFY;
+        op->perform = s2n_async_offload_test_failing_perform;
+        op->op_data_free = s2n_async_offload_test_op_data_free;
+
+        /* Give the op some owned data so teardown has something real to free. */
+        uint8_t sig_bytes[] = "test-signature";
+        EXPECT_SUCCESS(s2n_alloc(&op->op_data.async_pkey_verify.signature, sizeof(sig_bytes)));
+
+        /* Drive the op to INVOKED, then fail perform. Because perform fails, the
+         * op stays INVOKED instead of advancing to COMPLETE. */
+        op->async_state = S2N_ASYNC_INVOKED;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(op), S2N_ERR_VERIFY_SIGNATURE);
+        EXPECT_EQUAL(op->async_state, S2N_ASYNC_INVOKED);
+
+        /* The fix: teardown is not short-circuited by the in-flight op. */
+        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     END_TEST();

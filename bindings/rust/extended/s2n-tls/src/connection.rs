@@ -37,6 +37,7 @@ use std::{
 
 mod builder;
 pub use builder::*;
+pub mod split;
 
 /// return a &str scoped to the lifetime of the surrounding function
 ///
@@ -493,9 +494,9 @@ impl Connection {
             host_name_len: usize,
             context: *mut ::libc::c_void,
         ) -> u8 {
-            let context = &mut *(context as *mut Context);
-            let handler = context.verify_host_callback.as_mut().unwrap();
-            verify_host(host_name, host_name_len, handler)
+            let context = &*(context as *const Context);
+            let handler = context.verify_host_callback.as_ref().unwrap();
+            verify_host(host_name, host_name_len, handler.as_ref())
         }
 
         self.context_mut().verify_host_callback = Some(Box::new(handler));
@@ -558,6 +559,7 @@ impl Connection {
         Ok(self)
     }
 
+    #[cfg(feature = "unstable-renegotiate")]
     pub(crate) fn wipe_method<F, T>(&mut self, wipe: F) -> Result<(), Error>
     where
         F: FnOnce(&mut Self) -> Result<T, Error>,
@@ -575,19 +577,31 @@ impl Connection {
         Ok(())
     }
 
-    /// wipes an existing connection and allows it to be reused.
+    /// Resets a connection so that it can be reused.
     ///
-    /// This method erases all data associated with a connection including pending reads.
-    /// This function should be called after all I/O is completed and s2n_shutdown has been
-    /// called. Reusing the same connection handle(s) is more performant than repeatedly
-    /// calling s2n_connection_new and s2n_connection_free
+    /// This method no longer wipes the existing connection. Instead, it replaces the
+    /// connection with a newly allocated one, preserving the mode and config.
     ///
-    /// Corresponds to [`s2n_connection_wipe`].
+    /// This method should be called after all I/O is completed and `Connection::poll_shutdown`
+    /// has been called.
+    #[deprecated(
+        note = "use `Connection::new()` instead; connection reuse provides negligible performance benefit"
+    )]
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
-        self.wipe_method(|conn| unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() })?;
-        // we deliberately call this outside of "wipe_method", because binding
-        // specific defaults should not be re-applied on renegotiate wipe
-        self.set_binding_specific_defaults()?;
+        // s2n_connection_wipe is a nightmare of a method, with lifetime issues
+        // that are incredibly difficult to reason about. We do not expose it in
+        // the rust bindings. In our benchmarking, the savings were ~ 2 us, which
+        // is less than 1% of the cost of a handshake.
+        let clean_connection = {
+            let mut connection = Connection::new(self.mode());
+            // config will be none if Connection::set_config has yet to be called
+            if let Some(config) = self.config() {
+                connection.set_config(config)?;
+            }
+            connection
+        };
+        *self = clean_connection;
+
         Ok(self)
     }
 
@@ -703,10 +717,20 @@ impl Connection {
     // don't show the renegotiate config in docs.rs, this method has the same signature and docs regardless of that cfg.
     #[cfg_attr(docsrs, doc(cfg(true)))]
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+        unsafe { self.immutable_poll_send(buf) }
+    }
+
+    /// Copy of poll_send using &self
+    ///
+    /// # Safety
+    ///
+    /// Exclusively for use with the split Read/WriteHalf APIs. This is safe as we know
+    /// that only the write half is able to call this API.
+    unsafe fn immutable_poll_send(&self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
-        unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
     }
 
     #[cfg(not(feature = "unstable-renegotiate"))]
@@ -730,6 +754,19 @@ impl Connection {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
         self.poll_recv_raw(buf_ptr, buf_len)
+    }
+
+    /// Copy of poll_recv using &self
+    ///
+    /// # Safety
+    ///
+    /// Exclusively for use with the split Read/WriteHalf APIs. This is safe as we know
+    /// that only the read half is able to call this API.
+    unsafe fn immutable_poll_recv(&self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
     }
 
     /// Reads and decrypts data from a connection where
@@ -758,6 +795,22 @@ impl Connection {
         // `n` bytes of `buf` have been initialized, which allows this
         // function to return `Ok(n)`
         self.poll_recv_raw(buf_ptr, buf_len)
+    }
+
+    unsafe fn immutable_poll_recv_uninitialized(
+        &self,
+        buf: &mut [MaybeUninit<u8>],
+    ) -> Poll<Result<usize, Error>> {
+        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+
+        // Safety:
+        // 1. s2n_recv never writes uninitialized garbage to `buf`.
+        // 2. if s2n_recv returns `+n`, it guarantees that the first
+        // `n` bytes of `buf` have been initialized, which allows this
+        // function to return `Ok(n)`
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
@@ -833,6 +886,23 @@ impl Connection {
                 .into_poll()
                 .map_ok(|_| self)
         }
+    }
+
+    /// Copy of poll_shutdown_send using &self that does not return a &mut Self
+    ///
+    /// # Safety
+    ///
+    /// Exclusively for use with the split Read/WriteHalf APIs. This is safe as we know
+    /// that only the write half is able to call this API.
+    unsafe fn immutable_poll_shutdown_send(&self) -> Poll<Result<(), Error>> {
+        if !self.remaining_blinding_delay()?.is_zero() {
+            return Poll::Pending;
+        }
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+
+        s2n_shutdown_send(self.connection.as_ptr(), &mut blocked)
+            .into_poll()
+            .map_ok(|_| ())
     }
 
     /// Returns the TLS alert code, if any
@@ -1259,6 +1329,43 @@ impl Connection {
         } else {
             Some(result)
         }
+    }
+
+    /// Returns a string describing the public key algorithm and parameters of
+    /// the leaf certificate for the given connection `mode`.
+    ///
+    /// Use [`Mode::Server`] to query the server certificate and [`Mode::Client`]
+    /// to query the client certificate. The returned string has one of the
+    /// following forms:
+    /// - RSA: `"rsa2048"`, `"rsa3072"`, `"rsa4096"`, or `"rsa<keysize>"`
+    /// - ECDSA: `"ecdsa_secp256r1"`, `"ecdsa_secp384r1"`, `"ecdsa_secp521r1"`
+    /// - ML-DSA: `"mldsa44"`, `"mldsa65"`, `"mldsa87"`
+    ///
+    /// Querying the peer's certificate ([`Mode::Client`] on a server, or
+    /// [`Mode::Server`] on a client) requires that the peer's certificate chain
+    /// has been validated during the handshake.
+    ///
+    /// Corresponds to [`s2n_conn_get_signature_public_key_type`].
+    pub fn signature_public_key_type(&self, mode: Mode) -> Result<String, Error> {
+        // The API writes a null-terminated string into a caller-provided
+        // buffer. 32 bytes comfortably fits every defined output (the longest
+        // is "ecdsa_secp256r1" at 16 bytes including the null terminator); a
+        // larger output would surface as S2N_ERR_INSUFFICIENT_MEM_SIZE.
+        let mut buffer = [0u8; 32];
+        let mut output_size = buffer.len() as u32;
+        unsafe {
+            s2n_conn_get_signature_public_key_type(
+                self.connection.as_ptr(),
+                mode.into(),
+                buffer.as_mut_ptr() as *mut std::ffi::c_char,
+                &mut output_size,
+            )
+            .into_result()?;
+        }
+
+        // `output_size` includes the null terminator; drop it before decoding.
+        let len = (output_size as usize).saturating_sub(1);
+        String::from_utf8(buffer[..len].to_vec()).map_err(|_| Error::INVALID_INPUT)
     }
 
     /// Corresponds to [`s2n_connection_get_selected_digest_algorithm`].
@@ -1973,6 +2080,67 @@ mod tests {
         Ok(())
     }
 
+    #[test]
+    fn signature_public_key_type_rsa() -> Result<(), Box<dyn std::error::Error>> {
+        // The default test cert is a 4096-bit RSA cert.
+        let config = build_config(&security::DEFAULT_TLS13)?;
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+
+        // The server's own certificate and the client's view of the peer
+        // (server) certificate should both report "rsa4096".
+        assert_eq!(
+            pair.server.signature_public_key_type(Mode::Server)?,
+            "rsa4096"
+        );
+        assert_eq!(
+            pair.client.signature_public_key_type(Mode::Server)?,
+            "rsa4096"
+        );
+
+        // No client auth was configured, so there is no validated client
+        // certificate to describe.
+        let err = pair
+            .server
+            .signature_public_key_type(Mode::Client)
+            .unwrap_err();
+        assert_eq!(err.name(), "S2N_ERR_CERT_NOT_VALIDATED");
+
+        Ok(())
+    }
+
+    #[test]
+    fn signature_public_key_type_ecdsa() -> Result<(), Box<dyn std::error::Error>> {
+        // Build a config that serves an ECDSA (secp256r1) certificate so we
+        // exercise a non-RSA output and the longest string variant.
+        let keypair = SniTestCerts::AlligatorEcdsa.get();
+        let config = {
+            let mut builder = crate::config::Builder::new();
+            builder.set_security_policy(&security::DEFAULT_TLS13)?;
+            builder.load_pem(keypair.cert(), keypair.key())?;
+            builder.set_verify_host_callback(
+                crate::testing::InsecureAcceptAllCertificatesHandler {},
+            )?;
+            builder.with_system_certs(false)?;
+            builder.trust_pem(keypair.cert())?;
+            builder.build()?
+        };
+
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+
+        assert_eq!(
+            pair.server.signature_public_key_type(Mode::Server)?,
+            "ecdsa_secp256r1"
+        );
+        assert_eq!(
+            pair.client.signature_public_key_type(Mode::Server)?,
+            "ecdsa_secp256r1"
+        );
+
+        Ok(())
+    }
+
     /// Reads the TLS record payload length from a record header in the buffer.
     ///
     /// TLS record header format:
@@ -1992,6 +2160,7 @@ mod tests {
     /// Confirm that the large (16KB) record size is used by both newly
     /// created connections and wiped (reused) connections.
     #[test]
+    #[allow(deprecated)]
     fn max_record_size_configuration() -> Result<(), Box<dyn std::error::Error>> {
         /// https://www.rfc-editor.org/info/rfc8446/#section-5.1
         /// > The length MUST NOT exceed 2^14 bytes.
@@ -2087,6 +2256,7 @@ mod tests {
 
     /// `wipe` preserves the mode (client/server) of the connection.
     #[test]
+    #[allow(deprecated)]
     fn wipe_preserves_mode() -> Result<(), Box<dyn std::error::Error>> {
         let mut client = Connection::new_client();
         client.wipe()?;
@@ -2100,6 +2270,7 @@ mod tests {
 
     /// `wipe` preserves the config set on the connection.
     #[test]
+    #[allow(deprecated)]
     fn wipe_preserves_config() -> Result<(), Box<dyn std::error::Error>> {
         use crate::connection::Builder;
 
@@ -2118,6 +2289,7 @@ mod tests {
 
     /// `wipe` clears any application context stored on the connection.
     #[test]
+    #[allow(deprecated)]
     fn wipe_clears_application_context() -> Result<(), Box<dyn std::error::Error>> {
         let mut conn = Connection::new_server();
 
@@ -2133,6 +2305,7 @@ mod tests {
 
     /// A wiped connection can be reused for a subsequent handshake.
     #[test]
+    #[allow(deprecated)]
     fn wipe_allows_connection_reuse() -> Result<(), Box<dyn std::error::Error>> {
         // arbitrary policy. This test has no specific parameter expectations
         let config = build_config(&security::DEFAULT)?;

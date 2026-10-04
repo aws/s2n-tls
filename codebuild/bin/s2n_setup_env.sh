@@ -41,6 +41,7 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${OPENSSL_1_1_1_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.1.1}"
 : "${OPENSSL_3_0_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3.0}"
 : "${OPENSSL_3_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3.0-fips}"
+: "${OPENSSL_4_0_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-4.0}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2}"
 : "${OPENSSL_1_0_2_FIPS_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2-fips}"
 : "${BORINGSSL_INSTALL_DIR:=$TEST_DEPS_DIR/boringssl}"
@@ -129,6 +130,7 @@ if [[ -z $S2N_LIBCRYPTO ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DI
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_1_1_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_3_0_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-3.0-fips" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_3_FIPS_INSTALL_DIR ; fi
+if [[ "$S2N_LIBCRYPTO" == "openssl-4.0" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_4_0_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2" ]]; then export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_INSTALL_DIR ; fi
 if [[ "$S2N_LIBCRYPTO" == "openssl-1.0.2-fips" ]]; then
     export LIBCRYPTO_ROOT=$OPENSSL_1_0_2_FIPS_INSTALL_DIR ;
