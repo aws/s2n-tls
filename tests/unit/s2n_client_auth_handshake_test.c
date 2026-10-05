@@ -528,9 +528,8 @@ int main(int argc, char **argv)
         }
     };
 
-    /* Test: a resumed TLS1.2 client with client auth required lands on a defined
-     * handshake row (NEGOTIATED), not the undefined NEGOTIATED|CLIENT_AUTH that
-     * would drive the state machine off the end of a zero-filled table row. */
+    /* A TLS1.2 client that requires client auth rejects server-driven resumption
+     * (which would otherwise yield the undefined NEGOTIATED|CLIENT_AUTH row). */
     {
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -542,21 +541,23 @@ int main(int argc, char **argv)
         client->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
         client->client_session_resumed = 1;
 
-        EXPECT_SUCCESS(s2n_conn_set_handshake_type(client));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_conn_set_handshake_type(client),
+                S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
+    };
 
-        EXPECT_FALSE(IS_CLIENT_AUTH_HANDSHAKE(client));
+    /* A client without required client auth resumes normally (defined row). */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+
+        client->actual_protocol_version = S2N_TLS12;
+        client->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+        client->client_session_resumed = 1;
+
+        EXPECT_SUCCESS(s2n_conn_set_handshake_type(client));
         EXPECT_FALSE(IS_FULL_HANDSHAKE(client));
         EXPECT_EQUAL(client->handshake.handshake_type, NEGOTIATED);
-
-        /* The row must terminate in APPLICATION_DATA; the undefined zero row did not. */
-        bool terminates_in_app_data = false;
-        for (int m = 0; m < S2N_MAX_HANDSHAKE_LENGTH; m++) {
-            if (handshakes[client->handshake.handshake_type][m] == APPLICATION_DATA) {
-                terminates_in_app_data = true;
-                break;
-            }
-        }
-        EXPECT_TRUE(terminates_in_app_data);
     };
 
     END_TEST();
