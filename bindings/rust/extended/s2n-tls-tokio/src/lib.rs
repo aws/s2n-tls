@@ -10,7 +10,7 @@ use s2n_tls::{
     error::Error,
 };
 // Re-exported for use with the early-data APIs.
-pub use s2n_tls::enums::EarlyDataStatus;
+pub use s2n_tls::early_data::EarlyDataStatus;
 use std::{
     fmt,
     future::Future,
@@ -67,12 +67,15 @@ where
     /// Performs a server TLS handshake, accepting client early data (0-RTT).
     ///
     /// Like [`accept`](Self::accept), but reads any early data the client offers during the
-    /// handshake, returning it alongside the negotiated [`TlsStream`]. The [`Vec`] is empty
-    /// when no early data was offered or it was rejected; check
-    /// [`Connection::early_data_status`] to tell those apart. The connection must be
-    /// configured for early data — an external PSK (see
+    /// handshake into `buf`, returning the negotiated [`TlsStream`] and the number of early
+    /// data bytes written to `buf`. The count is 0 when no early data was offered or it was
+    /// rejected; check [`Connection::early_data_status`] to tell those apart.
+    ///
+    /// `buf` must be at least as large as the max early data size configured for the
+    /// connection — an external PSK (see
     /// [`s2n_tls::psk::Builder::configure_early_data`]) or a resumption ticket issued with
-    /// a non-zero max early data size.
+    /// a non-zero max early data size. If the client sends more early data than `buf` can
+    /// hold, this fails rather than truncating.
     ///
     /// # Warning
     ///
@@ -83,12 +86,13 @@ where
     pub async fn accept_with_early_data<S>(
         &self,
         stream: S,
-    ) -> Result<(TlsStream<S, B::Output>, Vec<u8>), Error>
+        buf: &mut [u8],
+    ) -> Result<(TlsStream<S, B::Output>, usize), Error>
     where
         S: AsyncRead + AsyncWrite + Unpin,
     {
         let conn = self.builder.build_connection(Mode::Server)?;
-        TlsStream::open_recv_early_data(conn, stream).await
+        TlsStream::open_recv_early_data(conn, stream, buf).await
     }
 }
 
@@ -209,10 +213,9 @@ where
 
 /// A handshake future that sends client early data (0-RTT) before completing.
 ///
-/// It first drives [`Connection::poll_send_early_data`] until all early data has been
-/// sent (or the connection stops accepting it), then drives
-/// [`Connection::poll_negotiate`] to complete the handshake. On a fatal error it
-/// falls back to shutdown, mirroring [`TlsHandshake`].
+/// Drives [`Connection::poll_send_early_data`] to send `early_data`, then
+/// [`Connection::poll_negotiate`] to finish, falling back to shutdown on a fatal error
+/// like [`TlsHandshake`].
 struct TlsEarlyDataHandshake<'a, S, C>
 where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
@@ -286,25 +289,19 @@ where
     }
 }
 
-/// The buffer size used to receive early data when the connection reports no maximum
-/// (for example a resumption PSK that has not been loaded yet). The buffer grows as
-/// needed, so this is only the initial allocation.
-const DEFAULT_EARLY_DATA_RECV_CAPACITY: usize = 4096;
-
 /// A handshake future that receives client early data (0-RTT) before completing.
 ///
-/// It first drives [`Connection::poll_recv_early_data`] until the client signals the end
-/// of early data (or the connection stops accepting it), then drives
-/// [`Connection::poll_negotiate`] to complete the handshake. On a fatal error it falls
-/// back to shutdown, mirroring [`TlsHandshake`]. The received early data is written into
-/// `buf`, which grows as needed; `received` tracks how many bytes are valid.
+/// Drives [`Connection::poll_recv_early_data`] to read early data into the caller's `buf`,
+/// then [`Connection::poll_negotiate`] to finish, falling back to shutdown on a fatal
+/// error like [`TlsHandshake`]. Resolves to the number of early data bytes written to
+/// `buf`, and fails rather than truncating if the client sends more than `buf` can hold.
 struct TlsRecvEarlyDataHandshake<'a, S, C>
 where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
     tls: &'a mut TlsStream<S, C>,
-    buf: &'a mut Vec<u8>,
+    buf: &'a mut [u8],
     received: usize,
     early_data_received: bool,
     error: Option<Error>,
@@ -315,40 +312,47 @@ where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    type Output = Result<(), Error>;
+    type Output = Result<usize, Error>;
 
     fn poll(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
         // Self is Unpin (all fields are Unpin), so it is safe to obtain a &mut Self.
         let this = self.get_mut();
         debug_assert_waker_contract(ctx, |ctx| {
             // Phase 1: receive early data, re-polling with the not-yet-filled remainder
-            // (growing the buffer if it fills) until Ready(Ok). Phase 2: poll_negotiate
-            // finishes. A fatal error in phase 1 skips phase 2 and flows to error handling.
+            // until Ready(Ok). Phase 2: poll_negotiate finishes. A fatal error in phase 1
+            // skips phase 2 and flows to error handling.
             let result: Result<(), Error> = 'phases: {
                 if let Some(err) = this.error.take() {
                     break 'phases Err(err);
                 }
 
                 if !this.early_data_received {
-                    // Grow the buffer if it filled but more data may remain.
-                    if this.received == this.buf.len() {
-                        let new_len = (this.buf.len() * 2).max(DEFAULT_EARLY_DATA_RECV_CAPACITY);
-                        this.buf.resize(new_len, 0);
-                    }
-                    // Pass the not-yet-filled remainder; poll_recv_early_data writes from
-                    // offset 0, so passing filled bytes would overwrite received data.
+                    // Read into the not-yet-filled remainder; poll_recv_early_data writes
+                    // from offset 0, so filled bytes must not be re-passed.
                     let received = &mut this.received;
-                    let start = *received;
-                    let buf = &mut this.buf[start..];
+                    let buf = &mut this.buf[*received..];
                     let recv_poll = this.tls.with_io(ctx, |context| {
                         context
                             .get_mut()
                             .as_mut()
                             .poll_recv_early_data(buf, received)
                     });
-                    match ready!(recv_poll) {
-                        Ok(()) => this.early_data_received = true,
-                        Err(e) => break 'phases Err(e),
+                    match recv_poll {
+                        Poll::Ready(Ok(())) => this.early_data_received = true,
+                        Poll::Ready(Err(e)) => break 'phases Err(e),
+                        // A full buffer with early data still pending can never make
+                        // progress, so fail rather than block forever. A buffer sized to
+                        // the configured max early data size never hits this.
+                        Poll::Pending => {
+                            if this.received == this.buf.len()
+                                && this.tls.as_ref().remaining_early_data_size().unwrap_or(0) > 0
+                            {
+                                return Poll::Ready(Err(Error::application(
+                                    "early data exceeds the provided buffer".into(),
+                                )));
+                            }
+                            return Poll::Pending;
+                        }
                     }
                 }
 
@@ -363,10 +367,7 @@ where
             };
 
             match result {
-                Ok(r) => {
-                    this.buf.truncate(this.received);
-                    Ok(r).into()
-                }
+                Ok(()) => Ok(this.received).into(),
                 Err(e) if e.is_retryable() => Err(e).into(),
                 Err(e) => match Pin::new(&mut this.tls).poll_shutdown(ctx) {
                     Pending => {
@@ -467,35 +468,29 @@ where
         Ok(tls)
     }
 
-    /// Completes a server handshake that receives client early data, returning the
-    /// negotiated stream along with the early data bytes the client sent (empty if the
-    /// early data was rejected or none was offered).
-    async fn open_recv_early_data(conn: C, stream: S) -> Result<(Self, Vec<u8>), Error> {
+    /// Completes a server handshake that receives client early data into `buf`, returning
+    /// the negotiated stream and the number of early data bytes written (0 if the early
+    /// data was rejected or none was offered). Fails if the early data exceeds `buf`.
+    async fn open_recv_early_data(
+        conn: C,
+        stream: S,
+        buf: &mut [u8],
+    ) -> Result<(Self, usize), Error> {
         let mut tls = TlsStream {
             conn,
             stream,
             blinding: None,
             shutdown_error: None,
         };
-        // Size the initial buffer from the max early data size when known (external PSKs
-        // report it up front); the handshake future grows it as needed, so this only
-        // affects reallocations, not correctness.
-        let max_size = tls.as_ref().max_early_data_size().unwrap_or(0) as usize;
-        let capacity = if max_size == 0 {
-            DEFAULT_EARLY_DATA_RECV_CAPACITY
-        } else {
-            max_size
-        };
-        let mut buf = vec![0; capacity];
-        TlsRecvEarlyDataHandshake {
+        let received = TlsRecvEarlyDataHandshake {
             tls: &mut tls,
-            buf: &mut buf,
+            buf,
             received: 0,
             early_data_received: false,
             error: None,
         }
         .await?;
-        Ok((tls, buf))
+        Ok((tls, received))
     }
 
     fn with_io<F, R>(&mut self, ctx: &mut Context, action: F) -> Poll<Result<R, Error>>

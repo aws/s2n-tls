@@ -191,13 +191,14 @@ async fn early_data_accepted() -> Result<(), Box<dyn std::error::Error>> {
 
     // Connection 2: resume using the stored ticket and offer early data.
     let (server_stream, client_stream) = common::get_streams().await?;
+    let mut ed_buf = vec![0; MAX_EARLY_DATA as usize];
     let (client_result, server_result) = tokio::join!(
         client.connect_with_early_data("localhost", client_stream, EARLY_DATA),
-        server.accept_with_early_data(server_stream),
+        server.accept_with_early_data(server_stream, &mut ed_buf),
     );
 
     let (mut client_tls, client_status) = client_result?;
-    let (mut server_tls, early_data) = server_result?;
+    let (mut server_tls, received) = server_result?;
 
     // The second connection resumed the session and the early data was accepted.
     assert!(
@@ -215,7 +216,7 @@ async fn early_data_accepted() -> Result<(), Box<dyn std::error::Error>> {
     );
 
     // The server received exactly the early data the client sent, once.
-    assert_eq!(early_data, EARLY_DATA);
+    assert_eq!(&ed_buf[..received], EARLY_DATA);
 
     // The negotiated stream still works normally for post-handshake application data.
     const POST_HANDSHAKE: &[u8] = b"post-handshake data";
@@ -242,15 +243,16 @@ async fn accept_with_early_data_none_offered() -> Result<(), Box<dyn std::error:
     );
     let server = TlsAcceptor::new(server_builder);
 
+    let mut ed_buf = vec![0; MAX_EARLY_DATA as usize];
     let (client_result, server_result) = tokio::join!(
         client.connect("localhost", client_stream),
-        server.accept_with_early_data(server_stream),
+        server.accept_with_early_data(server_stream, &mut ed_buf),
     );
 
     let _client_tls = client_result?;
-    let (server_tls, early_data) = server_result?;
+    let (server_tls, received) = server_result?;
 
-    assert!(early_data.is_empty());
+    assert_eq!(received, 0);
     // The client never requested early data (plain `connect`), so the server reports
     // `NotRequested`.
     assert_eq!(
@@ -261,14 +263,12 @@ async fn accept_with_early_data_none_offered() -> Result<(), Box<dyn std::error:
     Ok(())
 }
 
-/// Accepting early data larger than the receive buffer's initial capacity. The payload
-/// spans multiple TLS records, so the server reads it across multiple
-/// `poll_recv_early_data` calls and grows its buffer as needed. All bytes must be
-/// received intact and in order.
+/// Accepting a large early-data payload that spans multiple TLS records, read across
+/// multiple `poll_recv_early_data` calls into a buffer sized to the configured max. All
+/// bytes must be received intact and in order.
 #[tokio::test]
 async fn early_data_accepted_large() -> Result<(), Box<dyn std::error::Error>> {
-    // 48 KiB of early data with a 64 KiB PSK limit. This exceeds a single TLS record and
-    // is larger than typical initial buffer sizing, exercising the multi-read/grow path.
+    // 48 KiB of early data with a 64 KiB PSK limit, well over a single TLS record.
     const MAX: u32 = 64 * 1024;
     let payload: Vec<u8> = (0..48 * 1024).map(|i| (i % 251) as u8).collect();
 
@@ -282,21 +282,55 @@ async fn early_data_accepted_large() -> Result<(), Box<dyn std::error::Error>> {
     let client = TlsConnector::new(client_builder);
     let server = TlsAcceptor::new(server_builder);
 
+    let mut ed_buf = vec![0; MAX as usize];
     let (client_result, server_result) = tokio::join!(
         client.connect_with_early_data("localhost", client_stream, &payload),
-        server.accept_with_early_data(server_stream),
+        server.accept_with_early_data(server_stream, &mut ed_buf),
     );
 
     let (_client_tls, client_status) = client_result?;
-    let (server_tls, early_data) = server_result?;
+    let (server_tls, received) = server_result?;
 
     assert_eq!(client_status, EarlyDataStatus::End);
     assert_eq!(
         server_tls.as_ref().early_data_status()?,
         EarlyDataStatus::End
     );
-    assert_eq!(early_data.len(), payload.len());
-    assert_eq!(early_data, payload);
+    assert_eq!(received, payload.len());
+    assert_eq!(&ed_buf[..received], payload);
+
+    Ok(())
+}
+
+/// When the client sends more early data than the server's receive buffer can hold,
+/// `accept_with_early_data` fails rather than truncating. The PSK allows a large payload,
+/// but the server passes an undersized buffer.
+#[tokio::test]
+async fn accept_with_early_data_buffer_too_small() -> Result<(), Box<dyn std::error::Error>> {
+    const MAX: u32 = 64 * 1024;
+    let payload: Vec<u8> = (0..16 * 1024).map(|i| (i % 251) as u8).collect();
+
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let client_builder =
+        ModifiedBuilder::new(common::client_config()?.build()?, with_early_data_psk(MAX));
+    let server_builder =
+        ModifiedBuilder::new(common::server_config()?.build()?, with_early_data_psk(MAX));
+
+    let client = TlsConnector::new(client_builder);
+    let server = TlsAcceptor::new(server_builder);
+
+    // Buffer far smaller than the offered early data.
+    let mut ed_buf = vec![0; 1024];
+    let (_client_result, server_result) = tokio::join!(
+        client.connect_with_early_data("localhost", client_stream, &payload),
+        server.accept_with_early_data(server_stream, &mut ed_buf),
+    );
+
+    assert!(
+        server_result.is_err(),
+        "accept_with_early_data should fail when early data exceeds the buffer"
+    );
 
     Ok(())
 }
