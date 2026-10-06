@@ -68,6 +68,12 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_BAD_MESSAGE, &alert));
                 EXPECT_EQUAL(S2N_TLS_ALERT_UNEXPECTED_MESSAGE, alert);
+
+                EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_BAD_FINISHED, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_DECRYPT_ERROR, alert);
+
+                EXPECT_SUCCESS(s2n_error_get_alert(S2N_ERR_BAD_PSK_BINDER, &alert));
+                EXPECT_EQUAL(S2N_TLS_ALERT_DECRYPT_ERROR, alert);
             }
 
             /* Test unknown mapping */

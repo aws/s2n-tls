@@ -64,6 +64,28 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
 
         S2N_ALERT_CASE(S2N_ERR_KTLS_KEYUPDATE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
+        /*
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4
+         *# Recipients of Finished messages MUST verify that the contents are
+         *# correct and if incorrect MUST terminate the connection with a
+         *# "decrypt_error" alert.
+         *
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.2.2
+         *# decrypt_error
+         *#    A handshake cryptographic operation failed, including being unable
+         *#    to correctly verify a signature or validate a Finished message.
+         */
+        S2N_ALERT_CASE(S2N_ERR_BAD_FINISHED, S2N_TLS_ALERT_DECRYPT_ERROR);
+
+        /* No alert is specified for a bad binder, so treat it like a bad Finished.
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
+         *# Prior to accepting PSK key establishment, the server MUST validate
+         *# the corresponding binder value (see Section 4.2.11.2 below).  If this
+         *# value is not present or does not validate, the server MUST abort the
+         *# handshake.
+         */
+        S2N_ALERT_CASE(S2N_ERR_BAD_PSK_BINDER, S2N_TLS_ALERT_DECRYPT_ERROR);
+
         /* For errors involving certificates */
 
         /* This error is used in several ways so make it a general certificate issue
