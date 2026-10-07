@@ -355,7 +355,8 @@ int main(int argc, char **argv)
         s2n_x509_trust_store_wipe(&trust_store);
     };
 
-    /* test validator in safe mode, with properly configured trust store and test that SAN URI callback is invoked. */
+    /* A URI-only SAN cert must not match its URI as a DNS name; verification
+     * falls back to the CN (s2nTestServer) instead. */
     {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
@@ -368,7 +369,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(connection);
         EXPECT_OK(s2n_connection_set_tls12_security_policy(connection));
 
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "foo://bar" };
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "s2nTestServer" };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);

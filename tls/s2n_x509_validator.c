@@ -232,7 +232,9 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
     RESULT_ENSURE_REF(current_name);
     RESULT_ENSURE_REF(san_found);
 
-    if (current_name->type == GEN_DNS || current_name->type == GEN_URI) {
+    /* A uniformResourceIdentifier SAN is not a DNS-ID (RFC 6125 section 6.4)
+     * and must not be sent to the DNS host verifier. */
+    if (current_name->type == GEN_DNS) {
         *san_found = true;
 
         const char *name = (const char *) S2N_ASN1_STRING_DATA(current_name->d.ia5);
