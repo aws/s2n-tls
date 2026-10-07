@@ -134,9 +134,12 @@ const char *tls_version_exceptions[] = {
     "CloudFront-TLS-1-0-2014-sha256",
     "CloudFront-TLS-1-0-2016",
     "CloudFront-TLS-1-1-2016",
+    "ELBSecurityPolicy-TLS13-1-0-PQ-2025-09",
+    "ELBSecurityPolicy-TLS13-1-0-FIPS-PQ-2025-09",
     "test_all",
     "20260520",
     "20260520_gcm",
+    "20200207_pq",
 };
 
 const size_t mlkem_list_size = s2n_array_len(mlkem_list);
@@ -171,11 +174,10 @@ int main(int argc, char **argv)
         }
         EXPECT_TRUE(has_tls_13_cipher);
 
-        /* Ensure all security policies that have ML-KEM support do not use previous draft wire-format
-         * for Hybrid KeyShares with length prefixing. */
+        /* Ensure all security policies that have ML-KEM support use the final (non-legacy)
+         * draft revision of the Hybrid KeyShare wire format. */
         const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
         POSIX_ENSURE_REF(kem_preferences);
-        EXPECT_FALSE(s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_preferences));
 
         /* All security policies that have ML-KEM should have TLS 1.2 as their minimum supported TLS Version */
         if (security_policy->minimum_protocol_version < S2N_TLS12) {

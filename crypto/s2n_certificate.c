@@ -25,6 +25,7 @@
 #include <strings.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_connection.h"
@@ -232,8 +233,8 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
 
         if (san_name->type == GEN_DNS) {
             /* Decoding isn't necessary here since a DNS SAN name is ASCII(type V_ASN1_IA5STRING) */
-            unsigned char *san_str = san_name->d.dNSName->data;
-            const size_t san_str_len = san_name->d.dNSName->length;
+            const unsigned char *san_str = S2N_ASN1_STRING_DATA(san_name->d.dNSName);
+            const size_t san_str_len = ASN1_STRING_length(san_name->d.dNSName);
             struct s2n_blob *san_blob = NULL;
             POSIX_GUARD_RESULT(s2n_array_pushback(chain_and_key->san_names, (void **) &san_blob));
             if (!san_blob) {
@@ -270,19 +271,19 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
     POSIX_ENSURE_REF(chain_and_key->cn_names);
     POSIX_ENSURE_REF(x509_cert);
 
-    X509_NAME *subject = X509_get_subject_name(x509_cert);
+    S2N_X509_CONST X509_NAME *subject = X509_get_subject_name(x509_cert);
     if (!subject) {
         return 0;
     }
 
     int lastpos = -1;
     while ((lastpos = X509_NAME_get_index_by_NID(subject, NID_commonName, lastpos)) >= 0) {
-        X509_NAME_ENTRY *name_entry = X509_NAME_get_entry(subject, lastpos);
+        S2N_X509_CONST X509_NAME_ENTRY *name_entry = X509_NAME_get_entry(subject, lastpos);
         if (!name_entry) {
             continue;
         }
 
-        ASN1_STRING *asn1_str = X509_NAME_ENTRY_get_data(name_entry);
+        S2N_X509_CONST ASN1_STRING *asn1_str = X509_NAME_ENTRY_get_data(name_entry);
         if (!asn1_str) {
             continue;
         }
@@ -726,11 +727,12 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
     POSIX_ENSURE_GTE(len, 0);
     if (out_data != NULL) {
         POSIX_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-        /* ASN1_STRING_data() returns an internal pointer to the data.
-        * Since this is an internal pointer it should not be freed or modified in any way.
-        * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
-        */
-        unsigned char *internal_data = ASN1_STRING_data(asn1_str);
+        /* ASN1_STRING_get0_data(x) returns an internal pointer to the data of
+         * x. Since this is an internal pointer it should not be freed or
+         * modified in any way.
+         * Ref: https://docs.openssl.org/master/man3/ASN1_STRING_length/
+         */
+        const unsigned char *internal_data = S2N_ASN1_STRING_DATA(asn1_str);
         POSIX_ENSURE_REF(internal_data);
         POSIX_CHECKED_MEMCPY(out_data, internal_data, len);
     }
@@ -793,7 +795,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
     POSIX_ENSURE_REF(asn1_obj_in);
 
     for (size_t loc = 0; loc < ext_count; loc++) {
-        ASN1_OCTET_STRING *asn1_str = NULL;
+        S2N_X509_CONST ASN1_OCTET_STRING *asn1_str = NULL;
         bool match_found = false;
 
         /* Retrieve the x509 extension at location loc.
@@ -802,7 +804,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
          * The returned extension is an internal pointer which must not be freed up by the application.
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext.html.
          */
-        X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
+        S2N_X509_CONST X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
         POSIX_ENSURE_REF(x509_ext);
 
         /* Retrieve the extension object/OID/extnId.
@@ -810,7 +812,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
          * The returned pointer is an internal value which must not be freed up.
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_object.html.
          */
-        ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
+        S2N_X509_CONST ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
         POSIX_ENSURE_REF(asn1_obj);
 
         /* OBJ_cmp() compares two ASN1_OBJECT objects. If the two are identical 0 is returned.
@@ -833,11 +835,12 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
             if (ext_value != NULL) {
                 POSIX_ENSURE_GTE(len, 0);
                 POSIX_ENSURE(*ext_value_len >= (uint32_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-                /* ASN1_STRING_data() returns an internal pointer to the data.
-                 * Since this is an internal pointer it should not be freed or modified in any way.
-                 * Ref: https://www.openssl.org/docs/man1.0.2/man3/ASN1_STRING_data.html.
+                /* ASN1_STRING_get0_data(x) returns an internal pointer to the data of
+                 * x. Since this is an internal pointer it should not be freed or
+                 * modified in any way.
+                 * Ref: https://docs.openssl.org/master/man3/ASN1_STRING_length/
                  */
-                unsigned char *internal_data = ASN1_STRING_data(asn1_str);
+                const unsigned char *internal_data = S2N_ASN1_STRING_DATA(asn1_str);
                 POSIX_ENSURE_REF(internal_data);
                 POSIX_CHECKED_MEMCPY(ext_value, internal_data, len);
             }
@@ -880,4 +883,70 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
     POSIX_GUARD(s2n_parse_x509_extension(cert, oid, ext_value, ext_value_len, critical));
 
     return S2N_SUCCESS;
+}
+
+/* Maximum buffer size for public key string:
+ * - RSA: "rsa" (3) + max digits for key size (5 for 65536) + null = 9 bytes
+ * - ECDSA: "ecdsa_secp521r1" (15) + null = 16 bytes
+ * - ML-DSA: "mldsa87" (7) + null = 8 bytes
+ * Maximum: 16 bytes
+ */
+#define S2N_PUBLIC_KEY_STRING_MAX_SIZE 16
+
+S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *cert_info,
+        char *output, uint32_t output_size, uint32_t *required_size)
+{
+    RESULT_ENSURE_REF(cert_info);
+    RESULT_ENSURE_REF(required_size);
+
+    /* Static NID-to-string lookup table for ECDSA and ML-DSA key types */
+    static const struct {
+        int nid;
+        const char *str;
+    } static_mappings[] = {
+        { NID_X9_62_prime256v1, "ecdsa_secp256r1" },
+        { NID_secp384r1, "ecdsa_secp384r1" },
+        { NID_secp521r1, "ecdsa_secp521r1" },
+        { S2N_NID_MLDSA44, "mldsa44" },
+        { S2N_NID_MLDSA65, "mldsa65" },
+        { S2N_NID_MLDSA87, "mldsa87" },
+    };
+
+    const char *result_str = NULL;
+    uint32_t result_size = 0;
+    char rsa_buffer[S2N_PUBLIC_KEY_STRING_MAX_SIZE] = { 0 };
+
+    int public_key_nid = cert_info->public_key_nid;
+
+    /* RSA and RSA-PSS: dynamic format "rsa<bits>" */
+    if (public_key_nid == NID_rsaEncryption || public_key_nid == NID_rsassaPss) {
+        int written = snprintf(rsa_buffer, sizeof(rsa_buffer), "rsa%d", cert_info->public_key_bits);
+        RESULT_ENSURE_GT(written, 0);
+        RESULT_ENSURE_LT(written, (int) sizeof(rsa_buffer));
+        result_str = rsa_buffer;
+        result_size = (uint32_t) written + 1; /* +1 for null terminator */
+    } else {
+        /* ECDSA and ML-DSA: lookup by public_key_nid */
+        for (size_t i = 0; i < s2n_array_len(static_mappings); i++) {
+            if (public_key_nid != NID_undef && public_key_nid == static_mappings[i].nid) {
+                result_str = static_mappings[i].str;
+                result_size = strlen(result_str) + 1;
+                break;
+            }
+        }
+        RESULT_ENSURE(result_str != NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    }
+
+    /* result_size includes the null terminator */
+    *required_size = result_size;
+
+    /* Check if output buffer is provided and large enough */
+    if (output == NULL || output_size < result_size) {
+        RESULT_BAIL(S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    }
+
+    /* Copy the formatted string to output buffer (including null terminator) */
+    RESULT_CHECKED_MEMCPY(output, result_str, result_size);
+
+    return S2N_RESULT_OK;
 }
