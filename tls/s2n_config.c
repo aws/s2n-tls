@@ -374,12 +374,11 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 int s2n_config_free_dhparams(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
-    if (config->dhparams) {
-        POSIX_GUARD(s2n_dh_params_free(config->dhparams));
-    }
 
-    POSIX_GUARD(s2n_free_object((uint8_t **) &config->dhparams, sizeof(struct s2n_dh_params)));
-    return 0;
+    /* s2n_dh_params_free is safe to call when dh is NULL, so this handles
+     * both the configured and unconfigured cases. */
+    POSIX_GUARD(s2n_dh_params_free(&config->dhparams));
+    return S2N_SUCCESS;
 }
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config)
@@ -772,20 +771,9 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer dhparams_out_stuffer = { 0 }, s2n_stuffer_free);
     struct s2n_blob dhparams_blob = { 0 };
-    struct s2n_blob mem = { 0 };
 
-    /* Allocate the memory for the chain and key struct */
-    POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_dh_params)));
-    config->dhparams = (struct s2n_dh_params *) (void *) mem.data;
-
-    if (s2n_stuffer_alloc_ro_from_string(&dhparams_in_stuffer, dhparams_pem) != S2N_SUCCESS) {
-        s2n_free(&mem);
-        S2N_ERROR_PRESERVE_ERRNO();
-    }
-    if (s2n_stuffer_growable_alloc(&dhparams_out_stuffer, strlen(dhparams_pem)) != S2N_SUCCESS) {
-        s2n_free(&mem);
-        S2N_ERROR_PRESERVE_ERRNO();
-    }
+    POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&dhparams_in_stuffer, dhparams_pem));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&dhparams_out_stuffer, strlen(dhparams_pem)));
 
     /* Convert pem to asn1 and asn1 to the private key */
     POSIX_GUARD(s2n_stuffer_dhparams_from_pem(&dhparams_in_stuffer, &dhparams_out_stuffer));
@@ -794,9 +782,18 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     dhparams_blob.data = s2n_stuffer_raw_read(&dhparams_out_stuffer, dhparams_blob.size);
     POSIX_ENSURE_REF(dhparams_blob.data);
 
-    POSIX_GUARD(s2n_pkcs3_to_dh_params(config->dhparams, &dhparams_blob));
+    /* Parse into a temporary struct so that config->dhparams is only modified
+     * once parsing has fully succeeded. On failure, the DEFER_CLEANUP frees any
+     * DH that was allocated. */
+    DEFER_CLEANUP(struct s2n_dh_params dhparams = { 0 }, s2n_dh_params_free);
+    POSIX_GUARD(s2n_pkcs3_to_dh_params(&dhparams, &dhparams_blob));
 
-    return 0;
+    /* Release any previously configured dhparams before overwriting. */
+    POSIX_GUARD(s2n_config_free_dhparams(config));
+    config->dhparams = dhparams;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(dhparams);
+
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)

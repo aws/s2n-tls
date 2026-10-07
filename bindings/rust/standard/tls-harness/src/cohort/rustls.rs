@@ -7,7 +7,7 @@ use crate::{
     SigType,
 };
 use rustls::{
-    pki_types::{CertificateDer, PrivateKeyDer, ServerName},
+    pki_types::{pem::PemObject, CertificateDer, PrivateKeyDer, ServerName},
     server::ProducesTickets,
     ClientConfig, ClientConnection, CommonState, Connection, HandshakeKind,
     ProtocolVersion::TLSv1_3,
@@ -86,23 +86,24 @@ impl RustlsConfig {
     pub fn get_root_cert_store(sig_type: SigType) -> RootCertStore {
         let mut root_store = RootCertStore::empty();
         root_store.add_parsable_certificates(
-            rustls_pemfile::certs(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))
+            CertificateDer::pem_reader_iter(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))
                 .map(|r| r.unwrap()),
         );
         root_store
     }
 
     pub fn get_cert_chain(pem_type: PemType, sig_type: SigType) -> Vec<CertificateDer<'static>> {
-        rustls_pemfile::certs(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
+        CertificateDer::pem_reader_iter(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
             .map(|result| result.unwrap())
             .collect()
     }
 
     pub fn get_key(pem_type: PemType, sig_type: SigType) -> PrivateKeyDer<'static> {
-        let key =
-            rustls_pemfile::read_one(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
-                .unwrap();
-        if let Some(rustls_pemfile::Item::Pkcs8Key(pkcs_8_key)) = key {
+        let key = PrivateKeyDer::from_pem_reader(&mut BufReader::new(&*read_to_bytes(
+            pem_type, sig_type,
+        )))
+        .unwrap();
+        if let PrivateKeyDer::Pkcs8(pkcs_8_key) = key {
             pkcs_8_key.into()
         } else {
             // https://docs.rs/rustls-pemfile/latest/rustls_pemfile/enum.Item.html

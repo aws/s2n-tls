@@ -145,11 +145,14 @@ s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be l
   - [PQ key exchange](https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html) is only supported with AWS-LC.
   - FIPS mode is supported with versions of AWS-LC [that support
     FIPS](https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md).
-- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.0)
+- [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.0, with temporary 4.0 support)
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.
   - RC4 is not supported with Openssl-3.0 or later.
   - FIPS mode is supported with Openssl-3.0 when a CMVP-validated FIPS provider is loaded at runtime, with caveats: see [details](#openssl-fips).
+  - Openssl-4.0 is supported temporarily to keep distribution builds working while
+    distributions transition to a system AWS-LC package. Do not build new plans on
+    this combination: see the [support plan](https://github.com/aws/s2n-tls/issues/5783).
 - [BoringSSL](https://boringssl.googlesource.com/boringssl)
   - OCSP features are not supported with BoringSSL.
   - FIPS mode is not supported with BoringSSL.

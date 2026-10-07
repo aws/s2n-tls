@@ -353,9 +353,12 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
     }
 
-    /* New validator is fully initialized. Swap it in. */
-    s2n_x509_validator_wipe(&conn->x509_validator);
-    conn->x509_validator = new_validator;
+    /* Keep the new validator staged in a local until all fallible steps below
+     * succeed. Swapping it into conn before conn->config is committed would, on
+     * any early return, leave the connection validating against the new config's
+     * trust store while still referencing the old config.
+     */
+    DEFER_CLEANUP(struct s2n_x509_validator validator_to_commit = new_validator, s2n_x509_validator_wipe);
 
     conn->tickets_to_send = config->initial_tickets_to_send;
 
@@ -404,6 +407,14 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     if (config->ocsp_status_requested_by_s2n && conn->mode == S2N_CLIENT) {
         conn->request_ocsp_status = true;
     }
+
+    /* All fallible work has succeeded. Commit the validator and config together
+     * as the final, infallible step. Disarm the cleanup so the now-installed
+     * validator is not freed on return.
+     */
+    s2n_x509_validator_wipe(&conn->x509_validator);
+    conn->x509_validator = validator_to_commit;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(validator_to_commit);
 
     conn->config = config;
     return S2N_SUCCESS;
@@ -1617,6 +1628,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
         struct s2n_blob mem = { 0 };
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
+        POSIX_GUARD(s2n_blob_zero(&mem));
 
         struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
         POSIX_ENSURE_REF(new_node);
@@ -1627,6 +1639,18 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
         POSIX_GUARD(s2n_alloc(&new_node->raw, cert_size));
         POSIX_CHECKED_MEMCPY(new_node->raw.data, cert_data, cert_size);
+
+        /* Populate the cert info for every cert, and the public key and key
+         * type for the leaf cert, matching s2n_cert_chain_and_key_load() */
+        POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(cert, &new_node->info));
+
+        if (cert_idx == 0) {
+            DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            POSIX_GUARD_RESULT(s2n_pkey_from_x509(cert, &public_key, &pkey_type));
+            POSIX_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+            POSIX_GUARD(s2n_cert_set_cert_type(new_node, pkey_type));
+        }
     }
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(cert_chain);

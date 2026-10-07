@@ -2677,9 +2677,6 @@ static bool s2n_kem_preferences_equals(const struct s2n_kem_preferences *a,
     if (a->tls13_kem_group_count != b->tls13_kem_group_count) {
         return false;
     }
-    if (a->tls13_pq_hybrid_draft_revision != b->tls13_pq_hybrid_draft_revision) {
-        return false;
-    }
     for (size_t i = 0; i < a->kem_count; i++) {
         if (a->kems[i] != b->kems[i]) {
             return false;
