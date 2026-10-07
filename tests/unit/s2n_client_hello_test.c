@@ -1623,7 +1623,10 @@ int main(int argc, char **argv)
             /* Fill the cipher suite list to its max (2^16-2 bytes) to exceed 64KB.
              * s2n-tls appends TLS_EMPTY_RENEGOTIATION_INFO_SCSV, so provide one fewer. */
             const uint16_t cipher_suites_count = ((1 << 16) - 2) / S2N_TLS_CIPHER_SUITE_LEN - 1;
-            struct s2n_cipher_suite *test_cipher_suites[UINT16_MAX] = { 0 };
+            /* Avoid exhausting the smaller Windows stack. */
+            DEFER_CLEANUP(struct s2n_blob cipher_suites_mem = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&cipher_suites_mem, cipher_suites_count * sizeof(struct s2n_cipher_suite *)));
+            struct s2n_cipher_suite **test_cipher_suites = (struct s2n_cipher_suite **) (void *) cipher_suites_mem.data;
             for (size_t i = 0; i < cipher_suites_count; i++) {
                 test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
             }
