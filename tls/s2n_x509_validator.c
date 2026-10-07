@@ -232,8 +232,8 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
     RESULT_ENSURE_REF(current_name);
     RESULT_ENSURE_REF(san_found);
 
-    /* A uniformResourceIdentifier SAN is not a DNS-ID (RFC 6125 section 6.4)
-     * and must not be sent to the DNS host verifier. */
+    /* URI-IDs are distinct from DNS-IDs and require scheme matching
+     * (RFC 6125 Sections 1.8 and 6.5.2). */
     if (current_name->type == GEN_DNS) {
         *san_found = true;
 
