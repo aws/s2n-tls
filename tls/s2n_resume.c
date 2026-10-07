@@ -920,6 +920,14 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
     RESULT_ENSURE(key_ptr != NULL, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
     struct s2n_ticket_key key = *key_ptr;
 
+    /* A concurrent rotation can zero or overwrite the slot between the lookup and the copy.
+     * Re-validate the copy so a ticket is never decrypted under a zeroed or different key. */
+    RESULT_ENSURE(s2n_constant_time_equals(key.key_name, key_name, sizeof(key_name)),
+            S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
+    uint8_t zero_block[S2N_AES256_KEY_LEN] = { 0 };
+    RESULT_ENSURE(!s2n_constant_time_equals(key.aes_key, zero_block, sizeof(zero_block)),
+            S2N_ERR_KEY_CHECK);
+
     struct s2n_unique_ticket_key ticket_key = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&ticket_key.initial_key, key.aes_key, sizeof(key.aes_key)));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, ticket_key.info, sizeof(ticket_key.info)));
