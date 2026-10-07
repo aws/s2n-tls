@@ -1094,6 +1094,12 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
 skip_cache_lookup:
     if (conn->mode == S2N_CLIENT && conn->client_session_resumed == 1) {
+        /* A resumed handshake has no CertificateRequest, so required client auth
+         * can't be honored. Reject rather than resume without it, matching the
+         * server (which never resumes under client auth). OPTIONAL is unaffected:
+         * it never required mutual auth and never sets CLIENT_AUTH. */
+        POSIX_ENSURE(client_cert_auth_type != S2N_CERT_AUTH_REQUIRED,
+                S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
         return S2N_SUCCESS;
     }
 
