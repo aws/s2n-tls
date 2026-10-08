@@ -64,12 +64,16 @@ impl MetricRecord {
         &self.0
     }
 
-    /// Returns `true` if no handshakes (successful, failed, or synthetic) were aggregated.
+    /// Returns `true` if no handshakes or nonzero concurrency samples were aggregated.
     pub(crate) fn is_empty(&self) -> bool {
         let handshake = &self.0.handshake;
         handshake.handshake_success_count == 0
             && handshake.handshake_failure_count == 0
             && handshake.synthetic_traffic_count == 0
+            && handshake.connection_concurrency == 0
+            && handshake.p100_connection_concurrency == 0
+            && handshake.handshake_concurrency == 0
+            && handshake.p100_handshake_concurrency == 0
     }
 }
 

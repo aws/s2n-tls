@@ -25,6 +25,10 @@ fn sample_schema_record() -> s2n_tls_metrics_schema::record::MetricRecord {
         "handshake": {
             "freeze_time": {"secs_since_epoch": 1_700_000_000u64, "nanos_since_epoch": 0u32},
             "handshake_success_count": 1000,
+            "connection_concurrency": 42,
+            "p100_connection_concurrency": 50,
+            "handshake_concurrency": 3,
+            "p100_handshake_concurrency": 7,
             "negotiated_protocols": [[0x0303u16, 400], [0x0304u16, 600]],
             "negotiated_ciphers": [[[0x13, 0x01], 600], [[0x13, 0x02], 400]],
             "negotiated_groups": [[23u16, 500], [29u16, 500]],
@@ -203,6 +207,10 @@ fn slots_and_iter_non_zero_are_consistent() {
 #[test]
 fn cbor_round_trip_preserves_all_fields() {
     let original = sample_schema_record();
+    assert_eq!(original.handshake.connection_concurrency, 42);
+    assert_eq!(original.handshake.p100_connection_concurrency, 50);
+    assert_eq!(original.handshake.handshake_concurrency, 3);
+    assert_eq!(original.handshake.p100_handshake_concurrency, 7);
     let mut cbor_bytes = Vec::new();
     ciborium::into_writer(&original, &mut cbor_bytes).unwrap();
     let recovered: s2n_tls_metrics_schema::record::MetricRecord =
@@ -330,6 +338,10 @@ fn entry_writes_match_metric_names_catalog() {
     let record = FrozenHandshakeRecord {
         handshake_success_count: 1,
         handshake_failure_count: 1,
+        connection_concurrency: 1,
+        p100_connection_concurrency: 1,
+        handshake_concurrency: 1,
+        p100_handshake_concurrency: 1,
         negotiated_protocols: FrozenCounter::from_slots([1; PROTOCOL_COUNT]),
         negotiated_ciphers: FrozenCounter::from_slots([1; CIPHER_COUNT]),
         negotiated_groups: FrozenCounter::from_slots([1; GROUP_COUNT]),
@@ -497,6 +509,36 @@ fn write_handshake(
     let mut collector = ObservationCollector::default();
     record.write(&mut &mut collector);
     collector
+}
+
+#[test]
+fn concurrency_is_emitted_as_a_single_sample() {
+    use s2n_tls_metrics_schema::record::FrozenHandshakeRecord;
+
+    let record = FrozenHandshakeRecord {
+        connection_concurrency: 42,
+        p100_connection_concurrency: 50,
+        handshake_concurrency: 3,
+        p100_handshake_concurrency: 7,
+        ..Default::default()
+    };
+    let collector = write_handshake(&record);
+    assert_eq!(
+        collector.observations(names::CONNECTION_CONCURRENCY),
+        [metrique_writer::Observation::Unsigned(42)]
+    );
+    assert_eq!(
+        collector.observations(names::P100_CONNECTION_CONCURRENCY),
+        [metrique_writer::Observation::Unsigned(50)]
+    );
+    assert_eq!(
+        collector.observations(names::HANDSHAKE_CONCURRENCY),
+        [metrique_writer::Observation::Unsigned(3)]
+    );
+    assert_eq!(
+        collector.observations(names::P100_HANDSHAKE_CONCURRENCY),
+        [metrique_writer::Observation::Unsigned(7)]
+    );
 }
 
 /// The latency metrics are written as `Repeated` observations so that consumers
