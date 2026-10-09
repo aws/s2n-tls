@@ -89,6 +89,62 @@ impl Builder {
         Ok(self)
     }
 
+    /// Configures this pre-shared key to allow early data (0-RTT).
+    ///
+    /// `max_early_data_size` must be set to the maximum early data accepted by the server.
+    ///
+    /// In order to use early data, the cipher suite set on the pre-shared key must match the
+    /// cipher suite ultimately negotiated by the TLS handshake. Additionally, the cipher suite
+    /// must have the same HMAC algorithm as the pre-shared key. `cipher_suite` is the two
+    /// bytes of the suite's registered IANA value (e.g. `[0x13, 0x01]` for
+    /// `TLS_AES_128_GCM_SHA256`).
+    ///
+    /// Corresponds to [`s2n_psk_configure_early_data`].
+    pub fn configure_early_data(
+        &mut self,
+        max_early_data_size: u32,
+        cipher_suite: [u8; 2],
+    ) -> Result<&mut Self, crate::error::Error> {
+        unsafe {
+            s2n_psk_configure_early_data(
+                self.psk.ptr.as_ptr(),
+                max_early_data_size,
+                cipher_suite[0],
+                cipher_suite[1],
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
+    /// Sets the optional application protocol associated with this pre-shared key.
+    ///
+    /// In order to use early data, the application protocol set on the pre-shared key must
+    /// match the application protocol ultimately negotiated by the TLS handshake.
+    ///
+    /// Corresponds to [`s2n_psk_set_application_protocol`].
+    pub fn set_application_protocol(
+        &mut self,
+        protocol: &[u8],
+    ) -> Result<&mut Self, crate::error::Error> {
+        let protocol_length = protocol.len().try_into().map_err(|_| {
+            Error::bindings(
+                ErrorType::UsageError,
+                "invalid application protocol",
+                "The application protocol must be no longer than u8::MAX",
+            )
+        })?;
+        unsafe {
+            s2n_psk_set_application_protocol(
+                self.psk.ptr.as_ptr(),
+                protocol.as_ptr(),
+                protocol_length,
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
     pub fn build(self) -> Result<Psk, crate::error::Error> {
         if !self.has_identity {
             Err(Error::bindings(
