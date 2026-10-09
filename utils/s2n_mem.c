@@ -116,6 +116,18 @@ static int s2n_mem_free_mlock_impl(void *ptr, uint32_t size)
 {
     /* Perform a best-effort `munlock`: ignore any errors during unlocking. */
     munlock(ptr, size);
+    /*
+    ** Reverse the MADV_DONTDUMP applied in s2n_mem_malloc_mlock_impl before
+    ** returning the pages to the allocator. Without this, freed pages keep the
+    ** VM_DONTDUMP flag; the kernel cannot merge adjacent VMAs whose flags
+    ** differ, so the process VMA count grows with connection churn until it
+    ** hits vm.max_map_count and new madvise/mlock calls fail (resource
+    ** exhaustion). Best-effort like munlock: the memory is being freed
+    ** regardless, so a failure here must not fail the free.
+    */
+    #if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
+    madvise(ptr, size, MADV_DODUMP);
+    #endif
     free(ptr);
     return S2N_SUCCESS;
 }
