@@ -293,10 +293,29 @@ impl Connection {
             let is_same_config = NonNull::new(prev_config_ptr)
                 .is_some_and(|prev| prev.as_ptr() == config.as_mut_ptr());
             if !is_same_config {
-                if let Some(prev) = NonNull::new(prev_config_ptr) {
-                    drop(Config::from_raw(prev));
-                }
+                let prev_config = NonNull::new(prev_config_ptr).map(|prev| Config::from_raw(prev));
                 mem::forget(config);
+                #[cfg(feature = "unstable-events")]
+                {
+                    if let Some(subscriber) = prev_config
+                        .as_ref()
+                        .and_then(|config| config.context().event_subscriber.as_ref())
+                    {
+                        if self.context().handshake_state == HandshakeState::InProgress {
+                            subscriber.on_handshake_finished(self);
+                        }
+                        subscriber.on_connection_removed(self);
+                    }
+                    if let Some(config) = self.config() {
+                        if let Some(subscriber) = config.context().event_subscriber.as_ref() {
+                            subscriber.on_connection_added(self);
+                            if self.context().handshake_state == HandshakeState::InProgress {
+                                subscriber.on_handshake_started(self);
+                            }
+                        }
+                    }
+                }
+                drop(prev_config);
             }
         }
 
@@ -564,6 +583,9 @@ impl Connection {
     where
         F: FnOnce(&mut Self) -> Result<T, Error>,
     {
+        #[cfg(feature = "unstable-events")]
+        self.finish_handshake();
+
         // Safety:
         // We re-init the context after the wipe
         unsafe { self.drop_context()? };
@@ -634,10 +656,49 @@ impl Connection {
         })
     }
 
-    pub(crate) fn poll_negotiate_method<F, T>(
-        &mut self,
-        mut negotiate: F,
-    ) -> Poll<Result<(), Error>>
+    #[cfg(feature = "unstable-events")]
+    fn start_handshake(&mut self) {
+        if self.context().handshake_state != HandshakeState::NotStarted {
+            return;
+        }
+        self.context_mut().handshake_state = HandshakeState::InProgress;
+        if let Some(config) = self.config() {
+            if let Some(subscriber) = config.context().event_subscriber.as_ref() {
+                subscriber.on_handshake_started(self);
+            }
+        }
+    }
+
+    #[cfg(feature = "unstable-events")]
+    pub(crate) fn finish_handshake(&mut self) {
+        if self.context().handshake_state != HandshakeState::InProgress {
+            return;
+        }
+        self.context_mut().handshake_state = HandshakeState::Finished;
+        if let Some(config) = self.config() {
+            if let Some(subscriber) = config.context().event_subscriber.as_ref() {
+                subscriber.on_handshake_finished(self);
+            }
+        }
+    }
+
+    pub(crate) fn poll_negotiate_method<F, T>(&mut self, negotiate: F) -> Poll<Result<(), Error>>
+    where
+        F: FnMut(&mut Connection) -> Poll<Result<T, Error>>,
+    {
+        #[cfg(feature = "unstable-events")]
+        self.start_handshake();
+
+        let result = self.poll_negotiate_inner(negotiate);
+        // Also covers errors in Rust async callbacks, which have no C result event.
+        #[cfg(feature = "unstable-events")]
+        if result.is_ready() {
+            self.finish_handshake();
+        }
+        result
+    }
+
+    fn poll_negotiate_inner<F, T>(&mut self, mut negotiate: F) -> Poll<Result<(), Error>>
     where
         F: FnMut(&mut Connection) -> Poll<Result<T, Error>>,
     {
@@ -1700,11 +1761,22 @@ impl Connection {
     }
 }
 
+#[cfg(feature = "unstable-events")]
+#[derive(PartialEq)]
+// Tracks Rust lifecycle notifications, rather than the C handshake state.
+enum HandshakeState {
+    NotStarted,
+    InProgress,
+    Finished,
+}
+
 struct Context {
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     connection_initialized: bool,
+    #[cfg(feature = "unstable-events")]
+    handshake_state: HandshakeState,
     app_context: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
     #[cfg(feature = "unstable-renegotiate")]
     pub(crate) renegotiate_state: RenegotiateState,
@@ -1719,6 +1791,8 @@ impl Context {
             async_callback: None,
             verify_host_callback: None,
             connection_initialized: false,
+            #[cfg(feature = "unstable-events")]
+            handshake_state: HandshakeState::NotStarted,
             app_context: HashMap::new(),
             #[cfg(feature = "unstable-renegotiate")]
             renegotiate_state: RenegotiateState::default(),
@@ -1813,6 +1887,16 @@ impl AsMut<Connection> for Connection {
 impl Drop for Connection {
     /// Corresponds to [`s2n_connection_free`].
     fn drop(&mut self) {
+        #[cfg(feature = "unstable-events")]
+        self.finish_handshake();
+
+        #[cfg(feature = "unstable-events")]
+        if let Some(config) = self.config() {
+            if let Some(subscriber) = config.context().event_subscriber.as_ref() {
+                subscriber.on_connection_removed(self);
+            }
+        }
+
         // ignore failures since there's not much we can do about it
         unsafe {
             // clean up context
