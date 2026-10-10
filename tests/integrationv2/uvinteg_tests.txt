@@ -1,4 +1,3 @@
-  <Module test_buffered_send.py>
   <Module test_client_authentication.py>
   <Module test_cross_compatibility.py>
   <Module test_early_data.py>
