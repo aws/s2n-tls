@@ -312,7 +312,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
     }
 
     /* RFC 5077 5.1 - Expire any cached session on an error alert */
-    if (s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+    if (s2n_allowed_to_cache_connection(conn) > 0 && conn->session_id_len) {
         conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
     }
 
