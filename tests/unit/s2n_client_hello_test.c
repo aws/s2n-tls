@@ -1469,7 +1469,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(server_conn->handshake.message_number > 0);
         EXPECT_TRUE(IS_NEGOTIATED(server_conn));
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        
+
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server_conn);
         EXPECT_NOT_NULL(client_hello);
 
@@ -1490,7 +1490,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     };
-    
+
     /* Client hello api with NULL inputs */
     {
         uint32_t len = 128;
