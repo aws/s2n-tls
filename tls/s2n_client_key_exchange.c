@@ -107,7 +107,7 @@ static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shar
     /* Save the master secret in the cache.
      * Failing to cache the session should not affect the current handshake.
      */
-    if (s2n_allowed_to_cache_connection(conn)) {
+    if (s2n_allowed_to_cache_connection(conn) > 0) {
         s2n_result_ignore(s2n_store_to_cache(conn));
     }
     /* log the secret, if needed */
