@@ -1299,5 +1299,35 @@ int main(int argc, char **argv)
         };
     };
 
+    /* ELB TLS1.3 policies prefer ECDSA signature schemes over RSA */
+    {
+        const char prefix[] = "ELBSecurityPolicy-TLS13-";
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            if (strncmp(security_policy_selection[i].version, prefix, sizeof(prefix) - 1) != 0) {
+                continue;
+            }
+
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            EXPECT_NOT_NULL(sec_policy->signature_preferences);
+
+            bool seen_ecdsa = false;
+            for (size_t j = 0; j < sec_policy->signature_preferences->count; j++) {
+                s2n_signature_algorithm sig_alg =
+                        sec_policy->signature_preferences->signature_schemes[j]->sig_alg;
+                if (sig_alg == S2N_SIGNATURE_MLDSA) {
+                    continue;
+                }
+                if (sig_alg == S2N_SIGNATURE_ECDSA) {
+                    seen_ecdsa = true;
+                }
+                if (sig_alg == S2N_SIGNATURE_RSA || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE
+                        || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
+                    EXPECT_TRUE(seen_ecdsa);
+                }
+            }
+        }
+    }
+
     END_TEST();
 }

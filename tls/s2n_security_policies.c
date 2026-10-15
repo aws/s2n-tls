@@ -1729,8 +1729,8 @@ const struct s2n_security_policy security_policy_elb_tls13_1_0_PQ_2025_09 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &elb_security_policy_tls13_1_0_2021_06,
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20201021,
-    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .signature_preferences = &s2n_signature_preferences_20250820,
+    .certificate_signature_preferences = &s2n_signature_preferences_20261013,
     .ecc_preferences = &s2n_ecc_preferences_20240603,
 };
 
@@ -1765,8 +1765,8 @@ const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_PQ_2025_09 =
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &elb_security_policy_tls13_1_2_Ext2_2021_06,
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20201021,
-    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .signature_preferences = &s2n_signature_preferences_20250820,
+    .certificate_signature_preferences = &s2n_signature_preferences_20261013,
     .ecc_preferences = &s2n_ecc_preferences_20240603,
 };
 
@@ -1783,8 +1783,8 @@ const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_PQ_2025_09 =
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &elb_security_policy_tls13_1_0_FIPS_2023_04,
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
-    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .signature_preferences = &s2n_signature_preferences_20261013,
+    .certificate_signature_preferences = &s2n_signature_preferences_20261013,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
@@ -1819,8 +1819,8 @@ const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_FIPS_PQ_2025
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &elb_security_policy_tls13_1_2_Ext2_FIPS_2023_04,
     .kem_preferences = &kem_preferences_pq_tls_1_3_ietf_2025_07,
-    .signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
-    .certificate_signature_preferences = &s2n_signature_preferences_20200207_no_sha1,
+    .signature_preferences = &s2n_signature_preferences_20261013,
+    .certificate_signature_preferences = &s2n_signature_preferences_20261013,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
