@@ -1330,21 +1330,22 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Non-TLS1.3 ELB policies prefer ECDHE-ECDSA cipher suites over their ECDHE-RSA twins */
+    /* ELB policies that negotiate TLS 1.2 or below prefer ECDHE-ECDSA cipher suites over their ECDHE-RSA twins */
     {
         const char prefix[] = "ELBSecurityPolicy-";
-        const char tls13_prefix[] = "ELBSecurityPolicy-TLS13-";
         for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
             const char *version = security_policy_selection[i].version;
             if (strncmp(version, prefix, sizeof(prefix) - 1) != 0) {
                 continue;
             }
-            if (strncmp(version, tls13_prefix, sizeof(tls13_prefix) - 1) == 0) {
+
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            if (sec_policy->minimum_protocol_version >= S2N_TLS13) {
                 continue;
             }
 
-            const struct s2n_cipher_preferences *cipher_preferences =
-                    security_policy_selection[i].security_policy->cipher_preferences;
+            const struct s2n_cipher_preferences *cipher_preferences = sec_policy->cipher_preferences;
             EXPECT_NOT_NULL(cipher_preferences);
 
             int first_ecdsa = -1;

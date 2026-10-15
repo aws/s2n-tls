@@ -1070,6 +1070,33 @@ const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext2_2021_06 =
     .suites = cipher_suites_elb_security_policy_tls13_1_2_Ext2_2021_06,
 };
 
+struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Ext2_PQ_2025_09[] = {
+    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+
+const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext2_PQ_2025_09 = {
+    .count = s2n_array_len(cipher_suites_elb_security_policy_tls13_1_2_Ext2_PQ_2025_09),
+    .suites = cipher_suites_elb_security_policy_tls13_1_2_Ext2_PQ_2025_09,
+};
+
 struct s2n_cipher_suite *cipher_suites_elb_security_policy_backend_2016_08[] = {
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
@@ -1206,8 +1233,8 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_0_2021_06[] =
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
@@ -1327,8 +1354,8 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_0_FIPS_2023_0
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
@@ -1356,8 +1383,8 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_1_FIPS_2023_0
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
@@ -1404,8 +1431,8 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Ext0_FIPS_2
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
 };
 
 const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext0_FIPS_2023_04 = {
@@ -1450,8 +1477,8 @@ struct s2n_cipher_suite *cipher_suites_elb_security_policy_tls13_1_2_Ext2_FIPS_2
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
     &s2n_rsa_with_aes_128_gcm_sha256,
     &s2n_rsa_with_aes_128_cbc_sha256,
     &s2n_rsa_with_aes_128_cbc_sha,
