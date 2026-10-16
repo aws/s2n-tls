@@ -21,6 +21,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 
@@ -1298,6 +1299,88 @@ int main(int argc, char **argv)
             }
         };
     };
+
+    /* ELB TLS1.3 policies prefer ECDSA signature schemes over RSA */
+    {
+        const char prefix[] = "ELBSecurityPolicy-TLS13-";
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            if (strncmp(security_policy_selection[i].version, prefix, sizeof(prefix) - 1) != 0) {
+                continue;
+            }
+
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            EXPECT_NOT_NULL(sec_policy->signature_preferences);
+
+            bool seen_ecdsa = false;
+            for (size_t j = 0; j < sec_policy->signature_preferences->count; j++) {
+                s2n_signature_algorithm sig_alg =
+                        sec_policy->signature_preferences->signature_schemes[j]->sig_alg;
+                if (sig_alg == S2N_SIGNATURE_MLDSA) {
+                    continue;
+                }
+                if (sig_alg == S2N_SIGNATURE_ECDSA) {
+                    seen_ecdsa = true;
+                }
+                if (sig_alg == S2N_SIGNATURE_RSA || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE
+                        || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
+                    EXPECT_TRUE(seen_ecdsa);
+                }
+            }
+        }
+    }
+
+    /* ELB policies that negotiate TLS 1.2 or below prefer ECDHE-ECDSA cipher suites over their ECDHE-RSA twins */
+    {
+        const char prefix[] = "ELBSecurityPolicy-";
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            const char *version = security_policy_selection[i].version;
+            if (strncmp(version, prefix, sizeof(prefix) - 1) != 0) {
+                continue;
+            }
+
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            if (sec_policy->minimum_protocol_version >= S2N_TLS13) {
+                continue;
+            }
+
+            const struct s2n_cipher_preferences *cipher_preferences = sec_policy->cipher_preferences;
+            EXPECT_NOT_NULL(cipher_preferences);
+
+            int first_ecdsa = -1;
+            int first_rsa = -1;
+            for (size_t j = 0; j < cipher_preferences->count; j++) {
+                const struct s2n_cipher_suite *suite = cipher_preferences->suites[j];
+                if (suite->key_exchange_alg != &s2n_ecdhe) {
+                    continue;
+                }
+                if (first_ecdsa < 0 && suite->auth_method == S2N_AUTHENTICATION_ECDSA) {
+                    first_ecdsa = (int) j;
+                }
+                if (first_rsa < 0 && suite->auth_method == S2N_AUTHENTICATION_RSA) {
+                    first_rsa = (int) j;
+                }
+            }
+            if (first_ecdsa >= 0 && first_rsa >= 0) {
+                EXPECT_TRUE(first_ecdsa < first_rsa);
+            }
+
+            for (size_t r = 0; r < cipher_preferences->count; r++) {
+                const struct s2n_cipher_suite *rsa_suite = cipher_preferences->suites[r];
+                if (rsa_suite->key_exchange_alg != &s2n_ecdhe
+                        || rsa_suite->auth_method != S2N_AUTHENTICATION_RSA) {
+                    continue;
+                }
+                for (size_t e = r + 1; e < cipher_preferences->count; e++) {
+                    const struct s2n_cipher_suite *ecdsa_suite = cipher_preferences->suites[e];
+                    EXPECT_FALSE(ecdsa_suite->key_exchange_alg == &s2n_ecdhe
+                            && ecdsa_suite->auth_method == S2N_AUTHENTICATION_ECDSA
+                            && ecdsa_suite->all_record_algs[0] == rsa_suite->all_record_algs[0]);
+                }
+            }
+        }
+    }
 
     END_TEST();
 }

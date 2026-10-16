@@ -19,6 +19,9 @@ cipher suites:
 - TLS_RSA_WITH_AES_256_GCM_SHA384
 - TLS_RSA_WITH_AES_256_CBC_SHA256
 signature schemes:
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
 - rsa_pss_pss_sha256
 - rsa_pss_pss_sha384
 - rsa_pss_pss_sha512
@@ -28,15 +31,15 @@ signature schemes:
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
-- ecdsa_sha256
-- ecdsa_sha384
-- ecdsa_sha512
 curves:
 - x25519
 - secp256r1
 - secp384r1
 - secp521r1
 certificate signature schemes:
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
 - rsa_pss_pss_sha256
 - rsa_pss_pss_sha384
 - rsa_pss_pss_sha512
@@ -46,9 +49,6 @@ certificate signature schemes:
 - rsa_pkcs1_sha256
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
-- ecdsa_sha256
-- ecdsa_sha384
-- ecdsa_sha512
 pq:
 - kem groups:
 -- X25519MLKEM768
