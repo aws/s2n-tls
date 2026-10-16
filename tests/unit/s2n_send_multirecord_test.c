@@ -20,6 +20,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_post_handshake.h"
+#include "tls/s2n_config.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
@@ -68,6 +69,21 @@ static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
 
     errno = result->error;
     return retval;
+}
+
+struct s2n_send_call_sizes {
+    uint32_t sizes[64];
+    size_t calls;
+};
+
+static int s2n_test_send_record_sizes_cb(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    struct s2n_send_call_sizes *context = (struct s2n_send_call_sizes *) io_context;
+    POSIX_ENSURE_REF(context);
+    POSIX_ENSURE_LT(context->calls, s2n_array_len(context->sizes));
+    context->sizes[context->calls] = len;
+    context->calls++;
+    return len;
 }
 
 int main(int argc, char **argv)
@@ -228,6 +244,54 @@ int main(int argc, char **argv)
 
         /* Verify output buffer */
         EXPECT_EQUAL(conn->out.blob.size, S2N_MIN_SEND_BUFFER_SIZE);
+    };
+
+    /* Once a cipher suite has been negotiated, a small send buffer should be filled almost
+     * completely by a single record, since s2n now knows the actual (small) overhead of the
+     * negotiated cipher instead of assuming the RFC worst case overhead.
+     *
+     * https://github.com/aws/s2n-tls/issues/6059
+     */
+    {
+        /* TLS1.3 AES256-GCM has an actual per-record overhead of only 22 bytes
+         * (5 byte header + 16 byte tag + 1 byte inner content type).
+         * Choose a buffer size that exactly fits one such record.
+         */
+        const uint16_t actual_overhead = S2N_TLS_RECORD_HEADER_LENGTH + 16 /* gcm tag */ + S2N_TLS_CONTENT_TYPE_LENGTH;
+        const uint32_t exact_fit_buffer_size = S2N_MIN_SEND_BUFFER_SIZE;
+        EXPECT_TRUE(exact_fit_buffer_size > actual_overhead);
+
+        DEFER_CLEANUP(struct s2n_config *exact_fit_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(exact_fit_config);
+        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(exact_fit_config, exact_fit_buffer_size));
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_connection_set_secrets(conn));
+        conn->actual_protocol_version = S2N_TLS13;
+        /* Simulate a completed handshake so that s2n knows the cipher suite is final. */
+        conn->handshake.handshake_type = NEGOTIATED;
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, exact_fit_config));
+
+        struct s2n_send_call_sizes call_sizes = { 0 };
+        EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_record_sizes_cb));
+        EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &call_sizes));
+
+        s2n_blocked_status blocked = 0;
+        EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        /* The output buffer was sized to fill the configured send buffer almost exactly,
+         * not shrunk to fit the much larger, pessimistic worst-case overhead.
+         */
+        EXPECT_EQUAL(conn->out.blob.size, exact_fit_buffer_size);
+
+        /* The acceptance criteria for https://github.com/aws/s2n-tls/issues/6059:
+         * the first record/flush written should be the size of the send buffer.
+         */
+        EXPECT_TRUE(call_sizes.calls > 1);
+        EXPECT_EQUAL(call_sizes.sizes[0], exact_fit_buffer_size);
     };
 
     /* Total data fits in multiple records.

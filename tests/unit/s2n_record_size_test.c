@@ -20,6 +20,7 @@
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
 #include "s2n_test.h"
+#include "tls/s2n_crypto_constants.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
@@ -227,6 +228,49 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_record_max_write_payload_size(conn, &size));
             EXPECT_EQUAL(size, conn->max_outgoing_fragment_length);
         };
+    };
+
+    /* Test s2n_record_max_write_payload_size() uses the actual overhead of the negotiated
+     * cipher suite, rather than the RFC worst case, once the handshake has completed.
+     *
+     * https://github.com/aws/s2n-tls/issues/6059
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        conn->actual_protocol_version = S2N_TLS13;
+        conn->server->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+        const uint32_t small_buffer_size = 2000;
+        EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, small_buffer_size));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        /* Before the handshake completes, s2n can't be certain which cipher suite will
+         * actually be negotiated, so it must assume the RFC worst case overhead.
+         */
+        conn->handshake.handshake_type = INITIAL;
+        uint16_t size_before_negotiation = 0;
+        EXPECT_OK(s2n_record_max_write_payload_size(conn, &size_before_negotiation));
+
+        /* Once the handshake has completed, s2n knows the actual negotiated cipher suite
+         * and can size the fragment based on its actual overhead instead.
+         */
+        conn->handshake.handshake_type = NEGOTIATED;
+        uint16_t size_after_negotiation = 0;
+        EXPECT_OK(s2n_record_max_write_payload_size(conn, &size_after_negotiation));
+
+        /* The actual overhead of TLS1.3 AES128-GCM (header + tag + inner content type)
+         * is far smaller than the RFC-allowed worst case (header + 255 + content type),
+         * so post-negotiation sizing should allow for a much larger fragment.
+         */
+        EXPECT_TRUE(size_after_negotiation > size_before_negotiation);
+
+        const uint16_t actual_overhead = S2N_TLS_RECORD_HEADER_LENGTH + S2N_TLS_GCM_TAG_LEN + S2N_TLS_CONTENT_TYPE_LENGTH;
+        EXPECT_EQUAL(size_after_negotiation, small_buffer_size - actual_overhead);
     };
 
     /* Test s2n_record_min_write_payload_size() */
