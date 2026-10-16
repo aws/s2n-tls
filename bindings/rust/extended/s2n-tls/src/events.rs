@@ -178,6 +178,26 @@ impl Debug for TimingCheckpoint<'_> {
 }
 
 impl<A: EventSubscriber, B: EventSubscriber> EventSubscriber for (A, B) {
+    fn on_handshake_started(&self, connection: &Connection) {
+        self.0.on_handshake_started(connection);
+        self.1.on_handshake_started(connection);
+    }
+
+    fn on_handshake_finished(&self, connection: &Connection) {
+        self.0.on_handshake_finished(connection);
+        self.1.on_handshake_finished(connection);
+    }
+
+    fn on_connection_added(&self, connection: &Connection) {
+        self.0.on_connection_added(connection);
+        self.1.on_connection_added(connection);
+    }
+
+    fn on_connection_removed(&self, connection: &Connection) {
+        self.0.on_connection_removed(connection);
+        self.1.on_connection_removed(connection);
+    }
+
     fn on_handshake_event(&self, connection: &Connection, event: &HandshakeEvent) {
         self.0.on_handshake_event(connection, event);
         self.1.on_handshake_event(connection, event);
@@ -191,6 +211,39 @@ impl<A: EventSubscriber, B: EventSubscriber> EventSubscriber for (A, B) {
 
 pub trait EventSubscriber: 'static + Send + Sync {
     fn on_handshake_event(&self, connection: &Connection, event: &HandshakeEvent);
+
+    /// Called when negotiation is first polled, before connection initialization,
+    /// or when an in-progress handshake moves to this subscriber's config.
+    /// Repeated polls of the same handshake do not emit additional calls.
+    ///
+    /// The default implementation is a no-op.
+    fn on_handshake_started(&self, _connection: &Connection) {}
+
+    /// Called when an in-progress handshake succeeds or fails, the connection is
+    /// dropped or reset, or the connection moves to another config.
+    /// This balances a preceding `on_handshake_started` call. If a handshake result
+    /// event is emitted, this runs first. Moving configs ends this subscriber's
+    /// tracking of the handshake; negotiation can continue under the new config.
+    /// The connection already uses the new config when transfer callbacks run.
+    ///
+    /// The default implementation is a no-op.
+    fn on_handshake_finished(&self, _connection: &Connection) {}
+
+    /// Called after a connection is successfully associated with this subscriber's
+    /// config. Setting the same config again does not emit another event.
+    /// Changing to a different config emits removal and addition even if both
+    /// configs share the same subscriber.
+    ///
+    /// The default implementation is a no-op.
+    fn on_connection_added(&self, _connection: &Connection) {}
+
+    /// Called when a connection is dropped or successfully moves to another config.
+    /// When moving configs, the connection already uses the new config, and the
+    /// previous subscriber is notified before the new subscriber.
+    /// Handshake completion and shutdown do not emit this event.
+    ///
+    /// The default implementation is a no-op.
+    fn on_connection_removed(&self, _connection: &Connection) {}
 
     /// Called once after each TLS handshake message handler completes, with a
     /// single monotonic timestamp. The consumer reconstructs per-message
@@ -271,6 +324,59 @@ mod tests {
             self.invoked
                 .fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         }
+    }
+
+    #[test]
+    fn connection_lifecycle_events() -> Result<(), S2NError> {
+        struct LifecycleSubscriber {
+            events: Arc<Mutex<Vec<(&'static str, &'static str)>>>,
+            name: &'static str,
+        }
+
+        impl EventSubscriber for LifecycleSubscriber {
+            fn on_handshake_event(&self, _conn: &Connection, _event: &HandshakeEvent) {}
+
+            fn on_connection_added(&self, _conn: &Connection) {
+                self.events.lock().unwrap().push((self.name, "added"));
+            }
+
+            fn on_connection_removed(&self, _conn: &Connection) {
+                self.events.lock().unwrap().push((self.name, "removed"));
+            }
+        }
+
+        let events = Arc::new(Mutex::new(Vec::new()));
+        let make_config = |name| -> Result<crate::config::Config, S2NError> {
+            let mut builder = config_builder(&security::DEFAULT).unwrap();
+            builder.set_event_subscriber(LifecycleSubscriber {
+                events: events.clone(),
+                name,
+            })?;
+            builder.build()
+        };
+        let previous = make_config("previous")?;
+        let next = make_config("next")?;
+
+        // Unconfigured connections never notify a subscriber.
+        drop(Connection::new_server());
+        assert!(events.lock().unwrap().is_empty());
+
+        let mut connection = Connection::new_server();
+        connection.set_config(previous.clone())?;
+        connection.set_config(previous)?;
+        connection.set_config(next)?;
+        drop(connection);
+
+        assert_eq!(
+            *events.lock().unwrap(),
+            [
+                ("previous", "added"),
+                ("previous", "removed"),
+                ("next", "added"),
+                ("next", "removed"),
+            ]
+        );
+        Ok(())
     }
 
     #[test]

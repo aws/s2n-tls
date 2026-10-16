@@ -792,6 +792,7 @@ impl Builder {
             event: *mut s2n_tls_sys::s2n_event_handshake,
         ) {
             with_context(conn_ptr, |conn, context| {
+                conn.finish_handshake();
                 let callback = context.event_subscriber.as_ref();
                 if let Some(callback) = callback {
                     callback.on_handshake_event(conn, &HandshakeEvent::new(&*event));

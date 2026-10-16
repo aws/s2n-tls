@@ -170,6 +170,18 @@
             "Name": "handshake_failure_count"
           },
           {
+            "Name": "connection_concurrency"
+          },
+          {
+            "Name": "p100_connection_concurrency"
+          },
+          {
+            "Name": "handshake_concurrency"
+          },
+          {
+            "Name": "p100_handshake_concurrency"
+          },
+          {
             "Name": "alert.close_notify"
           },
           {
@@ -219,6 +231,7 @@
   "compatibility.negotiated.cnsa2": 0,
   "compatibility.negotiated.fips20251201": 2,
   "compatibility.negotiated.general20251201": 2,
+  "connection_concurrency": 0,
   "group.negotiated.secp256r1": 2,
   "group.supported.secp256r1": 2,
   "group.supported.secp384r1": 2,
@@ -232,6 +245,7 @@
       "<DURATION>"
     ]
   },
+  "handshake_concurrency": 0,
   "handshake_duration_us": {
     "Counts": [
       2
@@ -244,6 +258,8 @@
   "handshake_success_count": 2,
   "hello_retry_request_count": 0,
   "internal_failure": 0,
+  "p100_connection_concurrency": 1,
+  "p100_handshake_concurrency": 1,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",
   "signature_scheme.negotiated.rsa_pss_rsae_sha256": 2,
