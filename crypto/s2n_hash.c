@@ -52,18 +52,19 @@ S2N_RESULT s2n_hash_algorithms_init()
      * but may be inefficient. See
      * https://docs.openssl.org/3.4/man7/ossl-guide-libcrypto-introduction/#performance
      *
-     * Additionally, the old style methods do not support property query strings
-     * to guide which provider to fetch from. This is important for FIPS, where
-     * the default query string of "fips=yes" will need to be overridden for
-     * legacy algorithms.
+     * Use NULL property strings to let OpenSSL select providers automatically.
+     * This ensures consistency with EVP_PKEY_CTX created without property strings,
+     * avoiding "invalid digest" errors from provider mismatches.
      */
-    s2n_evp_mds[S2N_HASH_MD5] = EVP_MD_fetch(NULL, "MD5", "-fips");
-    s2n_evp_mds[S2N_HASH_MD5_SHA1] = EVP_MD_fetch(NULL, "MD5-SHA1", "-fips");
+    s2n_evp_mds[S2N_HASH_MD5] = EVP_MD_fetch(NULL, "MD5", NULL);
+    /* MD5-SHA1 is optional and may not be available in all providers */
+    s2n_evp_mds[S2N_HASH_MD5_SHA1] = EVP_MD_fetch(NULL, "MD5-SHA1", NULL);
     s2n_evp_mds[S2N_HASH_SHA1] = EVP_MD_fetch(NULL, "SHA1", NULL);
     s2n_evp_mds[S2N_HASH_SHA224] = EVP_MD_fetch(NULL, "SHA224", NULL);
     s2n_evp_mds[S2N_HASH_SHA256] = EVP_MD_fetch(NULL, "SHA256", NULL);
     s2n_evp_mds[S2N_HASH_SHA384] = EVP_MD_fetch(NULL, "SHA384", NULL);
     s2n_evp_mds[S2N_HASH_SHA512] = EVP_MD_fetch(NULL, "SHA512", NULL);
+    /* SHAKE256 is optional and may not be available in all providers */
     s2n_evp_mds[S2N_HASH_SHAKE256_64] = EVP_MD_fetch(NULL, "SHAKE256", NULL);
 #else
     s2n_evp_mds[S2N_HASH_MD5] = EVP_md5();
