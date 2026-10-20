@@ -4,7 +4,7 @@ This crate provides a way to perform TLS authentication using the AWS Key Manage
 
 Clients use the [generateMAC](https://docs.aws.amazon.com/kms/latest/APIReference/API_GenerateMac.html) API to create a secret shared across the fleet. Clients then derive a unique secret for each connection, which the server is able to retrieve based on the PSKIdentity. The TLS connection then proceeds using the TLS 1.3 out-of-band PSK mechanism. Other TLS protocols are not supported. 
 
-The authenticated property is "the peer has kms:GenerateMac permissions on the KMS HMAC Key".
+The authenticated property is "the peer currently or previously had kms:GenerateMac permissions on the KMS HMAC Key".
 
 Note that this library is a data-plane dependency on KMS. If KMS is down for more than 24 hours, handshakes will fail.
 
@@ -88,3 +88,9 @@ Then for each KMS HMAC Key that it trusts, it would repeat the PSK secret and PS
 If an attacker obtains an epoch secret, then they will be able to impersonate a server or a client. They can not decrypt any conversations between other peers, because TLS 1.3 PSK authentication performs an additional DHE key exchange.
 
 If an attacker obtains a connection specific secret, then they will be able impersonate a client to any server. They will not be able to impersonate a server, or decrypt any client communications.
+
+### Revoking a peer
+
+Removing a peer's `kms:GenerateMac` permission does not remove the peer. A peer that held the permission can derive future daily secrets ahead of time, and it keeps authenticating with those secrets after the permission is removed.
+
+To stop a peer, move every client and server to a new KMS HMAC key. KMS HMAC keys do not support [automatic or on-demand rotation](https://docs.aws.amazon.com/kms/latest/developerguide/rotate-keys.html#rotate-keys-how-it-works), so rotation means creating a new HMAC key by hand, granting access to it, and adding it to each server's trusted set. The peer you are removing keeps authenticating until every server drops the old key from its trusted set. If more than one party shares the key, rotating it affects all of them, not only the peer you are removing.
