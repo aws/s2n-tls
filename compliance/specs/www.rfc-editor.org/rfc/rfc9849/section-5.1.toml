@@ -1,0 +1,155 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-5.1"
+
+# 5.1.  Encoding the ClientHelloInner
+#
+# Before encrypting, the client pads and optionally compresses
+# ClientHelloInner into an EncodedClientHelloInner structure, defined
+# below:
+# 
+#     struct {
+#         ClientHello client_hello;
+#         uint8 zeros[length_of_padding];
+#     } EncodedClientHelloInner;
+# 
+# The client_hello field is computed by first making a copy of
+# ClientHelloInner and setting the legacy_session_id field to the empty
+# string.  In TLS, this field uses the ClientHello structure defined in
+# Section 4.1.2 of [RFC8446].  In DTLS, it uses the ClientHello
+# structure defined in Section 5.3 of [RFC9147].  This does not include
+# the Handshake structure's four-byte header in TLS, nor the twelve-
+# byte header in DTLS.  The zeros field MUST be all zeros of length
+# length_of_padding (see Section 6.1.3).
+# 
+# Repeating large extensions, such as "key_share" with post-quantum
+# algorithms, between ClientHelloInner and ClientHelloOuter can lead to
+# excessive size.  To reduce the size impact, the client MAY substitute
+# extensions which it knows will be duplicated in ClientHelloOuter.  It
+# does so by removing and replacing extensions from
+# EncodedClientHelloInner with a single "ech_outer_extensions"
+# extension, defined as follows:
+# 
+#     enum {
+#        ech_outer_extensions(0xfd00), (65535)
+#     } ExtensionType;
+# 
+#     ExtensionType OuterExtensions<2..254>;
+# 
+# OuterExtensions contains a list of the removed ExtensionType values.
+# Each value references the matching extension in ClientHelloOuter.
+# The values MUST be ordered contiguously in ClientHelloInner, and the
+# "ech_outer_extensions" extension MUST be inserted in the
+# corresponding position in EncodedClientHelloInner.  Additionally, the
+# extensions MUST appear in ClientHelloOuter in the same relative
+# order.  However, there is no requirement that they be contiguous.
+# For example, OuterExtensions may contain extensions A, B, and C,
+# while ClientHelloOuter contains extensions A, D, B, C, E, and F.
+# 
+# The "ech_outer_extensions" extension can only be included in
+# EncodedClientHelloInner and MUST NOT appear in either
+# ClientHelloOuter or ClientHelloInner.
+# 
+# Finally, the client pads the message by setting the zeros field to a
+# byte string whose contents are all zeros and whose length is the
+# amount of padding to add.  Section 6.1.3 describes a recommended
+# padding scheme.
+# 
+# The client-facing server computes ClientHelloInner by reversing this
+# process.  First, it parses EncodedClientHelloInner, interpreting all
+# bytes after client_hello as padding.  If any padding byte is non-
+# zero, the server MUST abort the connection with an
+# "illegal_parameter" alert.
+# 
+# Next, it makes a copy of the client_hello field and copies the
+# legacy_session_id field from ClientHelloOuter.  It then looks for an
+# "ech_outer_extensions" extension.  If found, it replaces the
+# extension with the corresponding sequence of extensions in the
+# ClientHelloOuter.  The server MUST abort the connection with an
+# "illegal_parameter" alert if any of the following are true:
+# 
+# *  Any referenced extension is missing in ClientHelloOuter.
+# 
+# *  Any extension is referenced in OuterExtensions more than once.
+# 
+# *  "encrypted_client_hello" is referenced in OuterExtensions.
+# 
+# *  The extensions in ClientHelloOuter corresponding to those in
+#    OuterExtensions do not occur in the same order.
+# 
+# These requirements prevent an attacker from performing a packet
+# amplification attack by crafting a ClientHelloOuter which
+# decompresses to a much larger ClientHelloInner.  This is discussed
+# further in Section 10.12.4.
+# 
+# Receiving implementations SHOULD construct the ClientHelloInner in
+# linear time.  Quadratic time implementations (such as may happen via
+# naive copying) create a denial-of-service risk.  Appendix A describes
+# a linear-time procedure that may be used for this purpose.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The zeros field MUST be all zeros of length
+length_of_padding (see Section 6.1.3).
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+To reduce the size impact, the client MAY substitute
+extensions which it knows will be duplicated in ClientHelloOuter.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The values MUST be ordered contiguously in ClientHelloInner, and the
+"ech_outer_extensions" extension MUST be inserted in the
+corresponding position in EncodedClientHelloInner.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The values MUST be ordered contiguously in ClientHelloInner, and the
+"ech_outer_extensions" extension MUST be inserted in the
+corresponding position in EncodedClientHelloInner.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Additionally, the
+extensions MUST appear in ClientHelloOuter in the same relative
+order.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The "ech_outer_extensions" extension can only be included in
+EncodedClientHelloInner and MUST NOT appear in either
+ClientHelloOuter or ClientHelloInner.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If any padding byte is non-
+zero, the server MUST abort the connection with an
+"illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST abort the connection with an
+"illegal_parameter" alert if any of the following are true:
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Receiving implementations SHOULD construct the ClientHelloInner in
+linear time.
+'''
+

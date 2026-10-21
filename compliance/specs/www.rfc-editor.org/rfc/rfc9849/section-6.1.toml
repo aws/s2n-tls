@@ -1,0 +1,217 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.1"
+
+# 6.1.  Offering ECH
+#
+# To offer ECH, the client first chooses a suitable ECHConfig from the
+# server's ECHConfigList.  To determine if a given ECHConfig is
+# suitable, it checks that it supports the KEM algorithm identified by
+# ECHConfig.contents.key_config.kem_id, at least one KDF/AEAD algorithm
+# identified by ECHConfig.contents.key_config.cipher_suites, and the
+# version of ECH indicated by ECHConfig.version.  Once a suitable
+# configuration is found, the client selects the cipher suite it will
+# use for encryption.  It MUST NOT choose a cipher suite or version not
+# advertised by the configuration.  If no compatible configuration is
+# found, then the client SHOULD proceed as described in Section 6.2.
+# 
+# Next, the client constructs the ClientHelloInner message just as it
+# does a standard ClientHello, with the exception of the following
+# rules:
+# 
+# 1.  It MUST NOT offer to negotiate TLS 1.2 or below.  This is
+#     necessary to ensure the backend server does not negotiate a TLS
+#     version that is incompatible with ECH.
+# 
+# 2.  It MUST NOT offer to resume any session for TLS 1.2 and below.
+# 
+# 3.  If it intends to compress any extensions (see Section 5.1), it
+#     MUST order those extensions consecutively.
+# 
+# 4.  It MUST include the "encrypted_client_hello" extension of type
+#     inner as described in Section 5.  (This requirement is not
+#     applicable when the "encrypted_client_hello" extension is
+#     generated as described in Section 6.2.)
+# 
+# The client then constructs EncodedClientHelloInner as described in
+# Section 5.1.  It also computes an HPKE encryption context and enc
+# value as:
+# 
+#  pkR = DeserializePublicKey(ECHConfig.contents.key_config.public_key)
+#  enc, context = SetupBaseS(pkR,
+#                            "tls ech" || 0x00 || ECHConfig)
+# 
+# Next, it constructs a partial ClientHelloOuterAAD as it does a
+# standard ClientHello, with the exception of the following rules:
+# 
+# 1.  It MUST offer to negotiate TLS 1.3 or above.
+# 
+# 2.  If it compressed any extensions in EncodedClientHelloInner, it
+#     MUST copy the corresponding extensions from ClientHelloInner.
+#     The copied extensions additionally MUST be in the same relative
+#     order as in ClientHelloInner.
+# 
+# 3.  It MUST copy the legacy_session_id field from ClientHelloInner.
+#     This allows the server to echo the correct session ID for TLS
+#     1.3's compatibility mode (see Appendix D.4 of [RFC8446]) when ECH
+#     is negotiated.  Note that compatibility mode is not used in DTLS
+#     1.3, but following this rule will produce the correct results for
+#     both TLS 1.3 and DTLS 1.3.
+# 
+# 4.  It MAY copy any other field from the ClientHelloInner except
+#     ClientHelloInner.random.  Instead, it MUST generate a fresh
+#     ClientHelloOuter.random using a secure random number generator.
+#     (See Section 10.12.1.)
+# 
+# 5.  It SHOULD place the value of ECHConfig.contents.public_name in
+#     the "server_name" extension.  Clients that do not follow this
+#     step, or place a different value in the "server_name" extension,
+#     risk breaking the retry mechanism described in Section 6.1.6 or
+#     failing to interoperate with servers that require this step to be
+#     done; see Section 7.1.
+# 
+# 6.  When the client offers the "pre_shared_key" extension in
+#     ClientHelloInner, it SHOULD also include a GREASE
+#     "pre_shared_key" extension in ClientHelloOuter, generated in the
+#     manner described in Section 6.1.2.  The client MUST NOT use this
+#     extension to advertise a PSK to the client-facing server.  (See
+#     Section 10.12.3.)  When the client includes a GREASE
+#     "pre_shared_key" extension, it MUST also copy the
+#     "psk_key_exchange_modes" from the ClientHelloInner into the
+#     ClientHelloOuter.
+# 
+# 7.  When the client offers the "early_data" extension in
+#     ClientHelloInner, it MUST also include the "early_data" extension
+#     in ClientHelloOuter.  This allows servers that reject ECH and use
+#     ClientHelloOuter to safely ignore any early data sent by the
+#     client per [RFC8446], Section 4.2.10.
+# 
+# The client might duplicate non-sensitive extensions in both messages.
+# However, implementations need to take care to ensure that sensitive
+# extensions are not offered in the ClientHelloOuter.  See Section 10.5
+# for additional guidance.
+# 
+# Finally, the client encrypts the EncodedClientHelloInner with the
+# above values, as described in Section 6.1.1, to construct a
+# ClientHelloOuter.  It sends this to the server and processes the
+# response as described in Section 6.1.4.
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST NOT choose a cipher suite or version not
+advertised by the configuration.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If no compatible configuration is
+found, then the client SHOULD proceed as described in Section 6.2.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST NOT offer to negotiate TLS 1.2 or below.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST NOT offer to resume any session for TLS 1.2 and below.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If it intends to compress any extensions (see Section 5.1), it
+MUST order those extensions consecutively.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST include the "encrypted_client_hello" extension of type
+inner as described in Section 5.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST offer to negotiate TLS 1.3 or above.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If it compressed any extensions in EncodedClientHelloInner, it
+MUST copy the corresponding extensions from ClientHelloInner.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The copied extensions additionally MUST be in the same relative
+order as in ClientHelloInner.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST copy the legacy_session_id field from ClientHelloInner.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+It MAY copy any other field from the ClientHelloInner except
+ClientHelloInner.random.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Instead, it MUST generate a fresh
+ClientHelloOuter.random using a secure random number generator.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+It SHOULD place the value of ECHConfig.contents.public_name in
+the "server_name" extension.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+When the client offers the "pre_shared_key" extension in
+ClientHelloInner, it SHOULD also include a GREASE
+"pre_shared_key" extension in ClientHelloOuter, generated in the
+manner described in Section 6.1.2.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The client MUST NOT use this
+extension to advertise a PSK to the client-facing server.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+(See
+Section 10.12.3.)  When the client includes a GREASE
+"pre_shared_key" extension, it MUST also copy the
+"psk_key_exchange_modes" from the ClientHelloInner into the
+ClientHelloOuter.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When the client offers the "early_data" extension in
+ClientHelloInner, it MUST also include the "early_data" extension
+in ClientHelloOuter.
+'''
+

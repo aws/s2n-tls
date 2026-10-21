@@ -1,0 +1,48 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.1.2"
+
+# 6.1.2.  GREASE PSK
+#
+# When offering ECH, the client is not permitted to advertise PSK
+# identities in the ClientHelloOuter.  However, the client can send a
+# "pre_shared_key" extension in the ClientHelloInner.  In this case,
+# when resuming a session with the client, the backend server sends a
+# "pre_shared_key" extension in its ServerHello.  This would appear to
+# a network observer as if the server were sending this extension
+# without solicitation, which would violate the extension rules
+# described in [RFC8446].  When offering a PSK in ClientHelloInner,
+# clients SHOULD send a GREASE "pre_shared_key" extension in the
+# ClientHelloOuter to make it appear to the network as if the extension
+# were negotiated properly.
+# 
+# The client generates the extension payload by constructing an
+# OfferedPsks structure (see [RFC8446], Section 4.2.11) as follows.
+# For each PSK identity advertised in the ClientHelloInner, the client
+# generates a random PSK identity with the same length.  It also
+# generates a random, 32-bit, unsigned integer to use as the
+# obfuscated_ticket_age.  Likewise, for each inner PSK binder, the
+# client generates a random string of the same length.
+# 
+# Per the rules of Section 6.1, the server is not permitted to resume a
+# connection in the outer handshake.  If ECH is rejected and the
+# client-facing server replies with a "pre_shared_key" extension in its
+# ServerHello, then the client MUST abort the handshake with an
+# "illegal_parameter" alert.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+When offering a PSK in ClientHelloInner,
+clients SHOULD send a GREASE "pre_shared_key" extension in the
+ClientHelloOuter to make it appear to the network as if the extension
+were negotiated properly.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If ECH is rejected and the
+client-facing server replies with a "pre_shared_key" extension in its
+ServerHello, then the client MUST abort the handshake with an
+"illegal_parameter" alert.
+'''
+

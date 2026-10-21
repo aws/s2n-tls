@@ -1,0 +1,50 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-7.2"
+
+# 7.2.  Backend Server
+#
+# Upon receipt of an "encrypted_client_hello" extension of type inner
+# in a ClientHello, if the backend server negotiates TLS 1.3 or higher,
+# then it MUST confirm ECH acceptance to the client by computing its
+# ServerHello as described here.
+# 
+# The backend server embeds in ServerHello.random a string derived from
+# the inner handshake.  It begins by computing its ServerHello as
+# usual, except the last 8 bytes of ServerHello.random are set to zero.
+# It then computes the transcript hash for ClientHelloInner up to and
+# including the modified ServerHello, as described in [RFC8446],
+# Section 4.4.1.  Let transcript_ech_conf denote the output.  Finally,
+# the backend server overwrites the last 8 bytes of the
+# ServerHello.random with the following string:
+# 
+#    accept_confirmation = HKDF-Expand-Label(
+#       HKDF-Extract(0, ClientHelloInner.random),
+#       "ech accept confirmation",
+#       transcript_ech_conf,
+#       8)
+# 
+# where HKDF-Expand-Label is defined in [RFC8446], Section 7.1, "0"
+# indicates a string of Hash.length bytes set to zero, and Hash is the
+# hash function used to compute the transcript hash.  In DTLS, the
+# modified version of HKDF-Expand-Label defined in [RFC9147],
+# Section 5.9 is used instead.
+# 
+# The backend server MUST NOT perform this operation if it negotiated
+# TLS 1.2 or below.  Note that doing so would overwrite the downgrade
+# signal for TLS 1.3 (see [RFC8446], Section 4.1.3).
+
+[[spec]]
+level = "MUST"
+quote = '''
+Upon receipt of an "encrypted_client_hello" extension of type inner
+in a ClientHello, if the backend server negotiates TLS 1.3 or higher,
+then it MUST confirm ECH acceptance to the client by computing its
+ServerHello as described here.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The backend server MUST NOT perform this operation if it negotiated
+TLS 1.2 or below.
+'''
+
