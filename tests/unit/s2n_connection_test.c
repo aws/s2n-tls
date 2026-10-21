@@ -205,6 +205,34 @@ int main(int argc, char **argv)
         };
     };
 
+    /* s2n_set_server_name: every call fully replaces the stored name. */
+    {
+        struct {
+            const char *first_server_name;
+            const char *second_server_name;
+        } test_cases[] = {
+            /* The second name is a prefix of the first */
+            { .first_server_name = "longname.example.com", .second_server_name = "longname" },
+            /* The second name is shorter and unrelated. */
+            { .first_server_name = "longname.example.com", .second_server_name = "shortname" },
+            /* Clearing the name must actually clear it. */
+            { .first_server_name = "longname.example.com", .second_server_name = "" },
+            /* The second name is longer, so it already overwrote the first. */
+            { .first_server_name = "shortname", .second_server_name = "longname.example.com" },
+        };
+
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            EXPECT_SUCCESS(s2n_set_server_name(conn, test_cases[i].first_server_name));
+            EXPECT_SUCCESS(s2n_set_server_name(conn, test_cases[i].second_server_name));
+
+            EXPECT_STRING_EQUAL(conn->server_name, test_cases[i].second_server_name);
+        }
+    };
+
     /* s2n_connection_get_protocol_version */
     {
         struct s2n_connection *client_conn = NULL, *server_conn = NULL;
