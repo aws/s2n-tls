@@ -1,0 +1,32 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-9.3"
+
+# 9.3.  Security Requirements on a KDF
+#
+# The choice of the KDF for HPKE SHOULD be made based on the security
+# level provided by the KEM and, if applicable, by the PSK.  The KDF
+# SHOULD at least have the security level of the KEM and SHOULD at
+# least have the security level provided by the PSK.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The choice of the KDF for HPKE SHOULD be made based on the security
+level provided by the KEM and, if applicable, by the PSK.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The KDF
+SHOULD at least have the security level of the KEM and SHOULD at
+least have the security level provided by the PSK.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The KDF
+SHOULD at least have the security level of the KEM and SHOULD at
+least have the security level provided by the PSK.
+'''
+

@@ -1,0 +1,76 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-7.2.1"
+
+# 7.2.1.  Input Length Restrictions
+#
+# This document defines LabeledExtract() and LabeledExpand() based on
+# the KDFs listed above.  These functions add prefixes to their
+# respective inputs ikm and info before calling the KDF's Extract() and
+# Expand() functions.  This leads to a reduction of the maximum input
+# length that is available for the inputs psk, psk_id, info,
+# exporter_context, ikm, i.e., the variable-length parameters provided
+# by HPKE applications.  The following table lists the maximum allowed
+# lengths of these fields for the KDFs defined in this document, as
+# inclusive bounds in bytes:
+# 
+#  +==================+==============+===============+===============+
+#  | Input            | HKDF-SHA256  | HKDF-SHA384   | HKDF-SHA512   |
+#  +==================+==============+===============+===============+
+#  | psk              | 2^{61} - 88  | 2^{125} - 152 | 2^{125} - 152 |
+#  +------------------+--------------+---------------+---------------+
+#  | psk_id           | 2^{61} - 93  | 2^{125} - 157 | 2^{125} - 157 |
+#  +------------------+--------------+---------------+---------------+
+#  | info             | 2^{61} - 91  | 2^{125} - 155 | 2^{125} - 155 |
+#  +------------------+--------------+---------------+---------------+
+#  | exporter_context | 2^{61} - 120 | 2^{125} - 200 | 2^{125} - 216 |
+#  +------------------+--------------+---------------+---------------+
+#  | ikm              | 2^{61} - 84  | 2^{125} - 148 | 2^{125} - 148 |
+#  | (DeriveKeyPair)  |              |               |               |
+#  +------------------+--------------+---------------+---------------+
+# 
+#                   Table 4: Application Input Limits
+# 
+# This shows that the limits are only marginally smaller than the
+# maximum input length of the underlying hash function; these limits
+# are large and unlikely to be reached in practical applications.
+# Future specifications that define new KDFs MUST specify bounds for
+# these variable-length parameters.
+# 
+# The RECOMMENDED limit for these values is 64 bytes.  This would
+# enable interoperability with implementations that statically allocate
+# memory for these inputs to avoid memory allocations.
+# 
+# The values for psk, psk_id, info, and ikm, which are inputs to
+# LabeledExtract(), were computed with the following expression:
+# 
+# max_size_hash_input - Nb - size_version_label -
+#     size_suite_id - size_input_label
+# 
+# The value for exporter_context, which is an input to LabeledExpand(),
+# was computed with the following expression:
+# 
+# max_size_hash_input - Nb - Nh - size_version_label -
+#     size_suite_id - size_input_label - 2 - 1
+# 
+# In these equations, max_size_hash_input is the maximum input length
+# of the underlying hash function in bytes, Nb is the block size of the
+# underlying hash function in bytes, size_version_label is the size of
+# "HPKE-v1" in bytes and equals 7, size_suite_id is the size of the
+# suite_id in bytes and equals 5 for DHKEM (relevant for ikm) and 10
+# for the remainder of HPKE (relevant for psk, psk_id, info, and
+# exporter_context), and size_input_label is the size in bytes of the
+# label used as parameter to LabeledExtract() or LabeledExpand(), the
+# maximum of which is 13 across all labels in this document.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Future specifications that define new KDFs MUST specify bounds for
+these variable-length parameters.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The RECOMMENDED limit for these values is 64 bytes.
+'''
+
