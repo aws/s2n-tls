@@ -1,0 +1,32 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-8.1"
+
+# 8.1.  Compatibility Issues
+#
+# Unlike most TLS extensions, placing the SNI value in an ECH extension
+# is not interoperable with existing servers, which expect the value in
+# the existing plaintext extension.  Thus, server operators SHOULD
+# ensure servers understand a given set of ECH keys before advertising
+# them.  Additionally, servers SHOULD retain support for any previously
+# advertised keys for the duration of their validity.
+# 
+# However, in more complex deployment scenarios, this may be difficult
+# to fully guarantee.  Thus, this protocol was designed to be robust in
+# case of inconsistencies between systems that advertise ECH keys and
+# servers, at the cost of extra round-trips due to a retry.  Two
+# specific scenarios are detailed below.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Thus, server operators SHOULD
+ensure servers understand a given set of ECH keys before advertising
+them.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Additionally, servers SHOULD retain support for any previously
+advertised keys for the duration of their validity.
+'''
+

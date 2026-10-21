@@ -1,0 +1,73 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.1.8"
+
+# 6.1.8.  Impact of Retry on Future Connections
+#
+# Clients MAY use information learned from a rejected ECH for future
+# connections to avoid repeatedly connecting to the same server and
+# being forced to retry.  However, they MUST handle ECH rejection for
+# those connections as if it were a fresh connection, rather than
+# enforcing the single retry limit from Section 6.1.6.  The reason for
+# this requirement is that if the server sends a "retry_config" and
+# then immediately rejects the resulting connection, it is most likely
+# misconfigured.  However, if the server sends a "retry_config" and
+# then the client tries to use that to connect some time later, it is
+# possible that the server has changed its configuration again and is
+# now trying to recover.
+# 
+# Any persisted information MUST be associated with the ECHConfig
+# source used to bootstrap the connection, such as a DNS SVCB
+# ServiceMode record [RFC9848].  Clients MUST limit any sharing of
+# persisted ECH-related state to connections that use the same
+# ECHConfig source.  Otherwise, it might become possible for the client
+# to have the wrong public name for the server, making recovery
+# impossible.
+# 
+# ECHConfigs learned from ECH rejection can be used as a tracking
+# vector.  Clients SHOULD impose the same lifetime and scope
+# restrictions that they apply to other server-based tracking vectors
+# such as PSKs.
+# 
+# In general, the safest way for clients to minimize ECH retries is to
+# comply with any freshness rules (e.g., DNS TTLs) imposed by the ECH
+# configuration.
+
+[[spec]]
+level = "MAY"
+quote = '''
+Clients MAY use information learned from a rejected ECH for future
+connections to avoid repeatedly connecting to the same server and
+being forced to retry.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+However, they MUST handle ECH rejection for
+those connections as if it were a fresh connection, rather than
+enforcing the single retry limit from Section 6.1.6.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Any persisted information MUST be associated with the ECHConfig
+source used to bootstrap the connection, such as a DNS SVCB
+ServiceMode record [RFC9848].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients MUST limit any sharing of
+persisted ECH-related state to connections that use the same
+ECHConfig source.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients SHOULD impose the same lifetime and scope
+restrictions that they apply to other server-based tracking vectors
+such as PSKs.
+'''
+

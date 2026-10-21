@@ -1,0 +1,156 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.1.6"
+
+# 6.1.6.  Handshaking with ClientHelloOuter
+#
+# If the server rejects ECH, the client proceeds with the handshake,
+# authenticating for ECHConfig.contents.public_name as described in
+# Section 6.1.7.  If authentication or the handshake fails, the client
+# MUST return a failure to the calling application.  It MUST NOT use
+# the retry configurations.  It MUST NOT treat this as a secure signal
+# to disable ECH.
+# 
+# If the server supplied an "encrypted_client_hello" extension in its
+# EncryptedExtensions message, the client MUST check that it is
+# syntactically valid and the client MUST abort the connection with a
+# "decode_error" alert otherwise.  If an earlier TLS version was
+# negotiated, the client MUST NOT enable the False Start optimization
+# [RFC7918] for this handshake.  If both authentication and the
+# handshake complete successfully, the client MUST perform the
+# processing described below and then abort the connection with an
+# "ech_required" alert before sending any application data to the
+# server.
+# 
+# If the server provided "retry_configs" and if at least one of the
+# values contains a version supported by the client, the client can
+# regard the ECH configuration as securely replaced by the server.  It
+# SHOULD retry the handshake with a new transport connection using the
+# retry configurations supplied by the server.
+# 
+# Because the new ECH configuration replaces the old ECH configuration,
+# clients can implement a new transport connection in any way that is
+# consistent with the previous ECH configuration.  For example, clients
+# can reuse the same server IP address when establishing the new
+# transport connection or they can choose to use a different IP address
+# if DNS provided other IP addresses for the previous configuration.
+# However, it is not safe to use IP addresses discovered with a new DNS
+# query, as those may correspond to a different ECH server
+# configuration, for instance associated with a different ECH server
+# with a different public_name.
+# 
+# The retry configurations are meant to be used for retried
+# connections.  Further use of retry configurations could yield a
+# tracking vector.  In settings where the client will otherwise already
+# let the server track the client, e.g., because the client will send
+# cookies to the server in parallel connections, using the retry
+# configurations for these parallel connections does not introduce a
+# new tracking vector.
+# 
+# If none of the values provided in "retry_configs" contains a
+# supported version, the server did not supply an
+# "encrypted_client_hello" extension in its EncryptedExtensions
+# message, or an earlier TLS version was negotiated, the client can
+# regard ECH as securely disabled by the server, and it SHOULD retry
+# the handshake with a new transport connection and ECH disabled.
+# 
+# Clients SHOULD NOT accept "retry_config" in response to a connection
+# initiated in response to a "retry_config".  Sending a "retry_config"
+# in this situation is a signal that the server is misconfigured, e.g.,
+# the server might have multiple inconsistent configurations so that
+# the client reached a node with configuration A in the first
+# connection and a node with configuration B in the second.  Note that
+# this guidance does not apply to the cases in the previous paragraph
+# where the server has securely disabled ECH.
+# 
+# If a client does not retry, it MUST report an error to the calling
+# application.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If authentication or the handshake fails, the client
+MUST return a failure to the calling application.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST NOT use
+the retry configurations.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST NOT treat this as a secure signal
+to disable ECH.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server supplied an "encrypted_client_hello" extension in its
+EncryptedExtensions message, the client MUST check that it is
+syntactically valid and the client MUST abort the connection with a
+"decode_error" alert otherwise.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server supplied an "encrypted_client_hello" extension in its
+EncryptedExtensions message, the client MUST check that it is
+syntactically valid and the client MUST abort the connection with a
+"decode_error" alert otherwise.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If an earlier TLS version was
+negotiated, the client MUST NOT enable the False Start optimization
+[RFC7918] for this handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If both authentication and the
+handshake complete successfully, the client MUST perform the
+processing described below and then abort the connection with an
+"ech_required" alert before sending any application data to the
+server.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+It
+SHOULD retry the handshake with a new transport connection using the
+retry configurations supplied by the server.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If none of the values provided in "retry_configs" contains a
+supported version, the server did not supply an
+"encrypted_client_hello" extension in its EncryptedExtensions
+message, or an earlier TLS version was negotiated, the client can
+regard ECH as securely disabled by the server, and it SHOULD retry
+the handshake with a new transport connection and ECH disabled.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients SHOULD NOT accept "retry_config" in response to a connection
+initiated in response to a "retry_config".
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a client does not retry, it MUST report an error to the calling
+application.
+'''
+

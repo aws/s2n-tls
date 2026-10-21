@@ -1,0 +1,129 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.1.7"
+
+# 6.1.7.  Authenticating for the Public Name
+#
+# When the server rejects ECH, it continues with the handshake using
+# the plaintext "server_name" extension instead (see Section 7).
+# Clients that offer ECH then authenticate the connection with the
+# public name as follows:
+# 
+# *  The client MUST verify that the certificate is valid for
+#    ECHConfig.contents.public_name.  If invalid, it MUST abort the
+#    connection with the appropriate alert.
+# 
+# *  If the server requests a client certificate, the client MUST
+#    respond with an empty Certificate message, denoting no client
+#    certificate.
+# 
+# In verifying the client-facing server certificate, the client MUST
+# interpret the public name as a DNS-based reference identity
+# [RFC9525].  Clients that incorporate DNS names and IP addresses into
+# the same syntax (e.g. Section 7.4 of [RFC3986] and [WHATWG-IPV4])
+# MUST reject names that would be interpreted as IPv4 addresses.
+# Clients that enforce this by checking ECHConfig.contents.public_name
+# do not need to repeat the check when processing ECH rejection.
+# 
+# Note that authenticating a connection for the public name does not
+# authenticate it for the origin.  The TLS implementation MUST NOT
+# report such connections as successful to the application.  It
+# additionally MUST ignore all session tickets and session IDs
+# presented by the server.  These connections are only used to trigger
+# retries, as described in Section 6.1.6.  This may be implemented, for
+# instance, by reporting a failed connection with a dedicated error
+# code.
+# 
+# Prior to attempting a connection, a client SHOULD validate the
+# ECHConfig.contents.public_name.  Clients SHOULD ignore any ECHConfig
+# structure with a public_name that is not a valid host name in
+# preferred name syntax (see Section 2 of [DNS-TERMS]).  That is, to be
+# valid, the public_name needs to be a dot-separated sequence of LDH
+# labels, as defined in Section 2.3.1 of [RFC5890], where:
+# 
+# *  the sequence does not begin or end with an ASCII dot, and
+# 
+# *  all labels are at most 63 octets.
+# 
+# Clients additionally SHOULD ignore the structure if the final LDH
+# label either consists of all ASCII digits (i.e., '0' through '9') or
+# is "0x" or "0X" followed by some, possibly empty, sequence of ASCII
+# hexadecimal digits (i.e., '0' through '9', 'a' through 'f', and 'A'
+# through 'F').  This avoids public_name values that may be interpreted
+# as IPv4 literals.
+
+[[spec]]
+level = "MUST"
+quote = '''
+*  The client MUST verify that the certificate is valid for
+ECHConfig.contents.public_name.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If invalid, it MUST abort the
+connection with the appropriate alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+*  If the server requests a client certificate, the client MUST
+respond with an empty Certificate message, denoting no client
+certificate.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In verifying the client-facing server certificate, the client MUST
+interpret the public name as a DNS-based reference identity
+[RFC9525].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Section 7.4 of [RFC3986] and [WHATWG-IPV4])
+MUST reject names that would be interpreted as IPv4 addresses.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The TLS implementation MUST NOT
+report such connections as successful to the application.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It
+additionally MUST ignore all session tickets and session IDs
+presented by the server.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Prior to attempting a connection, a client SHOULD validate the
+ECHConfig.contents.public_name.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients SHOULD ignore any ECHConfig
+structure with a public_name that is not a valid host name in
+preferred name syntax (see Section 2 of [DNS-TERMS]).
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients additionally SHOULD ignore the structure if the final LDH
+label either consists of all ASCII digits (i.e., '0' through '9') or
+is "0x" or "0X" followed by some, possibly empty, sequence of ASCII
+hexadecimal digits (i.e., '0' through '9', 'a' through 'f', and 'A'
+through 'F').
+'''
+

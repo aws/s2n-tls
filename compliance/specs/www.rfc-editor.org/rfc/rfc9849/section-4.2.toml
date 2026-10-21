@@ -1,0 +1,57 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-4.2"
+
+# 4.2.  Configuration Extensions
+#
+# ECH configuration extensions are used to provide room for additional
+# functionality as needed.  The format is as defined in Section 4 and
+# mirrors Section 4.2 of [RFC8446].  However, ECH configuration
+# extension types are maintained by IANA as described in Section 11.3.
+# ECH configuration extensions follow the same interpretation rules as
+# TLS extensions: extensions MAY appear in any order, but there MUST
+# NOT be more than one extension of the same type in the extensions
+# block.  Unlike TLS extensions, an extension can be tagged as
+# mandatory by using an extension type codepoint with the high order
+# bit set to 1.
+# 
+# Clients MUST parse the extension list and check for unsupported
+# mandatory extensions.  If an unsupported mandatory extension is
+# present, clients MUST ignore the ECHConfig.
+# 
+# Any future information or hints that influence ClientHelloOuter
+# SHOULD be specified as ECHConfig extensions.  This is primarily
+# because the outer ClientHello exists only in support of ECH.  Namely,
+# it is both an envelope for the encrypted inner ClientHello and an
+# enabler for authenticated key mismatch signals (see Section 7).  In
+# contrast, the inner ClientHello is the true ClientHello used upon ECH
+# negotiation.
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECH configuration extensions follow the same interpretation rules as
+TLS extensions: extensions MAY appear in any order, but there MUST
+NOT be more than one extension of the same type in the extensions
+block.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients MUST parse the extension list and check for unsupported
+mandatory extensions.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If an unsupported mandatory extension is
+present, clients MUST ignore the ECHConfig.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Any future information or hints that influence ClientHelloOuter
+SHOULD be specified as ECHConfig extensions.
+'''
+

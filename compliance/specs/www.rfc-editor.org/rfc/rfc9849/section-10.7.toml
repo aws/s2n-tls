@@ -1,0 +1,60 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-10.7"
+
+# 10.7.  Related Privacy Leaks
+#
+# ECH requires encrypted DNS to be an effective privacy protection
+# mechanism.  However, verifying the server's identity from the
+# Certificate message, particularly when using the X509
+# CertificateType, may result in additional network traffic that may
+# reveal the server identity.  Examples of this traffic may include
+# requests for revocation information, such as Online Certificate
+# Status Protocol (OCSP) or Certificate Revocation List (CRL) traffic,
+# or requests for repository information, such as
+# authorityInformationAccess.  It may also include implementation-
+# specific traffic for additional information sources as part of
+# verification.
+# 
+# Implementations SHOULD avoid leaking information that may identify
+# the server.  Even when sent over an encrypted transport, such
+# requests may result in indirect exposure of the server's identity,
+# such as indicating a specific CA or service being used.  To mitigate
+# this risk, servers SHOULD deliver such information in-band when
+# possible, such as through the use of OCSP stapling, and clients
+# SHOULD take steps to minimize or protect such requests during
+# certificate validation.
+# 
+# Attacks that rely on non-ECH traffic to infer server identity in an
+# ECH connection are out of scope for this document.  For example, a
+# client that connects to a particular host prior to ECH deployment may
+# later resume a connection to that same host after ECH deployment.  An
+# adversary that observes this can deduce that the ECH-enabled
+# connection was made to a host that the client previously connected to
+# and which is within the same anonymity set.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Implementations SHOULD avoid leaking information that may identify
+the server.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+To mitigate
+this risk, servers SHOULD deliver such information in-band when
+possible, such as through the use of OCSP stapling, and clients
+SHOULD take steps to minimize or protect such requests during
+certificate validation.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+To mitigate
+this risk, servers SHOULD deliver such information in-band when
+possible, such as through the use of OCSP stapling, and clients
+SHOULD take steps to minimize or protect such requests during
+certificate validation.
+'''
+
