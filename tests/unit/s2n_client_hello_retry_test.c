@@ -1138,7 +1138,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
 
-            /* Parse the ClientHello, but don't process the extensions yet. */
+            /* Parse the ClientHello, but don't process the extensions yet.
+             * Calling s2n_parse_client_hello directly skips the comparison with
+             * the first ClientHello in s2n_client_hello_recv. This test is about
+             * the supported versions extension, which the comparison exempts.
+             * It also skips moving the first ClientHello aside, so fields the
+             * parse does not set, such as callback_invoked and the record
+             * version, keep their values from the first ClientHello.
+             */
             EXPECT_SUCCESS(s2n_parse_client_hello(server_conn));
             server_conn->client_hello.parsed = true;
 
