@@ -620,6 +620,30 @@ impl Builder {
         Ok(self)
     }
 
+    /// Sets the maximum size of outgoing records (the "fragment length").
+    ///
+    /// This is the config-level equivalent of [`crate::connection::Connection::prefer_throughput`]
+    /// and [`crate::connection::Connection::prefer_low_latency`], but accepts any
+    /// fragment length rather than a fixed preset.
+    ///
+    /// `max_fragment_length` must be greater than 0 and no larger than the TLS
+    /// maximum fragment length of 16384 (2^14) bytes.
+    ///
+    /// A TLS negotiated maximum fragment length overrides this preference: the
+    /// smaller of the two values is used for a connection. This setting only
+    /// affects outgoing records, not records received from the peer.
+    ///
+    /// Corresponds to [`s2n_config_set_max_fragment_length`].
+    pub fn set_max_fragment_length(
+        &mut self,
+        max_fragment_length: u16,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_max_fragment_length(self.as_mut_ptr(), max_fragment_length).into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Corresponds to [`s2n_config_add_custom_x509_extension`].
     #[cfg(feature = "unstable-custom_x509_extensions")]
     pub fn add_custom_x509_extension(&mut self, extension_oid: &str) -> Result<&mut Self, Error> {
@@ -1460,6 +1484,29 @@ mod tests {
                 let s2n_err = pair.handshake().unwrap_err();
                 assert_eq!(s2n_err.name(), "S2N_ERR_CERT_UNHANDLED_CRITICAL_EXTENSION");
             }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn set_max_fragment_length() -> Result<(), Error> {
+        let certs = CertKeyPair::default();
+
+        // Valid fragment lengths, including the boundary values, are accepted
+        // and a config built with them handshakes successfully.
+        for max_fragment_length in [1, 1024, 16384] {
+            let config = {
+                let mut config = Builder::new();
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+                config.set_max_fragment_length(max_fragment_length)?;
+                config.load_pem(certs.cert(), certs.key())?;
+                config.trust_pem(certs.cert())?;
+                config.build()?
+            };
+            let mut pair = TestPair::from_config(&config);
+            pair.handshake()?;
         }
 
         Ok(())

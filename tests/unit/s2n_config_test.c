@@ -1490,5 +1490,114 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     };
 
+    /* Test s2n_config_set_max_fragment_length */
+    {
+        /* Safety: a NULL config is rejected */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_max_fragment_length(NULL, 1024),
+                S2N_ERR_NULL);
+
+        /* A new config does not have a fragment length override set */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_FALSE(config->max_fragment_length_set);
+        };
+
+        /* A fragment length of 0 is rejected */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_max_fragment_length(config, 0),
+                    S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+            EXPECT_FALSE(config->max_fragment_length_set);
+        };
+
+        /* A fragment length larger than the TLS maximum is rejected */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_config_set_max_fragment_length(config, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 1),
+                    S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            EXPECT_FALSE(config->max_fragment_length_set);
+        };
+
+        /* The boundary values (1 and the TLS maximum) are accepted */
+        {
+            uint16_t boundary_values[] = { 1, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH };
+            for (size_t i = 0; i < s2n_array_len(boundary_values); i++) {
+                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                        s2n_config_ptr_free);
+                EXPECT_NOT_NULL(config);
+                EXPECT_SUCCESS(s2n_config_set_max_fragment_length(config, boundary_values[i]));
+                EXPECT_TRUE(config->max_fragment_length_set);
+                EXPECT_EQUAL(config->max_fragment_length, boundary_values[i]);
+            }
+        };
+
+        /* A valid fragment length is stored on the config */
+        {
+            const uint16_t test_fragment_length = 1024;
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_max_fragment_length(config, test_fragment_length));
+            EXPECT_TRUE(config->max_fragment_length_set);
+            EXPECT_EQUAL(config->max_fragment_length, test_fragment_length);
+        };
+
+        /* A config without the override uses the default fragment length on a connection */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, S2N_DEFAULT_FRAGMENT_LENGTH);
+        };
+
+        /* The config fragment length is applied to a connection via s2n_connection_set_config */
+        {
+            const uint16_t test_fragment_length = 1024;
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_max_fragment_length(config, test_fragment_length));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length, test_fragment_length);
+        };
+
+        /* A negotiated maximum fragment length overrides a larger config preference.
+         * This mirrors the behavior of s2n_connection_prefer_throughput. */
+        {
+            const uint16_t large_fragment_length = S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_max_fragment_length(config, large_fragment_length));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            /* Simulate having negotiated a smaller max fragment length with the peer. */
+            conn->negotiated_mfl_code = S2N_TLS_MAX_FRAG_LEN_512;
+
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_EQUAL(conn->max_outgoing_fragment_length,
+                    mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
+        };
+    };
+
     END_TEST();
 }

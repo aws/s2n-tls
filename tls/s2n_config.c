@@ -33,6 +33,7 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_ktls.h"
+#include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_blob.h"
@@ -951,6 +952,19 @@ int s2n_config_accept_max_fragment_length(struct s2n_config *config)
     config->accept_mfl = 1;
 
     return 0;
+}
+
+int s2n_config_set_max_fragment_length(struct s2n_config *config, uint16_t max_fragment_length)
+{
+    POSIX_ENSURE_REF(config);
+
+    POSIX_ENSURE(max_fragment_length > 0, S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
+    POSIX_ENSURE(max_fragment_length <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+
+    config->max_fragment_length = max_fragment_length;
+    config->max_fragment_length_set = 1;
+
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_session_state_lifetime(struct s2n_config *config,
