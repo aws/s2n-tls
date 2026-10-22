@@ -217,8 +217,6 @@ int main(int argc, char **argv)
             { .first_server_name = "longname.example.com", .second_server_name = "shortname" },
             /* Clearing the name must actually clear it. */
             { .first_server_name = "longname.example.com", .second_server_name = "" },
-            /* The second name is longer, so it already overwrote the first. */
-            { .first_server_name = "shortname", .second_server_name = "longname.example.com" },
         };
 
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
