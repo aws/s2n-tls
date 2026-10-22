@@ -362,12 +362,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     conn->tickets_to_send = config->initial_tickets_to_send;
 
-    /* Apply the config-level maximum outgoing fragment length, if set. This
-     * goes through s2n_connection_set_max_fragment_length so that it respects
-     * any already-negotiated TLS Maximum Fragment Length and resizes the
-     * outgoing buffer if necessary, matching the behavior of
-     * s2n_connection_prefer_throughput / s2n_connection_prefer_low_latency. */
-    if (config->max_fragment_length_set) {
+    /* Apply the config-level maximum outgoing fragment length, if set. */
+    if (config->max_fragment_length > 0) {
         POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, config->max_fragment_length));
     }
 

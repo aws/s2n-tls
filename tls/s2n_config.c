@@ -962,7 +962,6 @@ int s2n_config_set_max_fragment_length(struct s2n_config *config, uint16_t max_f
     POSIX_ENSURE(max_fragment_length <= S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
 
     config->max_fragment_length = max_fragment_length;
-    config->max_fragment_length_set = 1;
 
     return S2N_SUCCESS;
 }

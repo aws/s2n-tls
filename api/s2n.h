@@ -1269,9 +1269,7 @@ S2N_API extern int s2n_config_accept_max_fragment_length(struct s2n_config *conf
  *
  * This is the config-level equivalent of `s2n_connection_prefer_throughput` and
  * `s2n_connection_prefer_low_latency`, but accepts any fragment length rather
- * than a fixed preset. Smaller values reduce latency, because the recipient can
- * decrypt each record sooner. Larger values improve throughput, because there is
- * less per-record overhead.
+ * than a fixed preset.
  *
  * `max_fragment_length` must be greater than 0 and no larger than the TLS maximum
  * fragment length of 16384 (2^14) bytes.

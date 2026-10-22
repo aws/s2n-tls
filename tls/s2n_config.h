@@ -188,8 +188,7 @@ struct s2n_config {
     uint8_t mfl_code;
 
     /* Maximum outgoing fragment length applied to connections using this config.
-     * Set via s2n_config_set_max_fragment_length. Only applied when
-     * max_fragment_length_set is true. */
+     * Set via s2n_config_set_max_fragment_length. */
     uint16_t max_fragment_length;
 
     uint8_t initial_tickets_to_send;

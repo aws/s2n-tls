@@ -1501,7 +1501,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_FALSE(config->max_fragment_length_set);
+            EXPECT_EQUAL(config->max_fragment_length, 0);
         };
 
         /* A fragment length of 0 is rejected */
@@ -1511,7 +1511,6 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_max_fragment_length(config, 0),
                     S2N_ERR_FRAGMENT_LENGTH_TOO_SMALL);
-            EXPECT_FALSE(config->max_fragment_length_set);
         };
 
         /* A fragment length larger than the TLS maximum is rejected */
@@ -1522,7 +1521,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_config_set_max_fragment_length(config, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 1),
                     S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
-            EXPECT_FALSE(config->max_fragment_length_set);
+            EXPECT_EQUAL(config->max_fragment_length, 0);
         };
 
         /* The boundary values (1 and the TLS maximum) are accepted */
@@ -1533,7 +1532,6 @@ int main(int argc, char **argv)
                         s2n_config_ptr_free);
                 EXPECT_NOT_NULL(config);
                 EXPECT_SUCCESS(s2n_config_set_max_fragment_length(config, boundary_values[i]));
-                EXPECT_TRUE(config->max_fragment_length_set);
                 EXPECT_EQUAL(config->max_fragment_length, boundary_values[i]);
             }
         };
@@ -1545,7 +1543,6 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_max_fragment_length(config, test_fragment_length));
-            EXPECT_TRUE(config->max_fragment_length_set);
             EXPECT_EQUAL(config->max_fragment_length, test_fragment_length);
         };
 
