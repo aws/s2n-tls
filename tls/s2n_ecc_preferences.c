@@ -55,6 +55,13 @@ const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20230623[] = {
     &s2n_ecc_curve_secp384r1,
 };
 
+const struct s2n_ecc_named_curve *const s2n_ecc_pref_list_20261021[] = {
+    &s2n_ecc_curve_secp256r1,
+#if EVP_APIS_SUPPORTED
+    &s2n_ecc_curve_x25519,
+#endif
+};
+
 /*
  * These curves were chosen based on the following specification:
  * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
@@ -117,6 +124,11 @@ const struct s2n_ecc_preferences s2n_ecc_preferences_20200310 = {
 const struct s2n_ecc_preferences s2n_ecc_preferences_20230623 = {
     .count = s2n_array_len(s2n_ecc_pref_list_20230623),
     .ecc_curves = s2n_ecc_pref_list_20230623,
+};
+
+const struct s2n_ecc_preferences s2n_ecc_preferences_20261021 = {
+    .count = s2n_array_len(s2n_ecc_pref_list_20261021),
+    .ecc_curves = s2n_ecc_pref_list_20261021,
 };
 
 const struct s2n_ecc_preferences s2n_ecc_preferences_default_fips = {
