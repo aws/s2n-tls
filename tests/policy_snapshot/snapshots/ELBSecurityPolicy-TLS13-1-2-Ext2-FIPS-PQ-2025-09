@@ -15,8 +15,8 @@ cipher suites:
 - TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
 - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384
 - TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384
-- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
 - TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA
+- TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA
 - TLS_RSA_WITH_AES_128_GCM_SHA256
 - TLS_RSA_WITH_AES_128_CBC_SHA256
 - TLS_RSA_WITH_AES_128_CBC_SHA
@@ -24,6 +24,10 @@ cipher suites:
 - TLS_RSA_WITH_AES_256_CBC_SHA256
 - TLS_RSA_WITH_AES_256_CBC_SHA
 signature schemes:
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- legacy_ecdsa_sha224
 - rsa_pss_pss_sha256
 - rsa_pss_pss_sha384
 - rsa_pss_pss_sha512
@@ -34,15 +38,15 @@ signature schemes:
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
 - legacy_rsa_sha224
-- ecdsa_sha256
-- ecdsa_sha384
-- ecdsa_sha512
-- legacy_ecdsa_sha224
 curves:
 - secp256r1
 - secp384r1
 - secp521r1
 certificate signature schemes:
+- ecdsa_sha256
+- ecdsa_sha384
+- ecdsa_sha512
+- legacy_ecdsa_sha224
 - rsa_pss_pss_sha256
 - rsa_pss_pss_sha384
 - rsa_pss_pss_sha512
@@ -53,10 +57,6 @@ certificate signature schemes:
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
 - legacy_rsa_sha224
-- ecdsa_sha256
-- ecdsa_sha384
-- ecdsa_sha512
-- legacy_ecdsa_sha224
 pq:
 - kem groups:
 -- X25519MLKEM768
