@@ -138,7 +138,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
     struct s2n_psk_parameters *psk_params = &conn->psk_params;
     struct s2n_array *psk_list = &psk_params->psk_list;
 
-    struct s2n_stuffer_reservation identity_list_size;
+    struct s2n_stuffer_reservation identity_list_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &identity_list_size));
 
     uint16_t binder_list_size = SIZE_OF_BINDER_LIST_SIZE;
@@ -239,6 +239,16 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
 
     struct s2n_offered_psk client_psk = { 0 };
     conn->psk_params.chosen_psk = NULL;
+
+    /* s2n does not support resumption when client auth is enabled: a resumed
+     * handshake skips the CertificateRequest, and the ticket carries no client
+     * certificate or peer identity. Bailing here leaves chosen_psk NULL, so the
+     * caller falls back to a full handshake. Mirrors the TLS1.2 behavior in
+     * s2n_allowed_to_cache_connection() and s2n_client_session_ticket_recv().
+     */
+    if (s2n_connection_is_client_auth_enabled(conn)) {
+        RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);
+    }
 
     uint8_t rejected_count = 0;
     while (s2n_offered_psk_list_has_next(client_identity_list) && (rejected_count < MAX_REJECTED_TICKETS)) {

@@ -92,57 +92,6 @@ struct s2n_security_policy {
     bool rules[S2N_SECURITY_RULES_COUNT];
 };
 
-/* Macros to help construct simple policies.
- *
- * One of the difficulties of security policies is that they are composed of
- * multiple other structs. Changing that is currently somewhat complicated,
- * but we can at least fake more concise "all in one" policies using macros.
- *
- * S2N_INLINE_SECURITY_POLICY_V1 makes several assumptions to simplify the definition:
- * - "certificate_signature_preferences" match "signature_preferences"
- * - no "certificate_key_preferences"
- * - "tls13_pq_hybrid_draft_revision" is 5
- * - "certificate_preferences_apply_locally" is false
- * - "allow_chacha20_boosting" is false
- */
-/* clang-format off */
-#define S2N_CIPHER_PREF_LIST(...) { __VA_ARGS__ }
-#define S2N_SIG_PREF_LIST(...) { __VA_ARGS__ }
-#define S2N_CURVE_PREF_LIST(...) { __VA_ARGS__ }
-#define S2N_KEM_PREF_LIST(...) { __VA_ARGS__ }
-/* clang-format on */
-#define S2N_INLINE_SECURITY_POLICY_V1(name, min_version, ciphers, signatures, curves, kems) \
-    struct s2n_cipher_suite *name##_cipher_list[] = ciphers;                                \
-    const struct s2n_cipher_preferences name##_cipher_prefs = {                             \
-        .count = s2n_array_len(name##_cipher_list),                                         \
-        .suites = name##_cipher_list,                                                       \
-        .allow_chacha20_boosting = false,                                                   \
-    };                                                                                      \
-    const struct s2n_signature_scheme *const name##_sig_list[] = signatures;                \
-    const struct s2n_signature_preferences name##_sig_prefs = {                             \
-        .count = s2n_array_len(name##_sig_list),                                            \
-        .signature_schemes = name##_sig_list,                                               \
-    };                                                                                      \
-    const struct s2n_ecc_named_curve *const name##_curve_list[] = curves;                   \
-    const struct s2n_ecc_preferences name##_ecc_prefs = {                                   \
-        .count = s2n_array_len(name##_curve_list),                                          \
-        .ecc_curves = name##_curve_list,                                                    \
-    };                                                                                      \
-    const struct s2n_kem_group *name##_kem_group_list[] = kems;                             \
-    const struct s2n_kem_preferences name##_kem_prefs = {                                   \
-        .tls13_kem_group_count = s2n_array_len(name##_kem_group_list),                      \
-        .tls13_kem_groups = name##_kem_group_list,                                          \
-        .tls13_pq_hybrid_draft_revision = 5,                                                \
-    };                                                                                      \
-    const struct s2n_security_policy name = {                                               \
-        .minimum_protocol_version = min_version,                                            \
-        .cipher_preferences = &name##_cipher_prefs,                                         \
-        .signature_preferences = &name##_sig_prefs,                                         \
-        .certificate_signature_preferences = &name##_sig_prefs,                             \
-        .ecc_preferences = &name##_ecc_prefs,                                               \
-        .kem_preferences = &name##_kem_prefs,                                               \
-    }
-
 struct s2n_security_policy_selection {
     const char *version;
     const struct s2n_security_policy *security_policy;
@@ -212,6 +161,8 @@ extern const struct s2n_security_policy security_policy_20260522;
 extern const struct s2n_security_policy security_policy_20260522_gcm;
 extern const struct s2n_security_policy security_policy_20260523;
 extern const struct s2n_security_policy security_policy_20260523_gcm;
+extern const struct s2n_security_policy security_policy_20260720;
+extern const struct s2n_security_policy security_policy_20260722;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;
@@ -294,6 +245,42 @@ extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06;
 extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10;
 extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2024_10;
 
+extern const struct s2n_security_policy security_policy_elb_backend_2016_08;
+extern const struct s2n_security_policy security_policy_elb_sslv3_2013_12;
+extern const struct s2n_security_policy security_policy_elb_tls_1_1_Res_2017_01;
+extern const struct s2n_security_policy security_policy_elb_fs_1_2_Res_2020_10;
+extern const struct s2n_security_policy security_policy_intb_2021_04;
+extern const struct s2n_security_policy security_policy_intb_2021_04_gcm;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_1_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_2023_04;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_0_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_0_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext1_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext2_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Res_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_FIPS_PQ_2025_09;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_RFC9151_FIPS_2023_07;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_2_Ext0_RFC9151_FIPS_2023_07;
+extern const struct s2n_security_policy security_policy_elb_tls13_1_3_RFC9151_FIPS_2023_07;
+extern const struct s2n_security_policy security_policy_elb_tls12_1_2_RFC9151_2024_01;
+extern const struct s2n_security_policy security_policy_elb_tls12_1_2_Ext0_RFC9151_2024_01;
+extern const struct s2n_security_policy security_policy_20170816_healthcheck;
+extern const struct s2n_security_policy security_policy_kms_tls_1_2_2023_07;
+extern const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2023_09;
+
 extern const struct s2n_security_policy security_policy_20190120;
 extern const struct s2n_security_policy security_policy_20190121;
 extern const struct s2n_security_policy security_policy_20190122;
@@ -303,6 +290,7 @@ extern const struct s2n_security_policy security_policy_null;
 int s2n_security_policies_init();
 int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
+int s2n_connection_set_security_policy(struct s2n_connection *conn, const struct s2n_security_policy *policy);
 bool s2n_ecc_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_pq_kem_is_extension_required(const struct s2n_security_policy *security_policy);
 bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *security_policy);
@@ -321,3 +309,26 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
         const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
 S2N_RESULT s2n_security_policy_validate_cert_key(
         const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
+
+/**
+ * Compares two security policies for content equality.
+ *
+ * Two policies are equal when every field of `struct s2n_security_policy` matches.
+ * Preference lists are compared by content rather than by address, so two policies
+ * that reference separate but identical lists compare equal. Within a list,
+ * elements are compared by pointer, which is exact because cipher suites,
+ * signature schemes, curves, KEMs, and certificate keys are all singletons.
+ * A NULL preference list is equal only to another NULL list.
+ *
+ * @note Adding a field to `struct s2n_security_policy` requires updating this
+ * function. Omitting a field would silently report differing policies as equal.
+ * s2n_security_policies_duplicates_test.c asserts on the size of the struct to
+ * catch that mistake at build time.
+ *
+ * @param a The first security policy. Must not be NULL.
+ * @param b The second security policy. Must not be NULL.
+ * @param equal Set to true if the policies are equal, false otherwise.
+ * @returns S2N_RESULT_OK on success, S2N_RESULT_ERROR if any argument is NULL.
+ */
+S2N_RESULT s2n_security_policy_equals(const struct s2n_security_policy *a,
+        const struct s2n_security_policy *b, bool *equal);

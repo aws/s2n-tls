@@ -487,6 +487,7 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
         const uint8_t *raw_message, uint32_t raw_message_size)
 {
     RESULT_ENSURE_REF(result);
+    RESULT_ENSURE(raw_message_size <= S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
 
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_client_hello)));
@@ -752,7 +753,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     }
 
     /* Reserve space for size of the list of available ciphers */
-    struct s2n_stuffer_reservation available_cipher_suites_size;
+    struct s2n_stuffer_reservation available_cipher_suites_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &available_cipher_suites_size));
 
     /* Now, write the IANA values of every available cipher suite in our list */

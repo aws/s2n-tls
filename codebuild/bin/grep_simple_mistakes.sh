@@ -281,6 +281,23 @@ if [[ -n $S2N_UNNECESSARY_EXTERNS ]]; then
 fi
 
 #############################################
+# Assert that libcrypto calls result are captured.
+# They must not discard the return value of those libcrypto calls.
+#
+# Only these functions are listed for now, rather than all of libcrypto.
+# Add a function when s2n starts calling other ones and needed to check their status.
+#############################################
+LIBCRYPTO_STATUS_CALLS="EVP_CIPHER_CTX_ctrl|EVP_CIPHER_CTX_set_padding|EVP_DecryptFinal_ex|EVP_DecryptInit_ex|EVP_DecryptUpdate|EVP_EncryptFinal_ex|EVP_EncryptInit_ex|EVP_EncryptUpdate|OPENSSL_init_crypto"
+S2N_UNGUARDED_LIBCRYPTO_CALLS=$(grep -rnE "^[[:space:]]+($LIBCRYPTO_STATUS_CALLS)\(" --include='*.c' bin crypto stuffer tls utils)
+if [[ -n $S2N_UNGUARDED_LIBCRYPTO_CALLS ]]; then
+  FAILED=1
+  printf "\e[1;34mFound a libcrypto call that discards its return value:\e[0m "
+  printf "Wrap it in POSIX_GUARD_OSSL or RESULT_GUARD_OSSL so the failure is propagated.\n"
+  # Use a format argument: the matched source lines can contain '%'.
+  printf '%s\n\n' "$S2N_UNGUARDED_LIBCRYPTO_CALLS"
+fi
+
+#############################################
 # Assert ENSURE/GUARD have a valid error code
 #############################################
 S2N_ENSURE_WITH_INVALID_ERROR_CODE=$(find "$PWD" -type f -name "s2n*.c" -path "*" \! -path "*/tests/*" \

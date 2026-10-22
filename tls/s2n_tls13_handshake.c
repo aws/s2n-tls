@@ -34,7 +34,7 @@ int s2n_tls13_mac_verify(struct s2n_tls13_keys *keys, struct s2n_blob *finished_
     POSIX_ENSURE_REF(wire_verify->data);
     POSIX_ENSURE_EQ(wire_verify->size, keys->size);
 
-    S2N_ERROR_IF(!s2n_constant_time_equals(finished_verify->data, wire_verify->data, keys->size), S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(!s2n_constant_time_equals(finished_verify->data, wire_verify->data, keys->size), S2N_ERR_BAD_FINISHED);
 
     return S2N_SUCCESS;
 }

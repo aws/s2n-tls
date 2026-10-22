@@ -196,3 +196,87 @@ fn failed_client_auth() {
         .is_none());
     assert!(pair.server.connection().peer_cert_chain().is_err());
 }
+
+/// Strip the last PEM-encoded certificate from a chain.
+fn strip_last_pem(chain: &[u8]) -> Vec<u8> {
+    let s = std::str::from_utf8(chain).expect("chain should be valid UTF-8");
+    let end_marker = "-----END CERTIFICATE-----";
+    // Find the start of the last certificate block by locating the last end marker,
+    // then finding the BEGIN marker before it.
+    let last_end = s.rfind(end_marker).expect("no END CERTIFICATE found");
+    let before_last = &s[..last_end];
+    let begin_marker = "-----BEGIN CERTIFICATE-----";
+    let last_begin = before_last
+        .rfind(begin_marker)
+        .expect("no BEGIN CERTIFICATE found");
+    s[..last_begin].trim_end().as_bytes().to_vec()
+}
+
+/// When a server elides the CA on the wire, peer_cert_chain still includes the CA
+#[test]
+fn server_elided_ca() -> Result<(), S2NError> {
+    let sig = SigType::Rsa2048;
+
+    // Server chain has 3 certs (leaf + intermediate + root). Strip the root CA.
+    let full_chain = read_to_bytes(PemType::ServerCertChain, sig);
+    let elided_chain = strip_last_pem(&full_chain);
+
+    let mut server_builder = Builder::new();
+    server_builder
+        .with_system_certs(false)?
+        .load_pem(&elided_chain, &read_to_bytes(PemType::ServerKey, sig))?
+        .set_verify_host_callback(HostNameHandler::new("localhost"))?;
+    let server_cfg: S2NConfig = server_builder.build().unwrap().into();
+
+    let client_cfg: S2NConfig = client_config(false, true).build().unwrap().into();
+
+    let mut pair =
+        TlsConnPair::<S2NConnection, S2NConnection>::from_configs(&client_cfg, &server_cfg);
+    pair.handshake().unwrap();
+
+    // the server's chain was only two certs (CA was elided), the peer_chain_chain
+    // returns the chain with the CA included.
+
+    let selected_chain = pair.server.connection().selected_cert().unwrap();
+    assert_eq!(selected_chain.len(), 2);
+
+    let client_peer = pair.client.connection().peer_cert_chain().unwrap();
+    assert_eq!(client_peer.len(), 3);
+
+    Ok(())
+}
+
+/// When a client elides the CA on the wire, peer_cert_chain still includes the CA
+#[test]
+fn client_elided_ca() -> Result<(), S2NError> {
+    let sig = SigType::Rsa2048;
+
+    let server_cfg: S2NConfig = server_config(true, true).build().unwrap().into();
+
+    let mut client_builder = Builder::new();
+    client_builder
+        .with_system_certs(false)?
+        .trust_pem(&read_to_bytes(PemType::CACert, sig))?
+        .load_pem(
+            // client-cert.pem contains only the leaf certificate (no CA), so the
+            // CA is inherently not sent on the wire.
+            &read_to_bytes(PemType::ClientCertChain, sig),
+            &read_to_bytes(PemType::ClientKey, sig),
+        )?
+        .set_verify_host_callback(HostNameHandler::new("localhost"))?;
+    let client_cfg: S2NConfig = client_builder.build().unwrap().into();
+
+    let mut pair =
+        TlsConnPair::<S2NConnection, S2NConnection>::from_configs(&client_cfg, &server_cfg);
+    pair.handshake().unwrap();
+
+    // the client's chain was only one cert (CA was elided), the peer_chain_chain
+    // returns the chain with the CA included.
+
+    let selected_chain = pair.client.connection().selected_cert().unwrap();
+    assert_eq!(selected_chain.len(), 1);
+
+    let server_peer = pair.server.connection().peer_cert_chain().unwrap();
+    assert_eq!(server_peer.len(), 2);
+    Ok(())
+}

@@ -308,6 +308,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_TEST_ASSERTION, "Test assertion failed") \
     ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
     ERR_ENTRY(S2N_ERR_KTLS_KEYUPDATE, "Received KeyUpdate from peer, but kernel does not support updating tls keys") \
+    ERR_ENTRY(S2N_ERR_BAD_FINISHED, "Finished verify_data did not match the expected value") \
+    ERR_ENTRY(S2N_ERR_BAD_PSK_BINDER, "PSK binder did not match the expected value") \
     ERR_ENTRY(S2N_ERR_KTLS_KEY_LIMIT, "Reached key encryption limit, but kernel does not support updating tls keys") \
     ERR_ENTRY(S2N_ERR_KTLS_SOCKOPT, "A call to sockopt failed when attempting to update the keys in the kernel") \
     ERR_ENTRY(S2N_ERR_UNEXPECTED_CERT_REQUEST, "Client forbids mutual authentication, but server requested a cert") \
@@ -458,7 +460,7 @@ int s2n_calculate_stacktrace(void)
 
     int old_errno = errno;
     POSIX_GUARD(s2n_free_stacktrace());
-    void *array[MAX_BACKTRACE_DEPTH];
+    void *array[MAX_BACKTRACE_DEPTH] = { 0 };
     tl_stacktrace.trace_size = backtrace(array, MAX_BACKTRACE_DEPTH);
     tl_stacktrace.trace = backtrace_symbols(array, tl_stacktrace.trace_size);
     errno = old_errno;

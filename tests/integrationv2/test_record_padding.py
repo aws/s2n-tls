@@ -2,22 +2,23 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 import platform
-import pytest
 import re
 
+import pytest
+
+from common import Protocols, ProviderOptions, data_bytes
 from configuration import (
-    available_ports,
-    TLS13_CIPHERS,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
+    TLS13_CIPHERS,
+    available_ports,
 )
-from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL
+from providers import S2N, OpenSSL, Provider
 from utils import (
-    invalid_test_parameters,
-    get_parameter_name,
     get_expected_s2n_version,
+    get_parameter_name,
+    invalid_test_parameters,
     to_bytes,
 )
 
@@ -133,14 +134,11 @@ def test_s2n_server_handles_padded_records(
         assert random_bytes in server_results.stdout
         # verify that the version was correctly negotiated
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
+            to_bytes(f"Actual protocol version: {expected_version}")
             in server_results.stdout
         )
         # verify that the cipher was correctly negotiated
-        assert (
-            to_bytes("Cipher negotiated: {}".format(cipher.name))
-            in server_results.stdout
-        )
+        assert to_bytes(f"Cipher negotiated: {cipher.name}") in server_results.stdout
 
 
 @pytest.mark.flaky(
@@ -213,13 +211,10 @@ def test_s2n_client_handles_padded_records(
         # assert that the client has received server's application payload
         assert server_random_bytes in client_results.stdout
         assert (
-            to_bytes("Actual protocol version: {}".format(expected_version))
+            to_bytes(f"Actual protocol version: {expected_version}")
             in client_results.stdout
         )
-        assert (
-            to_bytes("Cipher negotiated: {}".format(cipher.name))
-            in client_results.stdout
-        )
+        assert to_bytes(f"Cipher negotiated: {cipher.name}") in client_results.stdout
 
     for server_results in openssl.get_results():
         server_results.assert_success()

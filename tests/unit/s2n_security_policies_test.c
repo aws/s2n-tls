@@ -20,8 +20,8 @@
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/policy/s2n_policy_feature.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
 #include "tls/s2n_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 
@@ -159,6 +159,27 @@ int main(int argc, char **argv)
                     }
                 }
                 EXPECT_TRUE(kem_group_is_supported);
+            }
+        }
+
+        /* TLS 1.3 cipher suites should be ordered before non-TLS 1.3 cipher suites.
+         *
+         * The "test_all*" are exempt: they are master lookup tables that must 
+         * remain sorted by IANA value (see s2n_cipher_suite_from_iana)
+         */
+        const struct s2n_cipher_preferences *cipher_prefs = security_policy->cipher_preferences;
+        bool is_iana_ordered_lookup_table = (cipher_prefs == &cipher_preferences_test_all
+                || cipher_prefs == &cipher_preferences_test_all_fips);
+        if (!is_iana_ordered_lookup_table) {
+            bool seen_non_tls_13_cipher = false;
+            for (size_t i = 0; i < cipher_prefs->count; i++) {
+                bool is_tls_13_cipher = (cipher_prefs->suites[i]->minimum_required_tls_version == S2N_TLS13);
+                if (is_tls_13_cipher) {
+                    /* A TLS 1.3 cipher must not appear after a non-TLS 1.3 cipher. */
+                    EXPECT_FALSE(seen_non_tls_13_cipher);
+                } else {
+                    seen_non_tls_13_cipher = true;
+                }
             }
         }
 
@@ -1008,6 +1029,13 @@ int main(int argc, char **argv)
                 /* 20260513 supports ML-DSA-87 certs */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
 
+                /* Mixed cert chain (e.g. P-256 root → ML-DSA-87 leaf) should also work with 20260513 */
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *p256_mldsa87_chain = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p256_mldsa87_chain,
+                        "../pems/mixed_chains/p256_root_mldsa87_leaf/server-chain.pem",
+                        "../pems/mixed_chains/p256_root_mldsa87_leaf/server-key.pem"));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", p256_mldsa87_chain));
+
                 /* 20260513 > 20260220 (CNSA 2.0 interop) with either ML-DSA-87 or p-384 cert */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", mldsa87_chain_and_key));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260220", ecdsa_sha384_chain_and_key));
@@ -1016,6 +1044,27 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", mldsa87_chain_and_key));
                 EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20260513, "20260219", ecdsa_sha384_chain_and_key),
                         S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            }
+
+            /* ELB CNSA 2.0 interop policies */
+            if (s2n_mldsa_is_supported()) {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
+                /* Handshake with each other using ML-DSA-87 certs */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260220, "20260720", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260220, "20260722", mldsa87_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260722, "20260720", mldsa87_chain_and_key));
+
+                /* CNSA2-INTEROP1 can only negotiate TLS 1.3, not TLS 1.2 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20251014, "20260720", ecdsa_sha384_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20240501, "20260720", ecdsa_sha384_chain_and_key),
+                        S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+                /* CNSA2-INTEROP3 can negotiate with RFC9151 interop4 using p-384 cert, but not ML-DSA-87 */
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20251115, "20260722", ecdsa_sha384_chain_and_key));
+                EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(&security_policy_20251115, "20260722", mldsa87_chain_and_key),
+                        S2N_ERR_INVALID_SIGNATURE_SCHEME);
             }
         };
     };
@@ -1070,19 +1119,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_tls13",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
-            /* default_tls13 should also be compatible with S2N_POLICY_STRICT
-             * to allow customers to safely upgrade.
-             */
-            if (s2n_is_tls13_fully_supported()) {
-                for (uint64_t i = 1; i <= S2N_STRICT_LATEST_1; i++) {
-                    const struct s2n_security_policy *strict_policy =
-                            s2n_security_policy_get(S2N_POLICY_STRICT, i);
-                    EXPECT_OK(s2n_test_default_backwards_compatible_for_policy(strict_policy,
-                            versioned_policies, s2n_array_len(versioned_policies),
-                            &cert_chains));
-                }
-            }
         };
 
         /* "default_fips" */
@@ -1122,19 +1158,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_default_backwards_compatible("default_pq",
                     versioned_policies, s2n_array_len(versioned_policies),
                     &cert_chains));
-
-            /* default_pq should also be compatible with S2N_POLICY_STRICT
-             * to allow customers to safely upgrade.
-             */
-            if (s2n_is_tls13_fully_supported()) {
-                for (uint64_t i = 1; i <= S2N_STRICT_LATEST_1; i++) {
-                    const struct s2n_security_policy *strict_policy =
-                            s2n_security_policy_get(S2N_POLICY_STRICT, i);
-                    EXPECT_OK(s2n_test_default_backwards_compatible_for_policy(strict_policy,
-                            versioned_policies, s2n_array_len(versioned_policies),
-                            &cert_chains));
-                }
-            }
         };
 
         /* "rfc9151" */
@@ -1276,6 +1299,88 @@ int main(int argc, char **argv)
             }
         };
     };
+
+    /* ELB TLS1.3 policies prefer ECDSA signature schemes over RSA */
+    {
+        const char prefix[] = "ELBSecurityPolicy-TLS13-";
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            if (strncmp(security_policy_selection[i].version, prefix, sizeof(prefix) - 1) != 0) {
+                continue;
+            }
+
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            EXPECT_NOT_NULL(sec_policy->signature_preferences);
+
+            bool seen_ecdsa = false;
+            for (size_t j = 0; j < sec_policy->signature_preferences->count; j++) {
+                s2n_signature_algorithm sig_alg =
+                        sec_policy->signature_preferences->signature_schemes[j]->sig_alg;
+                if (sig_alg == S2N_SIGNATURE_MLDSA) {
+                    continue;
+                }
+                if (sig_alg == S2N_SIGNATURE_ECDSA) {
+                    seen_ecdsa = true;
+                }
+                if (sig_alg == S2N_SIGNATURE_RSA || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE
+                        || sig_alg == S2N_SIGNATURE_RSA_PSS_PSS) {
+                    EXPECT_TRUE(seen_ecdsa);
+                }
+            }
+        }
+    }
+
+    /* ELB policies that negotiate TLS 1.2 or below prefer ECDHE-ECDSA cipher suites over their ECDHE-RSA twins */
+    {
+        const char prefix[] = "ELBSecurityPolicy-";
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            const char *version = security_policy_selection[i].version;
+            if (strncmp(version, prefix, sizeof(prefix) - 1) != 0) {
+                continue;
+            }
+
+            const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(sec_policy);
+            if (sec_policy->minimum_protocol_version >= S2N_TLS13) {
+                continue;
+            }
+
+            const struct s2n_cipher_preferences *cipher_preferences = sec_policy->cipher_preferences;
+            EXPECT_NOT_NULL(cipher_preferences);
+
+            int first_ecdsa = -1;
+            int first_rsa = -1;
+            for (size_t j = 0; j < cipher_preferences->count; j++) {
+                const struct s2n_cipher_suite *suite = cipher_preferences->suites[j];
+                if (suite->key_exchange_alg != &s2n_ecdhe) {
+                    continue;
+                }
+                if (first_ecdsa < 0 && suite->auth_method == S2N_AUTHENTICATION_ECDSA) {
+                    first_ecdsa = (int) j;
+                }
+                if (first_rsa < 0 && suite->auth_method == S2N_AUTHENTICATION_RSA) {
+                    first_rsa = (int) j;
+                }
+            }
+            if (first_ecdsa >= 0 && first_rsa >= 0) {
+                EXPECT_TRUE(first_ecdsa < first_rsa);
+            }
+
+            for (size_t r = 0; r < cipher_preferences->count; r++) {
+                const struct s2n_cipher_suite *rsa_suite = cipher_preferences->suites[r];
+                if (rsa_suite->key_exchange_alg != &s2n_ecdhe
+                        || rsa_suite->auth_method != S2N_AUTHENTICATION_RSA) {
+                    continue;
+                }
+                for (size_t e = r + 1; e < cipher_preferences->count; e++) {
+                    const struct s2n_cipher_suite *ecdsa_suite = cipher_preferences->suites[e];
+                    EXPECT_FALSE(ecdsa_suite->key_exchange_alg == &s2n_ecdhe
+                            && ecdsa_suite->auth_method == S2N_AUTHENTICATION_ECDSA
+                            && ecdsa_suite->all_record_algs[0] == rsa_suite->all_record_algs[0]);
+                }
+            }
+        }
+    }
 
     END_TEST();
 }

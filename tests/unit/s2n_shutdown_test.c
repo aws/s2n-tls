@@ -974,9 +974,13 @@ int main(int argc, char **argv)
                     s2n_ktls_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
 
-            /* Setup the client->server stuffer to not fit the entire close_notify */
+            /* Setup the client->server stuffer to not fit the entire close_notify.
+             * With real kTLS, sendmsg is all-or-nothing at the record level: the
+             * kernel either accepts the full record or returns EAGAIN. Simulate
+             * this by leaving zero space so the send blocks entirely.
+             */
             EXPECT_SUCCESS(s2n_stuffer_free(&io_pair.server_in.data_buffer));
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.server_in.data_buffer, 1));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.server_in.data_buffer, 0));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client, &blocked), S2N_ERR_IO_BLOCKED);
@@ -989,8 +993,9 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(server, S2N_IO_WRITABLE));
             EXPECT_TRUE(s2n_connection_check_io_status(server, S2N_IO_READABLE));
 
-            /* Reuse the client->server stuffer for the remaining close_notify */
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in.data_buffer));
+            /* Reallocate the client->server stuffer with enough space for the full close_notify */
+            EXPECT_SUCCESS(s2n_stuffer_free(&io_pair.server_in.data_buffer));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.server_in.data_buffer, S2N_DEFAULT_FRAGMENT_LENGTH));
 
             EXPECT_SUCCESS(s2n_shutdown(client, &blocked));
             EXPECT_SUCCESS(s2n_shutdown(server, &blocked));

@@ -1,13 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{
-    config::Config,
-    connection::Connection,
-    enums::Mode,
-    error::Error,
-    pool::{Pool, PooledConnection},
-};
+#[allow(deprecated)]
+use crate::pool::{Pool, PooledConnection};
+use crate::{config::Config, connection::Connection, enums::Mode, error::Error};
 
 /// A trait indicating that a structure can produce connections.
 pub trait Builder: Clone {
@@ -26,6 +22,7 @@ impl Builder for Config {
 }
 
 /// Produces new connections from a pool of reuseable connections.
+#[allow(deprecated)]
 impl<T: Pool + Clone> Builder for T {
     type Output = PooledConnection<T>;
     fn build_connection(&self, mode: Mode) -> Result<Self::Output, Error> {
@@ -72,6 +69,7 @@ where
 }
 
 #[cfg(test)]
+#[allow(deprecated)]
 mod tests {
     use super::*;
     use crate::pool::ConfigPoolBuilder;

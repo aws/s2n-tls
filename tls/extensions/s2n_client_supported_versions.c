@@ -89,7 +89,7 @@ int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn
     uint8_t actual_protocol_version = s2n_unknown_protocol_version;
 
     for (int i = 0; i < size_of_version_list; i += S2N_TLS_PROTOCOL_VERSION_LEN) {
-        uint8_t client_version_parts[S2N_TLS_PROTOCOL_VERSION_LEN];
+        uint8_t client_version_parts[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
         POSIX_GUARD(s2n_stuffer_read_bytes(extension, client_version_parts, S2N_TLS_PROTOCOL_VERSION_LEN));
 
         /* If the client version is outside of our supported versions, then ignore the value.

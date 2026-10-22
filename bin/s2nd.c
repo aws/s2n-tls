@@ -264,7 +264,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai = NULL;
+    struct addrinfo hints = { 0 }, *ai = NULL;
     int r = 0, sockfd = 0;
 
     /* required args */
@@ -615,7 +615,7 @@ int main(int argc, char *const *argv)
     s2n_set_common_server_config(max_early_data, config, conn_settings, cipher_prefs, session_ticket_key_file_path);
 
     if (parallelize) {
-        struct sigaction sa;
+        struct sigaction sa = { 0 };
 
         sa.sa_handler = SIG_IGN;
 #if defined(SA_NOCLDWAIT)

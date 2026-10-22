@@ -149,7 +149,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
     if (conn->actual_protocol_version < S2N_TLS13) {
         message_type_t handshake_message = s2n_conn_get_current_message_type(conn);
         const uint8_t client_cert_verify_done = (handshake_message >= CLIENT_CERT_VERIFY) ? 1 : 0;
-        s2n_cert_auth_type client_cert_auth_type;
+        s2n_cert_auth_type client_cert_auth_type = 0;
         POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
         /* In TLS1.2 the transcript hash used in the client's certificate verify message
@@ -174,11 +174,19 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
         case S2N_TLS13: {
             /* For TLS 1.2 and TLS 1.3, the cipher suite defines the PRF hash alg */
             s2n_hmac_algorithm prf_alg = conn->secure->cipher_suite->prf_alg;
-            s2n_hash_algorithm hash_alg;
+            s2n_hash_algorithm hash_alg = 0;
             POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
             POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
             break;
         }
+        default:
+            /* actual_protocol_version is a uint8_t, not an enum, so -Wswitch
+             * cannot enforce exhaustiveness. Fail closed: an unknown version
+             * must not silently skip setting the PRF hash requirement. This path
+             * is currently unreachable (the handshake sets the version to one of
+             * the five known values), but serves as defense-in-depth against
+             * internal state corruption. */
+            POSIX_BAIL(S2N_ERR_SAFETY);
     }
 
     return S2N_SUCCESS;

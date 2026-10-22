@@ -2,16 +2,16 @@
 # SPDX-License-Identifier: Apache-2.0
 import pytest
 
-from configuration import (
-    available_ports,
-    PROTOCOLS,
-    MINIMAL_TEST_CIPHERS,
-    MINIMAL_TEST_CERTS,
-)
 from common import ProviderOptions, data_bytes
+from configuration import (
+    MINIMAL_TEST_CERTS,
+    MINIMAL_TEST_CIPHERS,
+    PROTOCOLS,
+    available_ports,
+)
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL, GnuTLS
-from utils import invalid_test_parameters, get_parameter_name, to_bytes, to_string
+from providers import S2N, GnuTLS, OpenSSL, Provider
+from utils import get_parameter_name, invalid_test_parameters, to_bytes, to_string
 
 SEND_DATA_SIZE = 2**14
 

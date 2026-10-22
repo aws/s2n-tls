@@ -2,20 +2,22 @@
 # SPDX-License-Identifier: Apache-2.0
 import copy
 import os
+
 import pytest
 
+from common import Curves, Protocols, ProviderOptions, data_bytes
 from configuration import (
-    available_ports,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
     TLS13_CIPHERS,
+    available_ports,
 )
-from common import ProviderOptions, Protocols, Curves, data_bytes
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N as S2NBase, OpenSSL as OpenSSLBase
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
-
+from providers import S2N as S2NBase
+from providers import OpenSSL as OpenSSLBase
+from providers import Provider
 from test_hello_retry_requests import S2N_HRR_MARKER
+from utils import get_parameter_name, invalid_test_parameters, to_bytes
 
 TICKET_FILE = "ticket"
 EARLY_DATA_FILE = "early_data"
@@ -29,7 +31,7 @@ NUM_CONNECTIONS = NUM_RESUMES + 1  # resumes + initial
 S2N_DEFAULT_CURVE = Curves.X25519
 # We have no plans to support this curve any time soon
 S2N_UNSUPPORTED_CURVE = "X448"
-S2N_HRR_CURVES = list(curve for curve in ALL_TEST_CURVES if curve != S2N_DEFAULT_CURVE)
+S2N_HRR_CURVES = [curve for curve in ALL_TEST_CURVES if curve != S2N_DEFAULT_CURVE]
 
 S2N_EARLY_DATA_MARKER = to_bytes("WITH_EARLY_DATA")
 S2N_EARLY_DATA_RECV_MARKER = "Early Data received: "

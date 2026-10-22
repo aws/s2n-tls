@@ -1,19 +1,20 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 import copy
-import pytest
 import re
 
+import pytest
+
+from common import Curves, Protocols, ProviderOptions, data_bytes
 from configuration import (
-    available_ports,
-    TLS13_CIPHERS,
     ALL_TEST_CURVES,
     MINIMAL_TEST_CERTS,
+    TLS13_CIPHERS,
+    available_ports,
 )
-from common import ProviderOptions, Protocols, data_bytes, Curves
 from fixtures import managed_process  # noqa: F401
-from providers import Provider, S2N, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from providers import S2N, OpenSSL, Provider
+from utils import get_parameter_name, invalid_test_parameters, to_bytes
 
 S2N_DEFAULT_CURVE = Curves.X25519
 S2N_HRR_MARKER = to_bytes("HELLO_RETRY_REQUEST")
@@ -86,7 +87,7 @@ def test_hrr_with_s2n_as_client(
     # The client should connect and return without error
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
+        assert to_bytes(f"Curve: {CURVE_NAMES[curve.name]}") in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
     # These are the special HelloRetryRequest bytes from the Server Random field
@@ -105,7 +106,7 @@ def test_hrr_with_s2n_as_client(
             is not None
         )
         assert (
-            to_bytes("Shared Elliptic groups: {}".format(server_options.curve))
+            to_bytes(f"Shared Elliptic groups: {server_options.curve}")
             in results.stdout
         )
         assert random_bytes in results.stdout
@@ -160,7 +161,7 @@ def test_hrr_with_s2n_as_server(
     for results in server.get_results():
         results.assert_success()
         assert random_bytes in results.stdout
-        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
+        assert to_bytes(f"Curve: {CURVE_NAMES[curve.name]}") in results.stdout
         assert random_bytes in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
@@ -233,7 +234,7 @@ def test_hrr_with_default_keyshare(
     # The client should connect and return without error
     for results in client.get_results():
         results.assert_success()
-        assert to_bytes("Curve: {}".format(CURVE_NAMES[curve.name])) in results.stdout
+        assert to_bytes(f"Curve: {CURVE_NAMES[curve.name]}") in results.stdout
         assert S2N_HRR_MARKER in results.stdout
 
     # These are the special HelloRetryRequest bytes from the Server Random field
@@ -252,7 +253,7 @@ def test_hrr_with_default_keyshare(
             is not None
         )
         assert (
-            to_bytes("Shared Elliptic groups: {}".format(server_options.curve))
+            to_bytes(f"Shared Elliptic groups: {server_options.curve}")
             in results.stdout
         )
         assert random_bytes in results.stdout

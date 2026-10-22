@@ -113,7 +113,7 @@ int s2n_tls13_generate_unsigned_cert_verify_content(struct s2n_connection *conn,
     s2n_tls13_connection_keys(tls13_ctx, conn);
 
     uint8_t hash_digest_length = tls13_ctx.size;
-    uint8_t digest_out[S2N_MAX_DIGEST_LEN];
+    uint8_t digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
 
     /* Get current handshake hash */
     POSIX_ENSURE_REF(conn->handshake.hashes);

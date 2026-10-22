@@ -307,7 +307,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai_list = NULL, *ai = NULL;
+    struct addrinfo hints = { 0 }, *ai_list = NULL, *ai = NULL;
     int r = 0, sockfd = 0;
     bool session_ticket_recv = 0;
     /* Optional args */
@@ -334,7 +334,7 @@ int main(int argc, char *const *argv)
     const char *cipher_prefs = "default";
     int fips_mode = 0;
     const char *host = NULL;
-    struct verify_data unsafe_verify_data;
+    struct verify_data unsafe_verify_data = { 0 };
     const char *port = "443";
     bool echo_input = false;
     const char *send_file = NULL;
@@ -342,7 +342,7 @@ int main(int argc, char *const *argv)
     uint8_t non_blocking = 0;
     const char *key_log_path = NULL;
     FILE *key_log_file = NULL;
-    char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
+    char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH] = { 0 };
     size_t psk_list_len = 0;
     char *early_data = NULL;
     bool setup_reneg_cb = false;

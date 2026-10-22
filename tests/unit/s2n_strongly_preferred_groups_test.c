@@ -44,8 +44,20 @@ int main(int argc, char **argv)
 
         POSIX_ENSURE_REF(security_policy->kem_preferences);
 
-        /* Temporarily require that policies don't allow both PQ and strongly supported groups. */
-        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
+        /* Strongly preferred groups are now allowed to coexist with PQ preferences.
+         * PQ negotiation takes priority over strongly preferred ECC groups.
+         * However, the strongly preferred list itself must only contain ECC curves,
+         * not PQ groups. */
+        for (size_t i = 0; i < security_policy->strongly_preferred_groups->count; i++) {
+            const struct s2n_kem_group *kem_group = NULL;
+            bool found_kem_group = false;
+            EXPECT_SUCCESS(s2n_find_kem_group_from_iana_id(
+                    security_policy->strongly_preferred_groups->iana_ids[i], &kem_group, &found_kem_group));
+            if (found_kem_group) {
+                fprintf(stderr, "Error with Security Policy: %s\n", policy_name);
+                FAIL_MSG("Strongly preferred groups must not contain PQ KEM groups.");
+            }
+        }
 
         POSIX_ENSURE_REF(security_policy->ecc_preferences);
         for (size_t i = 0; i < security_policy->ecc_preferences->count; i++) {
@@ -55,15 +67,14 @@ int main(int argc, char **argv)
             ordered_supported_groups[ordered_supported_group_count++] = ecc_curve->iana_id;
         }
 
-        /* Ensure ordering of strongly preferred IANA's matches the PQ and ECC preference ordering. */
+        /* Ensure ordering of strongly preferred IANA's matches the ECC preference ordering. */
         for (size_t i = 0; i < security_policy->strongly_preferred_groups->count; i++) {
             const uint16_t strongly_preferred_iana = security_policy->strongly_preferred_groups->iana_ids[i];
             const uint16_t standard_preferred_iana = ordered_supported_groups[i];
 
-            /* Ensure that PQ supported groups aren't skipped as that could cause downgrades to ECC. */
             if (strongly_preferred_iana != standard_preferred_iana) {
                 fprintf(stderr, "Error with Security Policy: %s\n", policy_name);
-                FAIL_MSG("The strongly preferred groups should be a prefix of the standard SupportedGroup preference list.");
+                FAIL_MSG("The strongly preferred groups should be a prefix of the ECC preference list.");
             }
 
             EXPECT_EQUAL(strongly_preferred_iana, standard_preferred_iana);

@@ -1,16 +1,17 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-import pytest
-import sslyze
 import abc
 from enum import Enum, auto
 
-from configuration import available_ports, MINIMAL_TEST_CERTS
-from common import ProviderOptions, Protocols, Cipher, Ciphers, Curves
+import pytest
+import sslyze
+
+from common import Cipher, Ciphers, Curves, Protocols, ProviderOptions
+from configuration import MINIMAL_TEST_CERTS, available_ports
 from fixtures import managed_process  # noqa: F401
+from global_flags import S2N_PROVIDER_VERSION, get_flag
 from providers import S2N
 from utils import get_parameter_name, invalid_test_parameters
-from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 HOST = "127.0.0.1"
 
