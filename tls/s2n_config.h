@@ -110,10 +110,6 @@ struct s2n_config {
 
     unsigned ticket_forward_secrecy : 1;
 
-    /* Whether the application has set a config-level maximum outgoing fragment
-     * length via s2n_config_set_max_fragment_length. */
-    unsigned max_fragment_length_set : 1;
-
     struct s2n_dh_params dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
