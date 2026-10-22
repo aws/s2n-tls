@@ -337,16 +337,11 @@ static S2N_RESULT s2n_ktls_update_bufs_with_offset(const struct iovec **bufs, si
              * Allocate and prepare the replacement blob separately, only replacing
              * the original after all operations succeed to ensure failure-atomicity. */
             struct s2n_blob heap_mem = { 0 };
-            if (s2n_alloc(&heap_mem, size) != S2N_SUCCESS) {
-                return S2N_RESULT_ERROR;
-            }
+            RESULT_GUARD_POSIX(s2n_alloc(&heap_mem, size));
 
             /* Perform the data copy into the new heap blob */
             struct iovec *new_bufs = (struct iovec *) (void *) heap_mem.data;
-            if (s2n_ensure_memmove_trace(new_bufs, *bufs, size) == NULL) {
-                s2n_free(&heap_mem);
-                return S2N_RESULT_ERROR;
-            }
+            RESULT_CHECKED_MEMCPY(new_bufs, *bufs, size);
             new_bufs[0].iov_base = (uint8_t *) new_bufs[0].iov_base + offs;
             new_bufs[0].iov_len = new_bufs[0].iov_len - offs;
 
