@@ -87,6 +87,7 @@ S2N_RESULT s2n_check_supported_libcrypto(const char *s2n_libcrypto)
         { .libcrypto = "openssl-1.1.1", .is_openssl = true },
         { .libcrypto = "openssl-3.0", .is_openssl = true },
         { .libcrypto = "openssl-3.0-fips", .is_openssl = true, .is_opensslfips = true },
+        { .libcrypto = "openssl-4.0", .is_openssl = true },
     };
 
     for (size_t i = 0; i < s2n_array_len(supported_libcrypto); i++) {

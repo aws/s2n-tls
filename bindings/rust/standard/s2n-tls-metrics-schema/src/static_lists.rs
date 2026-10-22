@@ -69,17 +69,6 @@ impl FiniteCounter<CIPHER_COUNT> for Cipher {
     };
 }
 
-impl FromStr for Cipher {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        CIPHERS_AVAILABLE_IN_S2N
-            .iter()
-            .find(|info| info.iana_description == s)
-            .map(|info| info.cipher)
-            .ok_or(())
-    }
-}
-
 impl FiniteCounter<PROTOCOL_COUNT> for Version {
     const ELEMENTS: [Version; PROTOCOL_COUNT] = {
         let mut out = [Version(U16::new(0)); PROTOCOL_COUNT];
@@ -115,17 +104,6 @@ impl FiniteCounter<GROUP_COUNT> for Group {
     };
 }
 
-impl FromStr for Group {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        GROUPS_AVAILABLE_IN_S2N
-            .iter()
-            .find(|info| info.iana_description == s)
-            .map(|info| info.group)
-            .ok_or(())
-    }
-}
-
 impl FiniteCounter<SIGNATURE_COUNT> for Signature {
     const ELEMENTS: [Signature; SIGNATURE_COUNT] = {
         let mut out = [Signature(U16::new(0)); SIGNATURE_COUNT];
@@ -136,17 +114,6 @@ impl FiniteCounter<SIGNATURE_COUNT> for Signature {
         }
         out
     };
-}
-
-impl FromStr for Signature {
-    type Err = ();
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
-            .iter()
-            .find(|info| info.description == s)
-            .map(|info| info.signature)
-            .ok_or(())
-    }
 }
 
 impl FiniteCounter<DEFINED_ALERTS_COUNT> for Alert {
@@ -246,6 +213,13 @@ impl Cipher {
             .find(|info| info.openssl_name == name)
             .map(|info| info.cipher)
     }
+
+    pub fn from_iana_description(description: &str) -> Option<Self> {
+        CIPHERS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.iana_description == description)
+            .map(|info| info.cipher)
+    }
 }
 
 impl Display for Cipher {
@@ -307,7 +281,7 @@ impl Signature {
     pub const rsa_pkcs1_sha512: Self = Signature(U16::new(0x0601));
 
     /// This is the list of signature algorithms that
-    /// - s2n-tls recognizes/generally support
+    /// - s2n-tls recognizes/generally supports
     /// - do not support TLS 1.3
     pub const SIG_ALGS_TLS13_UNSUPPORTED: &[Signature] = &[
         // SHA1 ecdsa schemes are not supported for TLS 1.3
@@ -326,6 +300,24 @@ impl Signature {
             .iter()
             .find(|info| info.signature == *self)
             .map(|info| info.description)
+    }
+
+    /// Look up a [`Signature`] from the name returned by
+    /// [`Connection::signature_scheme()`].
+    pub fn from_s2n_description(s2n_description: &str) -> Option<Self> {
+        // Map version-specific ECDSA names back to the base description used in
+        // the static list. Checked in `all_emittable_signature_names_resolve`
+        let normalized = match s2n_description {
+            "ecdsa_secp256r1_sha256" | "legacy_ecdsa_sha256" => "ecdsa_sha256",
+            "ecdsa_secp384r1_sha384" | "legacy_ecdsa_sha384" => "ecdsa_sha384",
+            "ecdsa_secp521r1_sha512" | "legacy_ecdsa_sha512" => "ecdsa_sha512",
+            other => other,
+        };
+
+        SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.description == normalized)
+            .map(|info| info.signature)
     }
 }
 
@@ -379,6 +371,13 @@ impl Group {
         GROUPS_AVAILABLE_IN_S2N
             .iter()
             .any(|info| info.group == *self)
+    }
+
+    pub fn from_iana_description(iana_description: &str) -> Option<Self> {
+        GROUPS_AVAILABLE_IN_S2N
+            .iter()
+            .find(|info| info.iana_description == iana_description)
+            .map(|info| info.group)
     }
 }
 
@@ -809,5 +808,45 @@ mod tests {
         for (constant, expected_name) in cases {
             assert_eq!(constant.known_description().unwrap(), *expected_name);
         }
+    }
+
+    #[test]
+    fn from_s2n_description_normalizes_ecdsa_names() {
+        // The base names returned for schemes without a signature curve resolve
+        // directly.
+        assert_eq!(
+            Signature::from_s2n_description("rsa_pss_rsae_sha256"),
+            Some(Signature::rsa_pss_rsae_sha256)
+        );
+
+        // ECDSA schemes share an IANA value across TLS versions, so
+        // `Connection::signature_scheme()` returns version-specific names that
+        // are not present verbatim in the static list. Both the TLS 1.3
+        // (`tls13_name`) and TLS 1.2 (`legacy_name`) forms must resolve to the
+        // base ECDSA signature.
+        for name in ["ecdsa_secp256r1_sha256", "legacy_ecdsa_sha256"] {
+            assert_eq!(
+                Signature::from_s2n_description(name),
+                Some(Signature::ecdsa_secp256r1_sha256),
+                "failed to resolve {name}"
+            );
+        }
+        for name in ["ecdsa_secp384r1_sha384", "legacy_ecdsa_sha384"] {
+            assert_eq!(
+                Signature::from_s2n_description(name),
+                Some(Signature::ecdsa_secp384r1_sha384),
+                "failed to resolve {name}"
+            );
+        }
+        for name in ["ecdsa_secp521r1_sha512", "legacy_ecdsa_sha512"] {
+            assert_eq!(
+                Signature::from_s2n_description(name),
+                Some(Signature::ecdsa_secp521r1_sha512),
+                "failed to resolve {name}"
+            );
+        }
+
+        // Unknown names still return None.
+        assert_eq!(Signature::from_s2n_description("not_a_scheme"), None);
     }
 }

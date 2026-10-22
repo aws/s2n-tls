@@ -34,7 +34,6 @@ certificate signature schemes:
 - rsa_pkcs1_sha384
 - rsa_pkcs1_sha512
 pq:
-- revision: 5
 - kem groups:
 -- X25519MLKEM768
 -- SecP256r1MLKEM768

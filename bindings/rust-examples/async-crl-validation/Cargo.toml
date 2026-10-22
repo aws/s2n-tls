@@ -1,0 +1,17 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "async-crl-validation"
+version.workspace = true
+authors.workspace = true
+publish.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+# The async certificate validation callback is behind the "unstable-crl" feature.
+s2n-tls = { path = "../../rust/extended/s2n-tls", features = ["unstable-crl"] }
+s2n-tls-tokio = { path = "../../rust/extended/s2n-tls-tokio" }
+tokio = { version = "1", features = ["full"] }

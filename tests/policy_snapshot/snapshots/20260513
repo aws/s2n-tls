@@ -37,6 +37,5 @@ certificate signature schemes:
 - ecdsa_sha512
 - legacy_ecdsa_sha224
 pq:
-- revision: 5
 - kem groups:
 -- MLKEM1024

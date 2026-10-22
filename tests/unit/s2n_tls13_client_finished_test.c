@@ -80,13 +80,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(reset_stuffers(&client_conn->handshake.io, &server_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, hash_size));
             server_conn->handshake.io.blob.data[0] ^= 1;
-            EXPECT_FAILURE(s2n_tls13_client_finished_recv(server_conn));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_client_finished_recv(server_conn), S2N_ERR_BAD_FINISHED);
 
             /* Expect failure if finished key differs */
             EXPECT_SUCCESS(reset_stuffers(&client_conn->handshake.io, &server_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io, hash_size));
             server_conn->handshake.client_finished[0] ^= 1;
-            EXPECT_FAILURE(s2n_tls13_client_finished_recv(server_conn));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_client_finished_recv(server_conn), S2N_ERR_BAD_FINISHED);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
