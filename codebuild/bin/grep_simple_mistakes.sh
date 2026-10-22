@@ -282,7 +282,7 @@ fi
 
 #############################################
 # Assert that libcrypto calls result are captured.
-# They must be wrapped in POSIX_GUARD_OSSL or RESULT_GUARD_OSSL.
+# They must not discard the return value of those libcrypto calls.
 #
 # Only these functions are listed for now, rather than all of libcrypto.
 # Add a function when s2n starts calling other ones and needed to check their status.
