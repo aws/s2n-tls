@@ -58,9 +58,6 @@ struct s2n_kem_params {
     struct s2n_blob public_key;
     struct s2n_blob private_key;
     struct s2n_blob shared_secret;
-    /* Store whether the client included the length prefix of the PQ and ECC Shares in their ClientHello, so that the
-     * server can match the client's behavior. For the client side, store whether it should send the length prefix. */
-    bool len_prefixed;
 };
 
 struct s2n_iana_to_kem {

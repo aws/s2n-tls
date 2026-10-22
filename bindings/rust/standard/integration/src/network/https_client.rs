@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bytes::Bytes;
-use http::{Response, StatusCode, Uri};
-use http_body_util::{BodyExt, Empty};
+use http::{Response, Uri};
+use http_body_util::Empty;
 use hyper::body::Incoming;
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
 use s2n_tls::{
@@ -13,62 +13,40 @@ use s2n_tls::{
 use s2n_tls_hyper::connector::HttpsConnector;
 use std::str::FromStr;
 
-#[derive(Debug)]
-struct TestCase {
-    pub query_target: &'static str,
-    /// We accept multiple possible results because some websites frequently change
-    /// behavior, possibly as a result of throttling the IP ranges of our CI
-    /// providers.
-    pub expected_status_codes: &'static [u16],
-}
-
-impl TestCase {
-    const fn new(domain: &'static str, expected_status_codes: &'static [u16]) -> Self {
-        TestCase {
-            query_target: domain,
-            expected_status_codes,
-        }
-    }
-}
-
-const TEST_CASES: &[TestCase] = &[
+/// The set of well known http sites that we attempt to connect to.
+///
+/// This test is only concerned with TLS handshake compatibility, so we don't
+/// assert on specific HTTP status codes. Sites frequently change their behavior
+/// (e.g. throttling the IP ranges of our CI providers), which makes asserting on
+/// specific status codes flaky. Instead, we only require that the request
+/// completes with _some_ HTTP status code, which indicates that the TLS
+/// handshake succeeded.
+const TEST_TARGETS: &[&str] = &[
     // this is a link to the s2n-tls unit test coverage report, hosted on cloudfront
-    TestCase::new(
-        "https://dx1inn44oyl7n.cloudfront.net/main/index.html",
-        &[200],
-    ),
+    "https://dx1inn44oyl7n.cloudfront.net/main/index.html",
     // this is a link to a non-existent S3 item
-    TestCase::new(
-        "https://notmybucket.s3.amazonaws.com/folder/afile.jpg",
-        &[403],
-    ),
-    TestCase::new("https://www.amazon.com", &[200]),
-    TestCase::new("https://www.apple.com", &[200]),
-    TestCase::new("https://www.att.com", &[200]),
-    TestCase::new("https://www.cloudflare.com", &[200]),
-    // 2026-04-28: ebay.com returns 400 under
-    // `cargo test --no-default-features --features pq`.
-    // 2026-06-16: ebay.com also returns 307 (redirect).
-    // 2026-08-12: also returns 403
-    TestCase::new("https://www.ebay.com", &[200, 307, 400, 403]),
-    TestCase::new("https://www.google.com", &[200]),
-    TestCase::new("https://www.mozilla.org", &[200]),
-    TestCase::new("https://www.netflix.com", &[200]),
-    TestCase::new("https://www.openssl.org", &[200]),
-    TestCase::new("https://www.t-mobile.com", &[200]),
-    TestCase::new("https://www.verizon.com", &[200]),
-    TestCase::new("https://www.wikipedia.org", &[200, 403]),
-    TestCase::new("https://www.yahoo.com", &[200, 429]),
-    TestCase::new("https://www.youtube.com", &[200]),
-    TestCase::new("https://www.github.com", &[301]),
-    TestCase::new("https://www.samsung.com", &[301]),
-    TestCase::new("https://www.twitter.com", &[301]),
-    TestCase::new("https://www.facebook.com", &[302]),
-    // 2024-11-21: Microsoft had been consistently returning a 302. It then started
-    // returning 403 codes in CI, but was returning 200 codes when run locally.
-    TestCase::new("https://www.microsoft.com", &[200, 302, 403]),
-    TestCase::new("https://www.ibm.com", &[303]),
-    TestCase::new("https://www.f5.com", &[403]),
+    "https://notmybucket.s3.amazonaws.com/folder/afile.jpg",
+    "https://www.amazon.com",
+    "https://www.apple.com",
+    "https://www.att.com",
+    "https://www.cloudflare.com",
+    "https://www.ebay.com",
+    "https://www.google.com",
+    "https://www.mozilla.org",
+    "https://www.netflix.com",
+    "https://www.openssl.org",
+    "https://www.t-mobile.com",
+    "https://www.verizon.com",
+    "https://www.wikipedia.org",
+    "https://www.yahoo.com",
+    "https://www.youtube.com",
+    "https://www.github.com",
+    "https://www.samsung.com",
+    "https://www.twitter.com",
+    "https://www.facebook.com",
+    "https://www.microsoft.com",
+    "https://www.ibm.com",
+    "https://www.f5.com",
 ];
 
 /// perform an HTTP GET request against `uri` using an s2n-tls config with
@@ -90,30 +68,22 @@ async fn https_get(
 /// Ensure that s2n-tls is compatible with other http/TLS implementations.
 ///
 /// This test uses s2n-tls-hyper to make http requests over a TLS connection to
-/// a number of well known http sites.
+/// a number of well known http sites. We only assert that the request completes
+/// with some recognizable HTTP status code, which indicates that the TLS
+/// handshake succeeded. We intentionally do _not_ assert on specific status
+/// codes, since sites frequently change their behavior and cause flaky failures.
 #[test_log::test(tokio::test)]
-async fn http_get_test() -> Result<(), Box<dyn std::error::Error>> {
-    for test_case in TEST_CASES {
+async fn https_get_test() -> Result<(), Box<dyn std::error::Error>> {
+    for target in TEST_TARGETS {
         for policy in [security::DEFAULT, security::DEFAULT_TLS13] {
-            tracing::info!("executing test case {:#?} with {:?}", test_case, policy);
+            tracing::info!("executing test case {target:?} with {policy:?}");
 
-            let response = https_get(test_case.query_target, &policy).await?;
-            let status_code = response.status().as_u16();
+            let response = https_get(target, &policy).await.map_err(|err| {
+                format!("HTTPS request to {target:?} with {policy:?} failed: {err}")
+            })?;
 
-            let status_was_expected = test_case.expected_status_codes.contains(&status_code);
-            if !status_was_expected {
-                tracing::error!("unexpected status code: {status_code}");
-            }
-            assert!(
-                status_was_expected,
-                "Unexpected status code \"{status_code}\" for test case {:#?}",
-                test_case
-            );
-
-            if status_code == StatusCode::OK.as_u16() {
-                let body = response.into_body().collect().await?.to_bytes();
-                assert!(!body.is_empty());
-            }
+            let status_code = response.status();
+            tracing::info!("received status code {status_code} for {target:?}");
         }
     }
 

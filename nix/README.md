@@ -75,9 +75,9 @@ The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environ
 From inside a devShell after running `configure` and `build`, use `uvinteg <test name>` to run the integration tests matching the regex `<test name>`, or with no arguments to run all the integration tests.  Note that some of the tests are still broken under nix, so some failures are expected.
 For example: `uvinteg happy_path`.
 
-The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg" `
+The CI does this in one shot with `nix develop --max-jobs auto --ignore-environment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg" `
 
-Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg happy_path"`
+Like with the unit tests, an individual test, like [happy_path](https://github.com/aws/s2n-tls/blob/main/tests/integrationv2/test_happy_path.py) in this example, can be run with: `nix develop --max-jobs auto --ignore-environment --command bash -c "source ./nix/shell.sh; configure;build;uvinteg happy_path"`
 
 For Rust integration tests, use `rust_test` from within a rust-enabled devshell after running `rust_configure` and `rust_build`.
 

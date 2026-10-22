@@ -124,6 +124,8 @@ int main(int argc, char **argv)
             conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
             /* Original connection negotiated an EMS */
             conn->ems_negotiated = true;
+            /* A resumable session must have a valid (non-zero) master secret */
+            memset(conn->secrets.version.tls12.master_secret, 1, S2N_TLS_SECRET_LEN);
 
             struct s2n_stuffer ticket = { 0 };
             struct s2n_blob ticket_blob = { 0 };

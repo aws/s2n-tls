@@ -15,6 +15,17 @@ use crate::{
 pub(crate) static ARBITRARY_POLICY_1: LazyLock<Policy> =
     LazyLock::new(|| Policy::from_version("20240503").unwrap());
 
+/// A policy whose most preferred group is `secp256r1`, so a client using it will
+/// send a `secp256r1` key share.
+pub(crate) static P256_PREFERRING_POLICY: LazyLock<Policy> =
+    LazyLock::new(|| Policy::from_version("20240503").unwrap());
+
+/// A policy with `secp384r1` as a strongly preferred group. A server using this
+/// policy will send a HelloRetryRequest to any client that key shares a
+/// different group, e.g. a [`P256_PREFERRING_POLICY`] client.
+pub(crate) static STRONGLY_PREFERRED_GROUPS_POLICY: LazyLock<Policy> =
+    LazyLock::new(|| Policy::from_version("20251117").unwrap());
+
 /// A test helper that implements [`TelemetrySink`] by collecting records into a Vec.
 #[derive(Debug, Clone)]
 pub(crate) struct VecSink {
@@ -52,6 +63,10 @@ impl<S: TelemetrySink> TestEndpoint<S> {
 
 impl TestEndpoint<VecSink> {
     pub fn new() -> Self {
+        Self::with_server_policy(&DEFAULT_TLS13)
+    }
+
+    pub fn with_server_policy(server_policy: &Policy) -> Self {
         let sink = VecSink::new();
         let attribution = Attribution {
             service: "test_server".to_owned(),
@@ -60,7 +75,7 @@ impl TestEndpoint<VecSink> {
         };
         let subscriber = AggregatedMetricsSubscriber::new(sink.clone(), attribution);
         let server_config = {
-            let mut config = config_builder(&DEFAULT_TLS13).unwrap();
+            let mut config = config_builder(server_policy).unwrap();
             config.set_event_subscriber(subscriber.clone()).unwrap();
             config.build().unwrap()
         };

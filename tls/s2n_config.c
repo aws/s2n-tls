@@ -158,6 +158,8 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         return 0;
     }
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+    POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     struct s2n_blob s2n_map_value = { 0 };
     bool key_found = false;
     POSIX_GUARD_RESULT(s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value, &key_found));
@@ -372,12 +374,11 @@ int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 int s2n_config_free_dhparams(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
-    if (config->dhparams) {
-        POSIX_GUARD(s2n_dh_params_free(config->dhparams));
-    }
 
-    POSIX_GUARD(s2n_free_object((uint8_t **) &config->dhparams, sizeof(struct s2n_dh_params)));
-    return 0;
+    /* s2n_dh_params_free is safe to call when dh is NULL, so this handles
+     * both the configured and unconfigured cases. */
+    POSIX_GUARD(s2n_dh_params_free(&config->dhparams));
+    return S2N_SUCCESS;
 }
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config)
@@ -545,6 +546,8 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     POSIX_GUARD_RESULT(s2n_security_policy_validate_certificate_chain(config->security_policy, cert_key_pair));
 
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
+    POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
 
     /* Perform all fallible checks BEFORE inserting into the domain name map.
@@ -553,8 +556,6 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
      * resulting in dangling pointers and a use-after-free during SNI lookup.
      */
     if (!config->default_certs_are_explicit) {
-        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         if (config->default_certs_by_type.certs[cert_type] != NULL) {
             /* Because library-owned certificates are tracked and cleaned up via the
              * default_certs_by_type mapping, library-owned chains MUST be set as the default
@@ -744,6 +745,8 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     for (size_t i = 0; i < num_cert_key_pairs; i++) {
         POSIX_ENSURE_REF(cert_key_pairs[i]);
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         S2N_ERROR_IF(new_defaults.certs[cert_type] != NULL, S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
         new_defaults.certs[cert_type] = cert_key_pairs[i];
     }
@@ -751,6 +754,8 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     POSIX_GUARD(s2n_config_clear_default_certificates(config));
     for (size_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
         config->default_certs_by_type.certs[cert_type] = cert_key_pairs[i];
     }
@@ -766,20 +771,9 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     DEFER_CLEANUP(struct s2n_stuffer dhparams_in_stuffer = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer dhparams_out_stuffer = { 0 }, s2n_stuffer_free);
     struct s2n_blob dhparams_blob = { 0 };
-    struct s2n_blob mem = { 0 };
 
-    /* Allocate the memory for the chain and key struct */
-    POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_dh_params)));
-    config->dhparams = (struct s2n_dh_params *) (void *) mem.data;
-
-    if (s2n_stuffer_alloc_ro_from_string(&dhparams_in_stuffer, dhparams_pem) != S2N_SUCCESS) {
-        s2n_free(&mem);
-        S2N_ERROR_PRESERVE_ERRNO();
-    }
-    if (s2n_stuffer_growable_alloc(&dhparams_out_stuffer, strlen(dhparams_pem)) != S2N_SUCCESS) {
-        s2n_free(&mem);
-        S2N_ERROR_PRESERVE_ERRNO();
-    }
+    POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&dhparams_in_stuffer, dhparams_pem));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&dhparams_out_stuffer, strlen(dhparams_pem)));
 
     /* Convert pem to asn1 and asn1 to the private key */
     POSIX_GUARD(s2n_stuffer_dhparams_from_pem(&dhparams_in_stuffer, &dhparams_out_stuffer));
@@ -788,9 +782,18 @@ int s2n_config_add_dhparams(struct s2n_config *config, const char *dhparams_pem)
     dhparams_blob.data = s2n_stuffer_raw_read(&dhparams_out_stuffer, dhparams_blob.size);
     POSIX_ENSURE_REF(dhparams_blob.data);
 
-    POSIX_GUARD(s2n_pkcs3_to_dh_params(config->dhparams, &dhparams_blob));
+    /* Parse into a temporary struct so that config->dhparams is only modified
+     * once parsing has fully succeeded. On failure, the DEFER_CLEANUP frees any
+     * DH that was allocated. */
+    DEFER_CLEANUP(struct s2n_dh_params dhparams = { 0 }, s2n_dh_params_free);
+    POSIX_GUARD(s2n_pkcs3_to_dh_params(&dhparams, &dhparams_blob));
 
-    return 0;
+    /* Release any previously configured dhparams before overwriting. */
+    POSIX_GUARD(s2n_config_free_dhparams(config));
+    config->dhparams = dhparams;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(dhparams);
+
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx)
