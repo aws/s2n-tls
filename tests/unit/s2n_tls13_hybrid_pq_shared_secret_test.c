@@ -422,7 +422,7 @@ static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc)
      * input buffer. */
 
     DEFER_CLEANUP(struct s2n_blob priv_ecc_blob = { 0 }, s2n_free);
-    POSIX_GUARD(s2n_realloc(&priv_ecc_blob, key_len));
+    POSIX_GUARD(s2n_alloc(&priv_ecc_blob, key_len));
     for (size_t i = 0; i < key_len; i++) {
         priv_ecc_blob.data[i] = priv_ecc[i];
     }
