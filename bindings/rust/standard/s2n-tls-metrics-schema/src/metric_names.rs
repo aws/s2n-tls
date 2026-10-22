@@ -71,6 +71,10 @@ where
 
 pub const HANDSHAKE_SUCCESS_COUNT: &str = "handshake_success_count";
 pub const HANDSHAKE_FAILURE_COUNT: &str = "handshake_failure_count";
+pub const CONNECTION_CONCURRENCY: &str = "connection_concurrency";
+pub const P100_CONNECTION_CONCURRENCY: &str = "p100_connection_concurrency";
+pub const HANDSHAKE_CONCURRENCY: &str = "handshake_concurrency";
+pub const P100_HANDSHAKE_CONCURRENCY: &str = "p100_handshake_concurrency";
 pub const COMPATIBILITY_GENERAL20251201: &str = "compatibility.general20251201";
 pub const COMPATIBILITY_FIPS20251201: &str = "compatibility.fips20251201";
 pub const COMPATIBILITY_CNSA1: &str = "compatibility.cnsa1";
@@ -107,6 +111,10 @@ pub const ALL_SCALARS: &[&str] = &[
     HELLO_RETRY_REQUEST_COUNT,
     HANDSHAKE_SUCCESS_COUNT,
     HANDSHAKE_FAILURE_COUNT,
+    CONNECTION_CONCURRENCY,
+    P100_CONNECTION_CONCURRENCY,
+    HANDSHAKE_CONCURRENCY,
+    P100_HANDSHAKE_CONCURRENCY,
     HANDSHAKE_DURATION_US,
     HANDSHAKE_COMPUTE_US,
     SYNTHETIC_TRAFFIC_COUNT,
