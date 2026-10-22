@@ -66,8 +66,7 @@ int s2n_connection_set_quic_transport_parameters(struct s2n_connection *conn,
 {
     POSIX_ENSURE_REF(conn);
 
-    POSIX_GUARD(s2n_free(&conn->our_quic_transport_parameters));
-    POSIX_GUARD(s2n_alloc(&conn->our_quic_transport_parameters, data_len));
+    POSIX_GUARD(s2n_realloc(&conn->our_quic_transport_parameters, data_len));
     POSIX_CHECKED_MEMCPY(conn->our_quic_transport_parameters.data, data_buffer, data_len);
 
     return S2N_SUCCESS;
