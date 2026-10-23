@@ -43,14 +43,112 @@
 #define COMPRESSION_METHODS     0x00, 0x01, 0x02, 0x03, 0x04
 #define COMPRESSION_METHODS_LEN 0x05
 
-/* Encrypted Client Hello extension
- * See https://www.rfc-editor.org/rfc/rfc9849
- */
-#define TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO 0xFE0D
-
 int s2n_parse_client_hello(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension);
+
+/* The Encrypted Client Hello extension.
+ *
+ * s2n-tls does not support ECH, so this value is intentionally not part of the
+ * library. It is only defined here to construct test ClientHellos.
+ *
+ * See the "Update of the TLS ExtensionType Registry" section of
+ * https://www.rfc-editor.org/rfc/rfc9849
+ */
+#define TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO 0xFE0D
+
+static S2N_RESULT s2n_test_write_extension(struct s2n_stuffer *out, uint16_t type,
+        const uint8_t *data, uint16_t data_len)
+{
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, type));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, data_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, data, data_len));
+    return S2N_RESULT_OK;
+}
+
+/* Writes a TLS1.3 ClientHello handshake record to `out`.
+ *
+ * The ClientHello is one that a server should be able to negotiate with,
+ * apart from the optional ECH extension: it offers TLS1.3, TLS_AES_128_GCM_SHA256,
+ * ecdsa_secp256r1_sha256, and a valid secp256r1 key share.
+ *
+ * If `ech` is not NULL, an ECH extension with that payload is also sent.
+ */
+static S2N_RESULT s2n_test_write_tls13_client_hello_record(struct s2n_stuffer *out,
+        const uint8_t *ech, uint16_t ech_len)
+{
+    const uint8_t server_name[] = { 0x00, 0x06, 0x00, 0x00, 0x03, 's', 'v', 'r' };
+    const uint8_t supported_versions[] = { 0x02, 0x03, 0x04 };
+    const uint8_t signature_algorithms[] = { 0x00, 0x02, 0x04, 0x03 };
+    const uint8_t supported_groups[] = { 0x00, 0x02, 0x00, 0x17 };
+    /* A valid secp256r1 point: the curve's generator */
+    const uint8_t key_share[] = {
+        /* client_shares length */
+        0x00, 0x45,
+        /* group: secp256r1 */
+        0x00, 0x17,
+        /* key_exchange length */
+        0x00, 0x41,
+        /* uncompressed point format */
+        0x04,
+        /* x */
+        0x6B, 0x17, 0xD1, 0xF2, 0xE1, 0x2C, 0x42, 0x47, 0xF8, 0xBC, 0xE6, 0xE5, 0x63, 0xA4, 0x40, 0xF2,
+        0x77, 0x03, 0x7D, 0x81, 0x2D, 0xEB, 0x33, 0xA0, 0xF4, 0xA1, 0x39, 0x45, 0xD8, 0x98, 0xC2, 0x96,
+        /* y */
+        0x4F, 0xE3, 0x42, 0xE2, 0xFE, 0x1A, 0x7F, 0x9B, 0x8E, 0xE7, 0xEB, 0x4A, 0x7C, 0x0F, 0x9E, 0x16,
+        0x2B, 0xCE, 0x33, 0x57, 0x6B, 0x31, 0x5E, 0xCE, 0xCB, 0xB6, 0x40, 0x68, 0x37, 0xBF, 0x51, 0xF5
+    };
+    const uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = { ZERO_TO_THIRTY_ONE };
+
+    DEFER_CLEANUP(struct s2n_stuffer body = { 0 }, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&body, 512));
+
+    /* legacy_version, random */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&body, S2N_TLS12));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&body, random, sizeof(random)));
+    /* legacy_session_id: 32 bytes, as sent by middlebox-compatible clients */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&body, S2N_TLS_SESSION_ID_MAX_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&body, random, S2N_TLS_SESSION_ID_MAX_LEN));
+    /* cipher_suites: TLS_AES_128_GCM_SHA256 */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&body, S2N_TLS_CIPHER_SUITE_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&body, 0x13));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&body, 0x01));
+    /* legacy_compression_methods: null */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&body, 1));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&body, 0));
+
+    struct s2n_stuffer_reservation extensions_size = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(&body, &extensions_size));
+    RESULT_GUARD(s2n_test_write_extension(&body, TLS_EXTENSION_SERVER_NAME,
+            server_name, sizeof(server_name)));
+    RESULT_GUARD(s2n_test_write_extension(&body, TLS_EXTENSION_SUPPORTED_VERSIONS,
+            supported_versions, sizeof(supported_versions)));
+    RESULT_GUARD(s2n_test_write_extension(&body, TLS_EXTENSION_SIGNATURE_ALGORITHMS,
+            signature_algorithms, sizeof(signature_algorithms)));
+    RESULT_GUARD(s2n_test_write_extension(&body, TLS_EXTENSION_SUPPORTED_GROUPS,
+            supported_groups, sizeof(supported_groups)));
+    RESULT_GUARD(s2n_test_write_extension(&body, TLS_EXTENSION_KEY_SHARE,
+            key_share, sizeof(key_share)));
+    if (ech != NULL) {
+        RESULT_GUARD(s2n_test_write_extension(&body, TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO,
+                ech, ech_len));
+    }
+    RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&extensions_size));
+
+    /* handshake message header + body */
+    uint32_t body_size = s2n_stuffer_data_available(&body);
+    uint32_t message_size = TLS_HANDSHAKE_HEADER_LENGTH + body_size;
+
+    /* record header */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, TLS_HANDSHAKE));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, S2N_TLS12));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, message_size));
+
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, TLS_CLIENT_HELLO));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(out, body_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(&body, out, body_size));
+    return S2N_RESULT_OK;
+}
 
 int main(int argc, char **argv)
 {
@@ -1307,186 +1405,119 @@ int main(int argc, char **argv)
         free(sent_client_hello);
     };
 
-    /* Minimal TLS 1.3 ClientHello with SNI and a dummy ECH extension.
+    /* Test: a server ignores a "dummy" Encrypted Client Hello extension.
      *
-     * Encrypted Client Hello (ECH) is only defined for TLS 1.3. Some clients
-     * send a "dummy" ECH extension (random bytes) to every server so that
-     * middleboxes can't distinguish real ECH from GREASE. s2n-tls doesn't
-     * support ECH, so the server must ignore the extension and continue the
-     * handshake normally.
+     * Browsers send a "dummy" (GREASE) ECH extension to every server so that
+     * middleboxes can't block ClientHellos just because they contain ECH.
+     * s2n-tls does not support ECH, so it must treat the extension like any
+     * other unknown extension and negotiate as if it were not there.
+     *
+     * Because the dummy extension is random, it can be anything: valid-looking,
+     * empty, or garbage. s2n-tls must never reject a handshake because of it.
+     *
+     * See the "Client Greasing" section of https://www.rfc-editor.org/rfc/rfc9849
      */
     if (s2n_is_tls13_fully_supported()) {
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-        /* clang-format off */
-        uint8_t client_hello_body[] = {
-            /* Protocol version TLS 1.2 (legacy_version for TLS 1.3) */
-            0x03, 0x03,
-            /* Client random */
-            ZERO_TO_THIRTY_ONE,
-            /* SessionID len - 32 bytes */
-            0x20,
-            /* Session ID */
-            ZERO_TO_THIRTY_ONE,
-            /* Cipher suites len */
-            0x00, 0x02,
-            /* Cipher suite - TLS_AES_128_GCM_SHA256 */
-            0x13, 0x01,
-            /* Compression methods len */
-            0x01,
-            /* Compression method - none */
-            0x00,
-            /* Extensions len */
-            0x00, 0x59,
-            /* Extension type TLS_EXTENSION_SERVER_NAME */
-            0x00, 0x00,
-            /* Extension size */
-            0x00, 0x08,
-            /* Server names len */
-            0x00, 0x06,
-            /* First server name type - host name */
-            0x00,
-            /* First server name len */
-            0x00, 0x03,
-            /* First server name */
-            's', 'v', 'r',
-            /* Extension type TLS_EXTENSION_SUPPORTED_VERSIONS */
-            0x00, 0x2B,
-            /* Extension size */
-            0x00, 0x03,
-            /* Supported versions length */
-            0x02,
-            /* TLS 1.3 */
-            0x03, 0x04,
-            /* Extension type TLS_EXTENSION_SIGNATURE_ALGORITHMS */
-            0x00, 0x0D,
-            /* Extension size */
-            0x00, 0x04,
-            /* Signature algorithms length */
-            0x00, 0x02,
-            /* ecdsa_secp256r1_sha256 */
-            0x04, 0x03,
-            /* Required so the x25519 key share matches a supported group.
-             * Without it the server sends a HelloRetryRequest.
-             * Extension type TLS_EXTENSION_SUPPORTED_GROUPS 
+        /* Resembles the ECHClientHello a browser sends when greasing:
+         * type=outer, HKDF-SHA256, AES-128-GCM, a config id, a 32 byte "enc"
+         * (the size of an X25519 public key), and a payload of random-looking bytes.
+         */
+        uint8_t grease_ech[1 + 2 + 2 + 1 + 2 + 32 + 2 + 144] = { 0 };
+        {
+            uint8_t *ech = grease_ech;
+            *ech++ = 0x00; /* ECHClientHelloType: outer */
+            *ech++ = 0x00; /* kdf_id: HKDF-SHA256 */
+            *ech++ = 0x01;
+            *ech++ = 0x00; /* aead_id: AES-128-GCM */
+            *ech++ = 0x01;
+            *ech++ = 0x9C; /* config_id */
+            *ech++ = 0x00; /* enc length */
+            *ech++ = 32;
+            for (size_t i = 0; i < 32; i++) {
+                *ech++ = (uint8_t) (i * 37 + 11);
+            }
+            *ech++ = 0x00; /* payload length */
+            *ech++ = 144;
+            for (size_t i = 0; i < 144; i++) {
+                *ech++ = (uint8_t) (i * 91 + 53);
+            }
+            EXPECT_EQUAL(ech, grease_ech + sizeof(grease_ech));
+        }
+
+        /* Not a valid ECHClientHello at all: the issue's original "stream of 0xFF" */
+        uint8_t all_ones_ech[32] = { 0 };
+        memset(all_ones_ech, 0xFF, sizeof(all_ones_ech));
+        uint8_t one_byte_ech[] = { 0x00 };
+
+        struct {
+            const char *description;
+            const uint8_t *ech;
+            uint16_t ech_len;
+        } test_cases[] = {
+            /* Must be first: it is the baseline the other cases are compared to */
+            { .description = "no ECH extension", .ech = NULL, .ech_len = 0 },
+            { .description = "grease ECH", .ech = grease_ech, .ech_len = sizeof(grease_ech) },
+            { .description = "all 0xFF ECH", .ech = all_ones_ech, .ech_len = sizeof(all_ones_ech) },
+            { .description = "truncated ECH", .ech = one_byte_ech, .ech_len = sizeof(one_byte_ech) },
+            { .description = "empty ECH", .ech = one_byte_ech, .ech_len = 0 },
+        };
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
+
+        struct s2n_cipher_suite *expected_cipher_suite = NULL;
+        uint32_t expected_handshake_type = 0;
+        message_type_t expected_message = 0;
+
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            const bool has_ech = (test_cases[i].ech != NULL);
+
+            DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_OK(s2n_test_write_tls13_client_hello_record(&input,
+                    test_cases[i].ech, test_cases[i].ech_len));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+
+            /* The server should process the ClientHello, send its entire first flight
+             * (ServerHello through Finished), and then wait for the client's response.
              */
-            0x00, 0x0A,
-            /* Extension size */
-            0x00, 0x04,
-            /* Supported groups length */
-            0x00, 0x02,
-            /* x25519 */
-            0x00, 0x1D,
-            /* Extension type TLS_EXTENSION_KEY_SHARE */
-            0x00, 0x33,
-            /* Extension size */
-            0x00, 0x26,
-            /* Client key shares length */
-            0x00, 0x24,
-            /* Named group - x25519 */
-            0x00, 0x1D,
-            /* Key exchange length */
-            0x00, 0x20,
-            /* Key exchange data (dummy x25519 public key) */
-            ZERO_TO_THIRTY_ONE,
-            /* Extension type TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO */
-            (TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO >> 8) & 0xFF,
-            TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO & 0xFF,
-            /* Extension size */
-            0x00, 0x08,
-            /* Dummy payload (arbitrary bytes; real dummy ECH is random) */
-            0x21, 0x39, 0x4F, 0x68, 0x7A, 0x8C, 0xB1, 0xD4,
-        };
-        /* clang-format on */
-        int client_hello_body_len = sizeof(client_hello_body);
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server, &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+            EXPECT_TRUE(s2n_stuffer_data_available(&output) > 0);
+            EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
 
-        uint8_t message_header[] = {
-            /* Handshake message type CLIENT HELLO */
-            0x01,
-            /* Body len */
-            (client_hello_body_len >> 16) & 0xff,
-            (client_hello_body_len >> 8) & 0xff,
-            (client_hello_body_len & 0xff),
-        };
-        int message_len = sizeof(message_header) + client_hello_body_len;
-        uint8_t record_header[] = {
-            /* Record type HANDSHAKE */
-            0x16,
-            /* Legacy record version TLS 1.2 */
-            0x03,
-            0x03,
-            /* Message len */
-            (message_len >> 8) & 0xff,
-            (message_len & 0xff),
-        };
+            /* The server saw the extension, but did not act on it */
+            struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
+            EXPECT_NOT_NULL(client_hello);
+            bool ech_exists = false;
+            EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello,
+                    TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO, &ech_exists));
+            EXPECT_EQUAL(ech_exists, has_ech);
 
-        uint8_t server_name_extension[] = {
-            /* Server names len */
-            0x00, 0x06,
-            /* First server name type - host name */
-            0x00,
-            /* First server name len */
-            0x00, 0x03,
-            /* First server name */
-            's', 'v', 'r'
-        };
-
-        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
-                s2n_config_ptr_free);
-        EXPECT_NOT_NULL(server_config);
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain_and_key));
-
-        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server_conn);
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
-
-        /* Send the ClientHello containing the dummy ECH extension */
-        EXPECT_EQUAL(s2n_test_send(io_pair.client, record_header, sizeof(record_header)),
-                sizeof(record_header));
-        EXPECT_EQUAL(s2n_test_send(io_pair.client, message_header, sizeof(message_header)),
-                sizeof(message_header));
-        EXPECT_EQUAL(s2n_test_send(io_pair.client, client_hello_body, client_hello_body_len),
-                client_hello_body_len);
-
-        /* The server processes the ClientHello, sends its flight, and then
-         * blocks waiting for the client's response.
-         */
-        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_IO_BLOCKED);
-
-        /* The ClientHello was accepted and the handshake advanced past it.
-         * The server may have sent a HelloRetryRequest (the dummy key share
-         * may not match the server's preferred curve), in which case the
-         * current message is the second CLIENT_HELLO, so check that the
-         * message index moved instead of checking the message type.
-         */
-        EXPECT_TRUE(server_conn->handshake.message_number > 0);
-        EXPECT_TRUE(IS_NEGOTIATED(server_conn));
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-
-        struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server_conn);
-        EXPECT_NOT_NULL(client_hello);
-
-        /* Other extensions were still parsed correctly */
-        uint8_t ext_data[sizeof(server_name_extension)] = { 0 };
-        EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SERVER_NAME),
-                sizeof(server_name_extension));
-        EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SERVER_NAME,
-                             ext_data, sizeof(ext_data)),
-                sizeof(server_name_extension));
-        EXPECT_BYTEARRAY_EQUAL(ext_data, server_name_extension, sizeof(server_name_extension));
-
-        /* The dummy ECH extension was present, but ignored */
-        bool extension_exists = false;
-        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello,
-                TLS_EXTENSION_ENCRYPTED_CLIENT_HELLO, &extension_exists));
-        EXPECT_TRUE(extension_exists);
+            /* An ECH extension must not change how the handshake proceeds */
+            if (!has_ech) {
+                expected_cipher_suite = server->secure->cipher_suite;
+                expected_handshake_type = server->handshake.handshake_type;
+                expected_message = s2n_conn_get_current_message_type(server);
+                EXPECT_EQUAL(expected_cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
+            }
+            EXPECT_EQUAL(server->secure->cipher_suite, expected_cipher_suite);
+            EXPECT_EQUAL(server->handshake.handshake_type, expected_handshake_type);
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(server), expected_message);
+        }
 
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     };
@@ -1799,6 +1830,50 @@ int main(int argc, char **argv)
 
             uint8_t all_zeroes[50] = { 0x01, 0x00, 0x00, 46 };
             client_hello = s2n_client_hello_parse_message(all_zeroes, sizeof(all_zeroes));
+            EXPECT_NULL(client_hello);
+            EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+        };
+
+        /* Test: Rejects a valid but oversized ClientHello.
+         *
+         * This ClientHello is valid apart from its size, so only the
+         * S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH check can reject it.
+         */
+        {
+            /* Fill the cipher suite list to its max (2^16-2 bytes) to exceed 64KB.
+             * s2n-tls appends TLS_EMPTY_RENEGOTIATION_INFO_SCSV, so provide one fewer. */
+            const uint16_t cipher_suites_count = ((1 << 16) - 2) / S2N_TLS_CIPHER_SUITE_LEN - 1;
+            /* Avoid exhausting the smaller Windows stack. */
+            DEFER_CLEANUP(struct s2n_blob cipher_suites_mem = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&cipher_suites_mem, cipher_suites_count * sizeof(struct s2n_cipher_suite *)));
+            struct s2n_cipher_suite **test_cipher_suites = (struct s2n_cipher_suite **) (void *) cipher_suites_mem.data;
+            for (size_t i = 0; i < cipher_suites_count; i++) {
+                test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
+            }
+            const struct s2n_cipher_preferences test_cipher_preferences = {
+                .count = cipher_suites_count,
+                .suites = test_cipher_suites,
+            };
+            const struct s2n_security_policy *base_policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &base_policy));
+            struct s2n_security_policy test_security_policy = *base_policy;
+            test_security_policy.cipher_preferences = &test_cipher_preferences;
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            client->security_policy_override = &test_security_policy;
+
+            EXPECT_SUCCESS(s2n_handshake_write_header(&client->handshake.io, TLS_CLIENT_HELLO));
+            EXPECT_SUCCESS(s2n_client_hello_send(client));
+            EXPECT_SUCCESS(s2n_handshake_finish_header(&client->handshake.io));
+
+            uint32_t raw_size = s2n_stuffer_data_available(&client->handshake.io);
+            EXPECT_TRUE(raw_size > S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH);
+            uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);
+            EXPECT_NOT_NULL(raw);
+
+            struct s2n_client_hello *client_hello = s2n_client_hello_parse_message(raw, raw_size);
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
         };
