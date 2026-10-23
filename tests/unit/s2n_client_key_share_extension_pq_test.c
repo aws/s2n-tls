@@ -37,6 +37,10 @@
 static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params);
 static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group);
 static int s2n_get_two_highest_piority_kem_groups(const struct s2n_kem_preferences *kem_pref, const struct s2n_kem_group **kem_group0, const struct s2n_kem_group **kem_group1);
+static S2N_RESULT s2n_find_key_share(struct s2n_stuffer *extension, uint16_t group_id,
+        struct s2n_stuffer *share_out);
+static S2N_RESULT s2n_find_hybrid_classical_key(struct s2n_stuffer *extension,
+        const struct s2n_kem_group *kem_group, struct s2n_stuffer *key_out);
 
 int main()
 {
@@ -395,6 +399,128 @@ int main()
                         EXPECT_SUCCESS(s2n_stuffer_free(&retry_extension));
                         EXPECT_SUCCESS(s2n_connection_free(conn));
                     }
+                }
+            }
+
+            /* Tests for reusing the PQ hybrid's classical key as the standalone ECC key share.
+             *
+             * s2n_client_key_share_send writes the PQ hybrid key share before the standalone
+             * classical key share. A hybrid key share contains both an ML-KEM public key and a
+             * classical ECDHE public key. When that classical key is on the same curve the
+             * standalone share would use anyway (ecc_curves[0]), the key the hybrid already
+             * generated is reused instead of generating a second one.
+             *
+             * Both cases below offer only s2n_x25519_mlkem_768, whose classical curve is x25519.
+             * The ECC preference list is the ONLY difference between them: s2n_ecc_preferences_20200310
+             * prefers x25519 and so permits the reuse, while s2n_ecc_preferences_20240501 prefers
+             * secp256r1 and so forbids it.
+             */
+            if (s2n_kem_group_is_available(&s2n_x25519_mlkem_768)) {
+                const struct s2n_kem_group *kem_groups[] = { &s2n_x25519_mlkem_768 };
+                const struct s2n_kem_preferences kem_prefs = {
+                    .kem_count = 0,
+                    .kems = NULL,
+                    .tls13_kem_group_count = s2n_array_len(kem_groups),
+                    .tls13_kem_groups = kem_groups,
+                };
+                const struct s2n_security_policy policy_curves_match = {
+                    .minimum_protocol_version = S2N_TLS13,
+                    .cipher_preferences = &cipher_preferences_20250211,
+                    .kem_preferences = &kem_prefs,
+                    .signature_preferences = &s2n_signature_preferences_20200207,
+                    .ecc_preferences = &s2n_ecc_preferences_20200310,
+                };
+                const struct s2n_security_policy policy_curves_differ = {
+                    .minimum_protocol_version = S2N_TLS13,
+                    .cipher_preferences = &cipher_preferences_20250211,
+                    .kem_preferences = &kem_prefs,
+                    .signature_preferences = &s2n_signature_preferences_20200207,
+                    .ecc_preferences = &s2n_ecc_preferences_20240501,
+                };
+
+                /* Preconditions on the two policies, so that neither case can silently become
+                 * meaningless if a preference list is ever reordered. */
+                EXPECT_EQUAL(policy_curves_match.ecc_preferences->ecc_curves[0], s2n_x25519_mlkem_768.curve);
+                EXPECT_NOT_EQUAL(policy_curves_differ.ecc_preferences->ecc_curves[0], s2n_x25519_mlkem_768.curve);
+
+                /* The hybrid's classical curve MATCHES ecc_curves[0], so the key is reused: the
+                 * hybrid key share and the standalone key share carry the same public key. */
+                {
+                    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                            s2n_connection_ptr_free);
+                    EXPECT_NOT_NULL(conn);
+                    conn->security_policy_override = &policy_curves_match;
+
+                    DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, MEM_FOR_EXTENSION));
+                    EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+                    DEFER_CLEANUP(struct s2n_stuffer hybrid_classical_key = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hybrid_classical_key, 0));
+                    EXPECT_OK(s2n_find_hybrid_classical_key(&key_share_extension, &s2n_x25519_mlkem_768,
+                            &hybrid_classical_key));
+
+                    DEFER_CLEANUP(struct s2n_stuffer standalone_key = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&standalone_key, 0));
+                    EXPECT_OK(s2n_find_key_share(&key_share_extension, s2n_ecc_curve_x25519.iana_id,
+                            &standalone_key));
+                    EXPECT_EQUAL(s2n_stuffer_data_available(&standalone_key), s2n_ecc_curve_x25519.share_size);
+
+                    /* The classical public key inside the hybrid key share and the
+                     * standalone classical key share are byte-for-byte identical on the wire. */
+                    EXPECT_EQUAL(s2n_stuffer_data_available(&hybrid_classical_key),
+                            s2n_stuffer_data_available(&standalone_key));
+                    EXPECT_BYTEARRAY_EQUAL(hybrid_classical_key.blob.data, standalone_key.blob.data,
+                            s2n_ecc_curve_x25519.share_size);
+
+                    /* Assert both key shares point at the same EVP_PKEY, which proves the second keygen was skipped. */
+                    EXPECT_EQUAL(conn->kex_params.client_ecc_evp_params.evp_pkey,
+                            conn->kex_params.client_kem_group_params.ecc_params.evp_pkey);
+                }
+
+                /* The hybrid's classical curve does NOT match ecc_curves[0], so the key must not
+                 * be reused and the two key shares must carry different public keys. */
+                {
+                    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                            s2n_connection_ptr_free);
+                    EXPECT_NOT_NULL(conn);
+                    conn->security_policy_override = &policy_curves_differ;
+
+                    DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, MEM_FOR_EXTENSION));
+                    EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &key_share_extension));
+
+                    /* The standalone share is offered for secp256r1, the policy's preferred curve. */
+                    DEFER_CLEANUP(struct s2n_stuffer standalone_key = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&standalone_key, 0));
+                    EXPECT_OK(s2n_find_key_share(&key_share_extension, s2n_ecc_curve_secp256r1.iana_id,
+                            &standalone_key));
+                    EXPECT_EQUAL(s2n_stuffer_data_available(&standalone_key), s2n_ecc_curve_secp256r1.share_size);
+
+                    /* Standalone x25519 key share shouldn't exist. */
+                    DEFER_CLEANUP(struct s2n_stuffer unexpected_key = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&unexpected_key, 0));
+                    EXPECT_ERROR_WITH_ERRNO(s2n_find_key_share(&key_share_extension,
+                                                    s2n_ecc_curve_x25519.iana_id, &unexpected_key),
+                            S2N_ERR_STUFFER_NOT_FOUND);
+
+                    DEFER_CLEANUP(struct s2n_stuffer hybrid_classical_key = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hybrid_classical_key, 0));
+                    EXPECT_OK(s2n_find_hybrid_classical_key(&key_share_extension, &s2n_x25519_mlkem_768,
+                            &hybrid_classical_key));
+                    EXPECT_EQUAL(s2n_stuffer_data_available(&hybrid_classical_key), s2n_ecc_curve_x25519.share_size);
+
+                    /* The two key shares carry different public keys. The curves
+                     * differ, so the sizes already differ.
+                     */
+                    EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&hybrid_classical_key),
+                            s2n_stuffer_data_available(&standalone_key));
+                    uint32_t shared_prefix = s2n_stuffer_data_available(&hybrid_classical_key);
+                    if (s2n_stuffer_data_available(&standalone_key) < shared_prefix) {
+                        shared_prefix = s2n_stuffer_data_available(&standalone_key);
+                    }
+                    EXPECT_BYTEARRAY_NOT_EQUAL(hybrid_classical_key.blob.data, standalone_key.blob.data,
+                            shared_prefix);
                 }
             }
         }
@@ -975,4 +1101,63 @@ static int s2n_get_two_highest_piority_kem_groups(const struct s2n_kem_preferenc
         }
     }
     return S2N_FAILURE;
+}
+
+/* Copies the key share for group_id out of the extension into share_out, or errors if
+ * the extension contains no KeyShareEntry for that group.
+ *
+ * The extension payload is a uint16 total size followed by KeyShareEntry records of
+ * uint16 group_id | uint16 share_size | share bytes. The share is copied rather than
+ * aliased so that the extension is never marked tainted, which would block any later
+ * resize of it.
+ */
+static S2N_RESULT s2n_find_key_share(struct s2n_stuffer *extension, uint16_t group_id,
+        struct s2n_stuffer *share_out)
+{
+    RESULT_ENSURE_REF(extension);
+    RESULT_ENSURE_REF(share_out);
+
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(extension));
+    uint16_t client_shares_size = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &client_shares_size));
+    RESULT_ENSURE_EQ(client_shares_size, s2n_stuffer_data_available(extension));
+
+    while (s2n_stuffer_data_available(extension) > 0) {
+        uint16_t entry_group_id = 0, entry_size = 0;
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &entry_group_id));
+        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &entry_size));
+
+        if (entry_group_id == group_id) {
+            RESULT_GUARD_POSIX(s2n_stuffer_copy(extension, share_out, entry_size));
+            return S2N_RESULT_OK;
+        }
+        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(extension, entry_size));
+    }
+
+    RESULT_BAIL(S2N_ERR_STUFFER_NOT_FOUND);
+}
+
+/* Copies the classical ECDHE public key out of the hybrid KeyShareEntry for kem_group.
+ * A hybrid share is the ML-KEM public key and the classical key concatenated with no
+ * internal length prefixes.
+ */
+static S2N_RESULT s2n_find_hybrid_classical_key(struct s2n_stuffer *extension,
+        const struct s2n_kem_group *kem_group, struct s2n_stuffer *key_out)
+{
+    RESULT_ENSURE_REF(kem_group);
+    RESULT_ENSURE_REF(kem_group->curve);
+    RESULT_ENSURE_REF(kem_group->kem);
+
+    DEFER_CLEANUP(struct s2n_stuffer hybrid_share = { 0 }, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&hybrid_share, 0));
+    RESULT_GUARD(s2n_find_key_share(extension, kem_group->iana_id, &hybrid_share));
+    RESULT_ENSURE_EQ(s2n_stuffer_data_available(&hybrid_share),
+            kem_group->kem->public_key_length + kem_group->curve->share_size);
+
+    if (kem_group->send_kem_first) {
+        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&hybrid_share, kem_group->kem->public_key_length));
+    }
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(&hybrid_share, key_out, kem_group->curve->share_size));
+
+    return S2N_RESULT_OK;
 }
