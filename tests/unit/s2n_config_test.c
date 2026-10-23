@@ -1633,7 +1633,8 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
+            
+            /* Resulting length is from the negotiation, not the s2n_config_set_max_fragment_length setting */
             EXPECT_EQUAL(server_conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
             EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
 
@@ -1678,9 +1679,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-            printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(server_conn));
             
             /* Set up a buffer than is 3x the size of the fragment length */
             uint8_t buffer[24000] = "test data";
@@ -1691,7 +1690,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer *client_in = &io_pair.client_in;
             
             while(s2n_stuffer_data_available(client_in) != 0) {
-                /* Skip over content type and version bytes that make up the record header */
+                /* Skip over content type and version bytes in the record header */
                 EXPECT_SUCCESS(s2n_stuffer_skip_read(client_in, 3));
                 uint16_t record_length = 0; 
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(client_in, &record_length));

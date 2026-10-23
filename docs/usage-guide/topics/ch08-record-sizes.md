@@ -28,14 +28,15 @@ for sending data.
 A client can can call `s2n_config_send_max_fragment_length()` to indicate a lower preferred
 maximum plaintext size to the peer, and reduce the maximum size of TLS records sent. Specifically,
 it does this through the RFC 6066 defined maximum fragment length extension, which standardizes
-several maximum plaintext lengths. However, many TLS servers either ignore this extension or
+several maximum plaintext lengths. This RFC was designed to negotiate small record sizes for
+memory-constrained clients. However, many TLS servers either ignore this extension or
 handle it incorrectly, so a client should not assume that its requested maximum plaintext
 fragment length will be honored.
 
 By default, an s2n-tls server will ignore a client's requested maximum plaintext fragment length.
 Call `s2n_config_accept_max_fragment_length()` to make an s2n-tls server respect a client's
 maximum plaintext fragment length when sending data. This setting will not make a server reject
-client records with a larger fragment size however.
+client records with a larger fragment size.
 
 If a maximum plaintext fragment length is negotiated during the connection, it will override the behavior
 configured by `s2n_connection_prefer_throughput()`, `s2n_connection_prefer_low_latency()`, and
