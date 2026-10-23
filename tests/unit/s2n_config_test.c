@@ -1606,7 +1606,7 @@ int main(int argc, char **argv)
             /* Set up both client and server to have a non-default maximum fragment length */
             EXPECT_SUCCESS(s2n_config_set_max_fragment_length(client_config, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH));
             EXPECT_SUCCESS(s2n_config_set_max_fragment_length(server_config, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH));
-            
+
             /* Additionally set up client and server to negotiate an mfl code. This setup doesn't really make
              * sense and is probably user error, but we'll test it anyways. */
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_512));
@@ -1621,7 +1621,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
-        
+
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
 
@@ -1633,17 +1633,16 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-            
+
             /* Resulting length is from the negotiation, not the s2n_config_set_max_fragment_length setting */
             EXPECT_EQUAL(server_conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
             EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
 
             EXPECT_EQUAL(client_conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
             EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
-
         };
 
-         /* s2n_config_set_max_fragment_length controls encrypted record size */
+        /* s2n_config_set_max_fragment_length controls encrypted record size */
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
@@ -1667,7 +1666,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
-        
+
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
 
@@ -1680,7 +1679,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-            
+
             /* Set up a buffer than is 3x the size of the fragment length */
             uint8_t buffer[24000] = "test data";
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -1688,13 +1687,13 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written, sizeof(buffer));
 
             struct s2n_stuffer *client_in = &io_pair.client_in;
-            
-            while(s2n_stuffer_data_available(client_in) != 0) {
+
+            while (s2n_stuffer_data_available(client_in) != 0) {
                 /* Skip over content type and version bytes in the record header */
                 EXPECT_SUCCESS(s2n_stuffer_skip_read(client_in, 3));
-                uint16_t record_length = 0; 
+                uint16_t record_length = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(client_in, &record_length));
-                
+
                 /* record_overhead is 16 + 1, since 16 is the size of an aead gcm tag, and 1 is the size of the
                 * content byte appended to the end of the fragment. */
                 uint16_t encrypted_record_overhead = 17;
@@ -1702,7 +1701,6 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(record_length, desired_fragment_size + encrypted_record_overhead);
                 EXPECT_SUCCESS(s2n_stuffer_skip_read(client_in, record_length));
             }
-            
         };
     };
 
