@@ -26,8 +26,12 @@ pub struct TestPairIO {
     /// indicates whether all client/server writes should be stored to the
     /// transcript fields
     pub recording: AtomicBool,
-    pub client_tx_transcript: RefCell<Vec<u8>>,
-    pub server_tx_transcript: RefCell<Vec<u8>>,
+    /// The recorded transcript of transport-level writes made by each peer.
+    ///
+    /// Each element is the buffer from a single `write` call, so the transcript
+    /// preserves write boundaries.
+    pub client_tx_transcript: RefCell<Vec<Vec<u8>>>,
+    pub server_tx_transcript: RefCell<Vec<Vec<u8>>>,
     /// [`Self::enable_decryption`] will initialize the stream decrypter, which
     /// allows tests to make assertions on the decrypted TLS transcript.
     ///
@@ -64,11 +68,33 @@ impl TestPairIO {
     }
 
     pub fn client_record_sizes(&self) -> Vec<u16> {
-        Self::record_sizes(self.client_tx_transcript.borrow().as_slice()).unwrap()
+        Self::record_sizes(&Self::flatten(&self.client_tx_transcript.borrow())).unwrap()
     }
 
     pub fn server_record_sizes(&self) -> Vec<u16> {
-        Self::record_sizes(self.server_tx_transcript.borrow().as_slice()).unwrap()
+        Self::record_sizes(&Self::flatten(&self.server_tx_transcript.borrow())).unwrap()
+    }
+
+    /// Return the byte length of each transport-level write made by each peer.
+    pub fn client_write_sizes(&self) -> Vec<usize> {
+        self.client_tx_transcript
+            .borrow()
+            .iter()
+            .map(Vec::len)
+            .collect()
+    }
+
+    pub fn server_write_sizes(&self) -> Vec<usize> {
+        self.server_tx_transcript
+            .borrow()
+            .iter()
+            .map(Vec::len)
+            .collect()
+    }
+
+    /// Concatenate the per-write buffers into a single contiguous byte stream.
+    fn flatten(writes: &[Vec<u8>]) -> Vec<u8> {
+        writes.concat()
     }
 
     /// Return a list of the record sizes contained in `buffer`.
@@ -115,7 +141,7 @@ impl ViewIO {
         }
     }
 
-    fn send_transcript(&self) -> &RefCell<Vec<u8>> {
+    fn send_transcript(&self) -> &RefCell<Vec<Vec<u8>>> {
         match self.identity {
             Mode::Client => &self.io.client_tx_transcript,
             Mode::Server => &self.io.server_tx_transcript,
@@ -151,8 +177,7 @@ impl std::io::Write for ViewIO {
             if self.io.recording.load(Ordering::Relaxed) {
                 self.send_transcript()
                     .borrow_mut()
-                    .write_all(&buf[0..written])
-                    .unwrap();
+                    .push(buf[0..written].to_vec());
             }
 
             // decrypter
