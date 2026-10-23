@@ -112,3 +112,69 @@ fn all_signature_schemes_in_static_list() {
     let schemes = all_available_signatures();
     assert_eq!(schemes.as_slice(), &SIGNATURE_SCHEMES_AVAILABLE_IN_S2N[..]);
 }
+
+/// Get both tls 1.3 and legacy names from s2n-tls
+fn emittable_names_from_s2n(scheme: &s2n_signature_scheme) -> Vec<&'static str> {
+    unsafe {
+        // Skip the "none" placeholder scheme, which is never a real negotiated
+        // signature and which `Connection::signature_scheme()` maps to `None`.
+        if scheme.iana_value == 0 {
+            return Vec::new();
+        }
+
+        if scheme.signature_curve.is_null() {
+            // No curve: the API always returns the base name.
+            vec![static_memory_to_str(scheme.name)]
+        } else {
+            // Curve present: the API returns the version-specific name. Both
+            // must be non-null in this case (the C code dereferences them).
+            assert!(
+                !scheme.tls13_name.is_null(),
+                "scheme with signature_curve missing tls13_name"
+            );
+            assert!(
+                !scheme.legacy_name.is_null(),
+                "scheme with signature_curve missing legacy_name"
+            );
+            vec![
+                static_memory_to_str(scheme.tls13_name),
+                static_memory_to_str(scheme.legacy_name),
+            ]
+        }
+    }
+}
+
+/// Every name that `Connection::signature_scheme()` can return, across all
+/// security policies, must be resolvable by `Signature::from_s2n_description`.
+#[test]
+fn all_emittable_signature_names_resolve() {
+    let names: HashSet<&'static str> = s2n_tls_sys_internal::security_policy_table()
+        .iter()
+        .flat_map(|sp| {
+            let sp = unsafe { &*sp.security_policy };
+            sp.signatures()
+                .iter()
+                .flat_map(|sig| emittable_names_from_s2n(sig))
+                .collect::<Vec<_>>()
+        })
+        .collect();
+
+    assert!(!names.is_empty(), "no signature names discovered");
+
+    for name in names {
+        let resolved = Signature::from_s2n_description(name);
+        assert!(
+            resolved.is_some(),
+            "from_s2n_description failed to resolve emittable name {name:?}"
+        );
+        // The resolved signature's IANA value must match the scheme that
+        // produced the name, confirming we mapped to the correct entry.
+        let sig = resolved.unwrap();
+        assert!(
+            SIGNATURE_SCHEMES_AVAILABLE_IN_S2N
+                .iter()
+                .any(|info| info.signature == sig),
+            "resolved signature for {name:?} is not in the static list"
+        );
+    }
+}

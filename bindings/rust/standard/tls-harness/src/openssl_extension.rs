@@ -10,10 +10,14 @@ use openssl_sys::SSL_CTX;
 
 use foreign_types_shared::ForeignTypeRef;
 
+// Update our own sending key AND request that the peer update its sending key.
+pub const SSL_KEY_UPDATE_REQUESTED: std::ffi::c_int = 1;
+
 fn ssl_get_secure_renegotiation_support(ssl: *mut openssl_sys::SSL) -> std::ffi::c_long {
     const SSL_CTRL_GET_RI_SUPPORT: std::ffi::c_int = 76;
     unsafe { openssl_sys::SSL_ctrl(ssl, SSL_CTRL_GET_RI_SUPPORT, 0, std::ptr::null_mut()) }
 }
+
 extern "C" {
     /// ```c
     /// int SSL_CTX_set_block_padding(SSL_CTX *ctx, size_t block_size);
@@ -22,6 +26,10 @@ extern "C" {
 
     pub fn SSL_renegotiate_pending(ssl: *mut openssl_sys::SSL) -> std::ffi::c_int;
     pub fn SSL_renegotiate(ssl: *mut openssl_sys::SSL) -> std::ffi::c_int;
+    pub fn SSL_key_update(
+        ssl: *mut openssl_sys::SSL,
+        update_type: std::ffi::c_int,
+    ) -> std::ffi::c_int;
 }
 
 pub trait SslContextExtension {

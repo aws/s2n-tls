@@ -362,6 +362,7 @@ static S2N_RESULT s2n_fingerprint_ja4_ciphers(struct s2n_fingerprint_hash *hash,
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&cipher_suites, &ch->cipher_suites));
 
     DEFER_CLEANUP(struct s2n_stuffer *iana_list = sort_space, s2n_stuffer_wipe_pointer);
+    size_t written_count = 0;
     while (s2n_stuffer_data_available(&cipher_suites)) {
         uint16_t iana = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&cipher_suites, &iana));
@@ -372,6 +373,14 @@ static S2N_RESULT s2n_fingerprint_ja4_ciphers(struct s2n_fingerprint_hash *hash,
         if (s2n_fingerprint_is_grease_value(iana)) {
             continue;
         }
+        /* The count is capped at 99 (see s2n_fingerprint_ja4_count), so there
+         * is no need to collect more than S2N_JA4_LIST_LIMIT entries. This keeps
+         * the workspace within its pre-sized bounds.
+         */
+        if (written_count >= S2N_JA4_LIST_LIMIT) {
+            continue;
+        }
+        written_count++;
         RESULT_GUARD(s2n_stuffer_write_uint16_hex(iana_list, iana));
         RESULT_GUARD_POSIX(s2n_stuffer_write_char(iana_list, S2N_JA4_LIST_DIV));
     }
@@ -426,6 +435,7 @@ static S2N_RESULT s2n_fingerprint_ja4_extensions(struct s2n_fingerprint_hash *ha
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&extensions, &ch->extensions.raw));
 
     DEFER_CLEANUP(struct s2n_stuffer *iana_list = sort_space, s2n_stuffer_wipe_pointer);
+    size_t written_count = 0;
     while (s2n_stuffer_data_available(&extensions)) {
         uint16_t iana = 0;
         RESULT_GUARD(s2n_fingerprint_parse_extension(&extensions, &iana));
@@ -451,6 +461,15 @@ static S2N_RESULT s2n_fingerprint_ja4_extensions(struct s2n_fingerprint_hash *ha
         if (iana == TLS_EXTENSION_SERVER_NAME || iana == S2N_EXTENSION_ALPN) {
             continue;
         }
+        /* The count is capped at 99 (see s2n_fingerprint_ja4_count), so there
+         * is no need to collect more than S2N_JA4_LIST_LIMIT entries. This keeps
+         * the workspace within its pre-sized bounds. extensions_count is still
+         * incremented above for every extension.
+         */
+        if (written_count >= S2N_JA4_LIST_LIMIT) {
+            continue;
+        }
+        written_count++;
         RESULT_GUARD(s2n_stuffer_write_uint16_hex(iana_list, iana));
         RESULT_GUARD_POSIX(s2n_stuffer_write_char(iana_list, S2N_JA4_LIST_DIV));
     }

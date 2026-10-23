@@ -2,12 +2,13 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use rand::Rng;
+#[allow(deprecated)]
+use s2n_tls::pool::ConfigPoolBuilder;
 use s2n_tls::{
     config::Config,
     connection::{Connection, ModifiedBuilder},
     enums::{ClientAuthType, Mode, Version},
     error::{Error, ErrorType},
-    pool::ConfigPoolBuilder,
     security::{DEFAULT_TLS13, TESTING_TLS12},
 };
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
@@ -45,6 +46,7 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 #[tokio::test(flavor = "multi_thread")]
+#[allow(deprecated)]
 async fn handshake_with_pool_multithread() -> Result<(), Box<dyn std::error::Error>> {
     const COUNT: usize = 20;
     const CLIENT_LIMIT: usize = 3;
@@ -109,6 +111,7 @@ async fn handshake_with_connection_config() -> Result<(), Box<dyn std::error::Er
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn handshake_with_connection_config_with_pool() -> Result<(), Box<dyn std::error::Error>> {
     fn with_client_auth(conn: &mut Connection) -> Result<&mut Connection, Error> {
         conn.set_client_auth_type(ClientAuthType::Optional)

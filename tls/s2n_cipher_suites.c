@@ -1037,7 +1037,8 @@ int s2n_cipher_suites_init(void)
         /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
         OpenSSL_add_all_algorithms();
 #else
-        OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL);
+        POSIX_GUARD_OSSL(OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL),
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 #endif
     }
 

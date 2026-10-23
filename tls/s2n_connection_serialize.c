@@ -435,6 +435,10 @@ int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uin
 
     /* Rehydrate fields now that parsing has completed successfully */
     conn->actual_protocol_version = parsed_values.protocol_version;
+    /* The deserialized connection has a fully negotiated, known protocol version.
+     * Mark it as established so that protocol-version-dependent logic (such as the
+     * TLS1.3 alert handling rules in s2n_process_as_warning) is enforced correctly. */
+    conn->actual_protocol_version_established = 1;
     conn->secure->cipher_suite = parsed_values.cipher_suite;
     POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, parsed_values.max_fragment_len));
 

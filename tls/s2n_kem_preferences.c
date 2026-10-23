@@ -37,40 +37,35 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2024_10 = {
     .kem_count = 0,
     .kems = NULL,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_ietf_2024_10),
-    .tls13_kem_groups = pq_kem_groups_ietf_2024_10,
-    .tls13_pq_hybrid_draft_revision = 5
+    .tls13_kem_groups = pq_kem_groups_ietf_2024_10
 };
 
 const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_ietf_2025_07 = {
     .kem_count = 0,
     .kems = NULL,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_ietf_2025_07),
-    .tls13_kem_groups = pq_kem_groups_ietf_2025_07,
-    .tls13_pq_hybrid_draft_revision = 5
+    .tls13_kem_groups = pq_kem_groups_ietf_2025_07
 };
 
 const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_cnsa2_2026_02 = {
     .kem_count = 0,
     .kems = NULL,
     .tls13_kem_group_count = s2n_array_len(pq_kem_groups_cnsa2_2026_02),
-    .tls13_kem_groups = pq_kem_groups_cnsa2_2026_02,
-    .tls13_pq_hybrid_draft_revision = 5
+    .tls13_kem_groups = pq_kem_groups_cnsa2_2026_02
 };
 
 const struct s2n_kem_preferences kem_preferences_all = {
     .kem_count = 0,
     .kems = NULL,
     .tls13_kem_group_count = S2N_KEM_GROUPS_COUNT,
-    .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
-    .tls13_pq_hybrid_draft_revision = 5
+    .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS
 };
 
 const struct s2n_kem_preferences kem_preferences_null = {
     .kem_count = 0,
     .kems = NULL,
     .tls13_kem_group_count = 0,
-    .tls13_kem_groups = NULL,
-    .tls13_pq_hybrid_draft_revision = 0
+    .tls13_kem_groups = NULL
 };
 
 /* Determines if query_iana_id corresponds to a tls13_kem_group for these KEM preferences. */
@@ -88,14 +83,6 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
     }
 
     return false;
-}
-
-/* Whether the client must include the length prefix in the PQ TLS 1.3 KEM KeyShares that it sends. Draft 0 of
- * the PQ TLS 1.3 standard required length prefixing, and drafts 1-5 removed this length prefix. To not break
- * backwards compatibility, we check what revision of the draft standard is configured to determine whether to send it. */
-bool s2n_tls13_client_must_use_hybrid_kem_length_prefix(const struct s2n_kem_preferences *kem_pref)
-{
-    return kem_pref && (kem_pref->tls13_pq_hybrid_draft_revision == 0);
 }
 
 S2N_RESULT s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_preferences, uint32_t *groups_available)

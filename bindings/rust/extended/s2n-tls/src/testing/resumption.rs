@@ -164,4 +164,116 @@ mod tests {
         }
         Ok(())
     }
+
+    // Test that a genuine TLS1.3 session ticket is not accepted on the
+    // TLS1.2 resumption path.
+    //
+    // The honest s2n client never places a TLS1.3 ticket in the legacy TLS1.2
+    // SessionTicket extension, so we model the malicious client directly: we craft
+    // a serialized session that makes a TLS1.2 client (a) carry the genuine 138-byte
+    // TLS1.3 ticket as its client_ticket (sent in the legacy extension) and (b) use
+    // an all-zero master secret, matching what a confused server would derive.
+    #[test]
+    fn tls13_ticket_on_tls12_path() -> Result<(), Box<dyn Error>> {
+        const S2N_STATE_WITH_SESSION_TICKET: u8 = 1;
+        const S2N_SERIALIZED_FORMAT_TLS12_V3: u8 = 4;
+        const S2N_TLS12: u8 = 33;
+        // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 (the suite the RSA cert + 20240331 prefs negotiate).
+        const TLS12_CIPHER: [u8; 2] = [0xC0, 0x2F];
+
+        let keypair = CertKeyPair::default();
+
+        // Server allows both TLS1.2 and TLS1.3 (the common/default case) and holds
+        // the ticket key used to issue the TLS1.3 ticket.
+        let mut server_config_builder = Builder::new();
+        server_config_builder
+            .add_session_ticket_key(&KEYNAME, &KEY, SystemTime::now())?
+            .set_security_policy(&security::DEFAULT_TLS13)?
+            .load_pem(keypair.cert(), keypair.key())?;
+        let server_config = server_config_builder.build()?;
+
+        // Step 1: obtain a genuine server-issued TLS1.3 ticket via a normal handshake.
+        let handler = SessionTicketHandler::default();
+        let mut tls13_client_builder = Builder::new();
+        tls13_client_builder
+            .enable_session_tickets(true)?
+            .set_session_ticket_callback(handler.clone())?
+            .set_connection_initializer(handler.clone())?
+            .trust_pem(keypair.cert())?
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+            .set_security_policy(&security::DEFAULT_TLS13)?;
+        let tls13_client_config = tls13_client_builder.build()?;
+        {
+            let mut pair = TestPair::from_configs(&tls13_client_config, &server_config);
+            pair.client.set_waker(Some(&noop_waker()))?;
+            pair.handshake()?;
+            assert!(pair.client.poll_recv(&mut [0]).is_pending());
+        }
+
+        // The callback stored the full serialized session:
+        //   [format=WITH_SESSION_TICKET][ticket_len:u16][ticket bytes...][tls13 state...]
+        // Extract just the raw ticket bytes.
+        let full_session = handler
+            .stored_ticket
+            .lock()
+            .unwrap()
+            .clone()
+            .expect("no ticket captured");
+        assert_eq!(full_session[0], S2N_STATE_WITH_SESSION_TICKET);
+        let ticket_len = u16::from_be_bytes([full_session[1], full_session[2]]) as usize;
+        let ticket = &full_session[3..3 + ticket_len];
+        assert_eq!(
+            ticket.len(),
+            138,
+            "default TLS1.3 ticket should be 138 bytes"
+        );
+
+        // Step 2: craft a TLS1.2 client session that carries this TLS1.3 ticket and a
+        // zero master secret.
+        let mut crafted = Vec::new();
+        crafted.push(S2N_STATE_WITH_SESSION_TICKET);
+        crafted.extend_from_slice(&(ticket.len() as u16).to_be_bytes());
+        crafted.extend_from_slice(ticket);
+        // TLS1.2 V3 outer state:
+        crafted.push(S2N_SERIALIZED_FORMAT_TLS12_V3);
+        crafted.push(S2N_TLS12);
+        crafted.extend_from_slice(&TLS12_CIPHER);
+        crafted.extend_from_slice(&0u64.to_be_bytes()); // issue time
+        crafted.extend_from_slice(&[0u8; 48]); // all-zero master secret
+        crafted.push(0); // ems_negotiated
+
+        // Malicious TLS1.2 client: force TLS1.2 so the ticket goes in the legacy
+        // SessionTicket extension.
+        let mut attacker_builder = Builder::new();
+        attacker_builder
+            .enable_session_tickets(true)?
+            .trust_pem(keypair.cert())?
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+            .set_security_policy(&security::TESTING_TLS12)?;
+        let attacker_config = attacker_builder.build()?;
+
+        use crate::connection::Builder as _;
+        let mut attacker = attacker_config.build_connection(crate::enums::Mode::Client)?;
+        attacker.set_session_ticket(&crafted)?;
+
+        let server = server_config.build_connection(crate::enums::Mode::Server)?;
+        let mut pair = TestPair::from_connections(attacker, server);
+        pair.client.set_waker(Some(&noop_waker()))?;
+
+        pair.handshake().expect("handshake should complete");
+        assert_eq!(
+            pair.server.actual_protocol_version()?,
+            crate::enums::Version::TLS12
+        );
+        assert!(
+            !pair.server.resumed(),
+            "server should not have accepted this session ticket"
+        );
+        assert!(
+            !pair.client.resumed(),
+            "client should have negotiated full handshake"
+        );
+
+        Ok(())
+    }
 }

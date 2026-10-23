@@ -15,8 +15,6 @@
 
 #include "utils/s2n_init.h"
 
-#include <pthread.h>
-
 #include "api/unstable/cleanup.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
@@ -35,7 +33,6 @@
 
 static void s2n_cleanup_atexit(void);
 
-static pthread_t main_thread = 0;
 static bool initialized = false;
 static bool atexit_cleanup = false;
 int s2n_disable_atexit(void)
@@ -58,8 +55,6 @@ int s2n_init(void)
      * https://github.com/aws/s2n-tls/issues/3446 is a result of not enforcing this
      */
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
-
-    main_thread = pthread_self();
 
     if (getenv("S2N_INTEG_TEST")) {
         POSIX_GUARD(s2n_in_integ_test_set(true));

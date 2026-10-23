@@ -555,7 +555,8 @@ int main(int argc, char **argv)
             uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
             EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
-            EXPECT_FAILURE(s2n_psk_verify_binder(conn, &test_psk, &client_hello_prefix, incorrect_binder_value));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_psk_verify_binder(conn, &test_psk, &client_hello_prefix, incorrect_binder_value),
+                    S2N_ERR_BAD_PSK_BINDER);
             S2N_BLOB_EXPECT_EQUAL(test_psk.early_secret, early_secret);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

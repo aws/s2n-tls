@@ -103,16 +103,32 @@ static int cert_req_cb(struct s2n_connection *conn, void *ctx_in, struct s2n_cer
             EXPECT_FAILURE_WITH_ERRNO(s2n_certificate_authority_list_next(list, &name, NULL), S2N_ERR_INVALID_ARGUMENT);
             EXPECT_FAILURE_WITH_ERRNO(s2n_certificate_authority_list_reread(NULL), S2N_ERR_INVALID_ARGUMENT);
 
-            for (int j = 0; j < s2n_array_len(expected_subjects); j++) {
+            /* X509_STORE object enumeration order is not specified and differs
+             * between libcrypto versions, so match subjects without assuming order. */
+            bool subject_found[s2n_array_len(expected_subjects)] = { 0 };
+            for (size_t j = 0; j < s2n_array_len(expected_subjects); j++) {
                 EXPECT_TRUE(s2n_certificate_authority_list_has_next(list));
                 EXPECT_SUCCESS(s2n_certificate_authority_list_next(list, &name, &length));
 
                 DEFER_CLEANUP(struct s2n_blob printed = { 0 }, s2n_free);
                 POSIX_GUARD_RESULT(pretty_print_dn(name, length, &printed));
 
-                const char *expected = expected_subjects[j];
-                EXPECT_EQUAL(strlen(expected), printed.size);
-                EXPECT_EQUAL(memcmp(expected, printed.data, printed.size), 0);
+                bool match = false;
+                for (size_t k = 0; k < s2n_array_len(expected_subjects); k++) {
+                    if (subject_found[k]) {
+                        continue;
+                    }
+                    if (strlen(expected_subjects[k]) == printed.size
+                            && memcmp(expected_subjects[k], printed.data, printed.size) == 0) {
+                        subject_found[k] = true;
+                        match = true;
+                        break;
+                    }
+                }
+                EXPECT_TRUE(match);
+            }
+            for (size_t j = 0; j < s2n_array_len(expected_subjects); j++) {
+                EXPECT_TRUE(subject_found[j]);
             }
 
             EXPECT_FALSE(s2n_certificate_authority_list_has_next(list));

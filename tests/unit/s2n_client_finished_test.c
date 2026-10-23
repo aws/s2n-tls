@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         client_conn->handshake.io.blob.data[10]++;
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_finished_recv(server_conn), S2N_ERR_BAD_FINISHED);
     };
 
     /* Error if local verify_data has wrong length */
