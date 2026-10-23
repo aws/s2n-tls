@@ -16,6 +16,7 @@
 #include "api/s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_connection.h"
 #include "utils/s2n_result.h"
 
 int main(int argc, char **argv)
@@ -42,6 +43,11 @@ int main(int argc, char **argv)
 
         /* Error did not trigger blinding */
         EXPECT_EQUAL(s2n_connection_get_delay(server_conn), 0);
+
+        /* negotiate_in_use must be cleared so a retry is not stuck on REENTRANCY */
+        EXPECT_FALSE(server_conn->negotiate_in_use);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_FALSE(server_conn->negotiate_in_use);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     };
