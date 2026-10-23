@@ -231,6 +231,47 @@ const struct s2n_security_policy security_policy_20190801 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+const struct s2n_security_policy security_policy_TLS12_20261021_1 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20261021_1,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20261021,
+    .ecc_preferences = &s2n_ecc_preferences_20261021,
+};
+
+const struct s2n_security_policy security_policy_TLS10_20261021_1 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20261021_2,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20261021,
+    .ecc_preferences = &s2n_ecc_preferences_20261021,
+};
+
+/* Same cipher list as TLS12_20261021_1, but with a TLS 1.0 floor. */
+const struct s2n_security_policy security_policy_TLS10_20261021_2 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20261021_1,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20261021,
+    .ecc_preferences = &s2n_ecc_preferences_20261021,
+};
+
+const struct s2n_security_policy security_policy_TLS10_20261021_3 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20261021_3,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20261021,
+    .ecc_preferences = &s2n_ecc_preferences_20261021,
+};
+
+const struct s2n_security_policy security_policy_TLS10_20261021_4 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20261021_4,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20261021,
+    .ecc_preferences = &s2n_ecc_preferences_20261021,
+};
+
 const struct s2n_security_policy security_policy_20190802 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20190801,
@@ -1937,6 +1978,11 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "20251014", .security_policy = &security_policy_20251014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20251015", .security_policy = &security_policy_20251015, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20241001_pq_mixed", .security_policy = &security_policy_20241001_pq_mixed, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "TLS12_20261021_1", .security_policy = &security_policy_TLS12_20261021_1, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "TLS10_20261021_1", .security_policy = &security_policy_TLS10_20261021_1, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "TLS10_20261021_2", .security_policy = &security_policy_TLS10_20261021_2, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "TLS10_20261021_3", .security_policy = &security_policy_TLS10_20261021_3, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "TLS10_20261021_4", .security_policy = &security_policy_TLS10_20261021_4, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy = &security_policy_elb_2015_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-05", .security_policy = &security_policy_elb_2016_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
