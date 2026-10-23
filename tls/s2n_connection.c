@@ -362,6 +362,11 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     conn->tickets_to_send = config->initial_tickets_to_send;
 
+    /* Apply the config-level maximum outgoing fragment length, if set. */
+    if (config->max_fragment_length > 0) {
+        POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, config->max_fragment_length));
+    }
+
     if (conn->psk_params.psk_list.len == 0 && !conn->psk_mode_overridden) {
         POSIX_GUARD(s2n_connection_set_psk_mode(conn, config->psk_mode));
         conn->psk_mode_overridden = false;
