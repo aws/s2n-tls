@@ -132,10 +132,7 @@ fn record_model(
 /// - data was transferred successfully
 /// - record and write sizes vectors are nonempty
 fn io_behavior(s2n_policy: &Policy, send_buffer_size: Option<usize>, fragment: u16) -> IoBehavior {
-    // Apply the common s2n-tls config: a TLS 1.2 policy (so record behavior is
-    // consistent regardless of the peer) and the optional send buffer override.
     let configure_s2n = |builder: &mut Builder| {
-        // builder.set_security_policy(&TLS12_POLICY).unwrap();
         if let Some(size) = send_buffer_size {
             builder.set_send_buffer_size(size as u32).unwrap();
             builder.set_security_policy(s2n_policy).unwrap();
