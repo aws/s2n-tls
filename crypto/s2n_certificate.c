@@ -832,8 +832,8 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
             * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
             */
             int len = ASN1_STRING_length(asn1_str);
+            POSIX_ENSURE_GTE(len, 0);
             if (ext_value != NULL) {
-                POSIX_ENSURE_GTE(len, 0);
                 POSIX_ENSURE(*ext_value_len >= (uint32_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 /* ASN1_STRING_get0_data(x) returns an internal pointer to the data of
                  * x. Since this is an internal pointer it should not be freed or

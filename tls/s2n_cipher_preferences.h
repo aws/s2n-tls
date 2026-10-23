@@ -105,6 +105,7 @@ extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_1_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_fs_1_2_Res_2019_08;
 extern const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext2_2021_06;
+extern const struct s2n_cipher_preferences elb_security_policy_tls13_1_2_Ext2_PQ_2025_09;
 
 extern const struct s2n_cipher_preferences elb_security_policy_backend_2016_08;
 extern const struct s2n_cipher_preferences elb_security_policy_sslv3_2013_12;
