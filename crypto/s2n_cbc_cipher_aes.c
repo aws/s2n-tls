@@ -64,7 +64,7 @@ S2N_RESULT s2n_cbc_cipher_aes128_set_decryption_key(struct s2n_session_key *key,
 
     RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
     /* Padding must be disabled after key init to take effect. */
-    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0), S2N_ERR_KEY_INIT);
 
     return S2N_RESULT_OK;
 }
@@ -75,7 +75,7 @@ static S2N_RESULT s2n_cbc_cipher_aes128_set_encryption_key(struct s2n_session_ke
 
     RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
     /* Padding must be disabled after key init to take effect. */
-    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0), S2N_ERR_KEY_INIT);
 
     return S2N_RESULT_OK;
 }
@@ -86,7 +86,7 @@ static S2N_RESULT s2n_cbc_cipher_aes256_set_decryption_key(struct s2n_session_ke
 
     RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
     /* Padding must be disabled after key init to take effect. */
-    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0), S2N_ERR_KEY_INIT);
 
     return S2N_RESULT_OK;
 }
@@ -97,7 +97,7 @@ S2N_RESULT s2n_cbc_cipher_aes256_set_encryption_key(struct s2n_session_key *key,
 
     RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_cbc(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
     /* Padding must be disabled after key init to take effect. */
-    EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0), S2N_ERR_KEY_INIT);
 
     return S2N_RESULT_OK;
 }

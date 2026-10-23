@@ -1084,7 +1084,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
 
     /* If a TLS session is resumed, the Server should respond in its ServerHello with the same SessionId the
      * Client sent in the ClientHello. */
-    if (conn->actual_protocol_version <= S2N_TLS12 && conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
+    if (conn->actual_protocol_version <= S2N_TLS12 && conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn) > 0) {
         int r = s2n_resume_from_cache(conn);
         if (r == S2N_SUCCESS || (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(s2n_errno))) {
             return r;

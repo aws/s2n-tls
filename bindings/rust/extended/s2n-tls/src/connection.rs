@@ -1761,6 +1761,17 @@ impl Connection {
             )
             .into_result()
         }?;
+
+        // A zero length means no parameters were received, so there is nothing to return.
+        // A null pointer with a non-zero length is invalid, and must not reach `from_raw_parts`.
+        if len == 0 {
+            return Ok(&[]);
+        }
+
+        if ptr.is_null() {
+            return Err(Error::UNEXPECTED_NULL);
+        }
+
         let buffer = unsafe { core::slice::from_raw_parts(ptr, len as _) };
         Ok(buffer)
     }
@@ -2331,6 +2342,29 @@ mod tests {
         reused.handshake()?;
         assert_eq!(reused.client.actual_protocol_version()?, Version::TLS13);
         assert_eq!(reused.server.actual_protocol_version()?, Version::TLS13);
+        Ok(())
+    }
+
+    /// Reading the peer's QUIC transport parameters is safe when they are empty.
+    #[test]
+    #[cfg(feature = "quic")]
+    fn empty_quic_transport_parameters() -> Result<(), Box<dyn std::error::Error>> {
+        let config = build_config(&security::DEFAULT_TLS13)?;
+        let mut pair = TestPair::from_config(&config);
+        pair.client.enable_quic()?;
+        pair.server.enable_quic()?;
+        pair.server
+            .set_quic_transport_parameters(b"server params")?;
+
+        // The peer's parameters haven't been received yet.
+        assert!(pair.server.quic_transport_parameters()?.is_empty());
+
+        // The client set no parameters, so it sends an empty extension.
+        pair.handshake()?;
+        assert!(pair.server.quic_transport_parameters()?.is_empty());
+
+        // Non-empty parameters are still returned.
+        assert_eq!(pair.client.quic_transport_parameters()?, b"server params");
         Ok(())
     }
 }

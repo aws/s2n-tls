@@ -283,7 +283,7 @@ static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_sessi
 
     RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
-    EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL), S2N_ERR_KEY_INIT);
 
     RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
@@ -296,7 +296,7 @@ static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_sessi
 
     RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
-    EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL), S2N_ERR_KEY_INIT);
 
     RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
@@ -309,7 +309,7 @@ static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_sessi
 
     RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
-    EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL), S2N_ERR_KEY_INIT);
 
     RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
@@ -322,7 +322,7 @@ static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_sessi
 
     RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
-    EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
+    RESULT_GUARD_OSSL(EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL), S2N_ERR_KEY_INIT);
 
     RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
