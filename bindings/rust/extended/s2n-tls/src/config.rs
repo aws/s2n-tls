@@ -1488,27 +1488,4 @@ mod tests {
 
         Ok(())
     }
-
-    #[test]
-    fn set_max_fragment_length() -> Result<(), Error> {
-        let certs = CertKeyPair::default();
-
-        // Valid fragment lengths, including the boundary values, are accepted
-        // and a config built with them handshakes successfully.
-        for max_fragment_length in [1, 1024, 16384] {
-            let config = {
-                let mut config = Builder::new();
-                config.set_security_policy(&security::DEFAULT_TLS13)?;
-                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
-                config.set_max_fragment_length(max_fragment_length)?;
-                config.load_pem(certs.cert(), certs.key())?;
-                config.trust_pem(certs.cert())?;
-                config.build()?
-            };
-            let mut pair = TestPair::from_config(&config);
-            pair.handshake()?;
-        }
-
-        Ok(())
-    }
 }

@@ -1641,6 +1641,70 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
 
         };
+
+         /* s2n_config_set_max_fragment_length controls encrypted record size */
+        {
+            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+
+            uint16_t desired_fragment_size = 8000;
+
+            /* Set up both client and server to have a non-default maximum fragment length */
+            EXPECT_SUCCESS(s2n_config_set_max_fragment_length(server_config, desired_fragment_size));
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+        
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            printf("Cipher negotiated: %s\n", s2n_connection_get_cipher(server_conn));
+            
+            /* Set up a buffer than is 3x the size of the fragment length */
+            uint8_t buffer[24000] = "test data";
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            uint16_t bytes_written = s2n_send(server_conn, buffer, sizeof(buffer), &blocked);
+            EXPECT_EQUAL(bytes_written, sizeof(buffer));
+
+            struct s2n_stuffer *client_in = &io_pair.client_in;
+            
+            while(s2n_stuffer_data_available(client_in) != 0) {
+                /* Skip over content type and version bytes that make up the record header */
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(client_in, 3));
+                uint16_t record_length = 0; 
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(client_in, &record_length));
+                
+                /* record_overhead is 16 + 1, since 16 is the size of an aead gcm tag, and 1 is the size of the
+                * content byte appended to the end of the fragment. */
+                uint16_t encrypted_record_overhead = 17;
+
+                EXPECT_EQUAL(record_length, desired_fragment_size + encrypted_record_overhead);
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(client_in, record_length));
+            }
+            
+        };
     };
 
     END_TEST();

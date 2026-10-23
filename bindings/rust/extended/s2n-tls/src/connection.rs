@@ -1833,8 +1833,7 @@ mod tests {
 
     use super::*;
     use crate::{
-        security::Policy,
-        testing::{build_config, config_builder, LIFOSessionResumption, SniTestCerts, TestPair},
+        security::Policy, testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, LIFOSessionResumption, SniTestCerts, TestPair, build_config, config_builder},
     };
     use std::{
         collections::VecDeque,
@@ -2204,6 +2203,48 @@ mod tests {
             read_record_length(&server_tx)
         };
         assert_eq!(wiped_conn_record_length, MAX_TLS_RECORD_LEN);
+
+        Ok(())
+    }
+
+    #[test]
+    fn set_max_fragment_length() -> Result<(), Error> {
+        let certs = CertKeyPair::default();
+
+        /// https://www.rfc-editor.org/info/rfc8446/#section-5.1
+        /// > The length MUST NOT exceed 2^14 bytes.
+        const MAX_PAYLOAD_LEN: u16 = 1 << 14;
+        /// inner content type + GCM auth tag
+        const PAYLOAD_OVERHEAD: u16 = 1 + 16;
+
+        // A buffer large enough to fill a full record. We are just
+        // trying to send enough data to go past our configured max_fragment_length
+        let send_data = vec![0u8; MAX_PAYLOAD_LEN as usize];
+
+        // Valid fragment lengths, including the boundary values, produce
+        // expected record sizes.
+        for max_fragment_length in [1, 1024, 8000, 16384] {
+            let config = {
+                let mut config = crate::config::Builder::new();
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+                config.set_max_fragment_length(max_fragment_length)?;
+                config.load_pem(certs.cert(), certs.key())?;
+                config.trust_pem(certs.cert())?;
+                config.build()?
+            };
+            let mut pair = TestPair::from_config(&config);
+            pair.handshake()?;
+
+            pair.io.server_tx_stream.borrow_mut().clear();
+            assert!(pair.server.poll_send(&send_data).is_ready());
+
+            let server_tx = pair.io.server_tx_stream.borrow();
+            let record_length = read_record_length(&server_tx);
+            
+            let expected_record_length = max_fragment_length + PAYLOAD_OVERHEAD;
+            assert_eq!(record_length, expected_record_length);
+        }
 
         Ok(())
     }
