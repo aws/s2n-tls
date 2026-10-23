@@ -167,6 +167,12 @@ impl Error {
         "MissingWaker",
         "Tried to perform an asynchronous operation without a configured waker",
     );
+    #[cfg(feature = "quic")]
+    pub(crate) const UNEXPECTED_NULL: Error = Self::bindings(
+        ErrorType::InternalError,
+        "UnexpectedNull",
+        "s2n-tls returned a null pointer for a non-empty buffer",
+    );
 
     /// Converts an io::Error into an s2n-tls Error
     pub fn io_error(err: std::io::Error) -> Error {
