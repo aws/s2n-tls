@@ -1594,6 +1594,53 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->max_outgoing_fragment_length,
                     mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
         };
+
+        /* Negotiated mfl code overrides s2n_config_set_max_fragment_length value */
+        {
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+
+            /* Set up both client and server to have a non-default maximum fragment length */
+            EXPECT_SUCCESS(s2n_config_set_max_fragment_length(client_config, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH));
+            EXPECT_SUCCESS(s2n_config_set_max_fragment_length(server_config, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH));
+            
+            /* Additionally set up client and server to negotiate an mfl code. This setup doesn't really make
+             * sense and is probably user error, but we'll test it anyways. */
+            EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_512));
+            EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(server_config));
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+        
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_EQUAL(server_conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
+            EXPECT_EQUAL(server_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
+
+            EXPECT_EQUAL(client_conn->negotiated_mfl_code, S2N_TLS_MAX_FRAG_LEN_512);
+            EXPECT_EQUAL(client_conn->max_outgoing_fragment_length, mfl_code_to_length[S2N_TLS_MAX_FRAG_LEN_512]);
+
+        };
     };
 
     END_TEST();
