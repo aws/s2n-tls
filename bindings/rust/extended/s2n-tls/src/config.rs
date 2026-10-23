@@ -657,7 +657,7 @@ impl Builder {
             with_context(conn_ptr, |conn, context| {
                 let callback = context.cert_validation_callback_sync.as_ref();
                 callback.map(|callback| {
-                    let accepted = callback.handle_validation(conn, &mut info).unwrap();
+                    let accepted = callback.handle_validation(conn, &mut info);
                     // SAFETY: resolved from within the cert validation callback,
                     // where the owning connection is guaranteed to be alive.
                     match accepted {
