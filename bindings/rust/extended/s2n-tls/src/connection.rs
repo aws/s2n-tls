@@ -1833,7 +1833,11 @@ mod tests {
 
     use super::*;
     use crate::{
-        security::Policy, testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, LIFOSessionResumption, SniTestCerts, TestPair, build_config, config_builder},
+        security::Policy,
+        testing::{
+            build_config, config_builder, CertKeyPair, InsecureAcceptAllCertificatesHandler,
+            LIFOSessionResumption, SniTestCerts, TestPair,
+        },
     };
     use std::{
         collections::VecDeque,
@@ -2241,7 +2245,7 @@ mod tests {
 
             let server_tx = pair.io.server_tx_stream.borrow();
             let record_length = read_record_length(&server_tx);
-            
+
             let expected_record_length = max_fragment_length + PAYLOAD_OVERHEAD;
             assert_eq!(record_length, expected_record_length);
         }
