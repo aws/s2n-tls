@@ -498,9 +498,12 @@ impl Builder {
         Ok(self)
     }
 
+    /// Clears the trust store of all certificates. This also prevents build from reloading the default system certificates.
+    ///
     /// Corresponds to [`s2n_config_wipe_trust_store`].
     pub fn wipe_trust_store(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_config_wipe_trust_store(self.as_mut_ptr()).into_result()? };
+        self.load_system_certs = false;
         Ok(self)
     }
 
