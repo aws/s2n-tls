@@ -1643,7 +1643,7 @@ int main(int argc, char **argv)
         };
 
         /* s2n_config_set_max_fragment_length controls encrypted record size */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
