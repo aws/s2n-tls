@@ -621,18 +621,6 @@ impl Builder {
     }
 
     /// Sets the maximum size of outgoing records (the "fragment length").
-    ///
-    /// This is the config-level equivalent of [`crate::connection::Connection::prefer_throughput`]
-    /// and [`crate::connection::Connection::prefer_low_latency`], but accepts any
-    /// fragment length rather than a fixed preset.
-    ///
-    /// `max_fragment_length` must be greater than 0 and no larger than the TLS
-    /// maximum fragment length of 16384 (2^14) bytes.
-    ///
-    /// A TLS negotiated maximum fragment length overrides this preference: the
-    /// smaller of the two values is used for a connection. This setting only
-    /// affects outgoing records, not records received from the peer.
-    ///
     /// Corresponds to [`s2n_config_set_max_fragment_length`].
     pub fn set_max_fragment_length(
         &mut self,
