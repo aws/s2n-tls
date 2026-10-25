@@ -231,10 +231,9 @@ impl HandshakeRecordInProgress {
         };
 
         // Run the detector first, on every handshake (including SSLv2).
-        // Synthetic handshakes contribute ONLY to `synthetic_traffic_count`;
-        // every other counter (including `handshake_success_count`) reflects real
-        // traffic only, so consumers can read each metric directly without
-        // post-processing.
+        // Synthetic handshakes contribute only to this record's
+        // `synthetic_traffic_count`. The subscriber tracks concurrency separately
+        // through lifecycle events, which still include synthetic traffic.
         if let Some(detector) = detector {
             if let Some(client_hello) = client_hello {
                 if detector.is_synthetic(client_hello) {
@@ -504,6 +503,11 @@ impl HandshakeRecordInProgress {
             freeze_time: SystemTime::now(),
             handshake_success_count: self.handshake_success_count.load(Ordering::Relaxed),
             handshake_failure_count: self.handshake_failure_count.load(Ordering::Relaxed),
+            // Sampled by the subscriber at export time, after aggregation finishes.
+            connection_concurrency: 0,
+            p100_connection_concurrency: 0,
+            handshake_concurrency: 0,
+            p100_handshake_concurrency: 0,
             alerts: self.alerts.freeze(),
             negotiated_protocols: self.negotiated_protocols.freeze(),
             negotiated_ciphers: self.negotiated_ciphers.freeze(),

@@ -8,9 +8,10 @@
 //! Each detector receives the parsed [`ClientHello`] and returns whether the
 //! handshake should be counted as synthetic. When a detector returns `true`,
 //! [`AggregatedMetricsSubscriber`] increments only the `synthetic_traffic_count`
-//! field on the in-progress record; every other counter (including
-//! `handshake_success_count`) is left untouched, so each metric can be read directly
-//! as a real traffic figure.
+//! field on the in-progress record; other handshake event metrics (including
+//! `handshake_success_count`) are left untouched. Connection and handshake
+//! concurrency still include synthetic traffic because they track lifecycle
+//! events before the detector runs.
 //!
 //! [`ClientHello`]: s2n_tls::client_hello::ClientHello
 //! [`AggregatedMetricsSubscriber`]: crate::AggregatedMetricsSubscriber
