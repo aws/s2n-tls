@@ -44,8 +44,9 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
      * CI/CD pipelines might never complete */
     int should_block = 1;
 
-    /* Give the server a chance to listen */
-    sleep(1);
+    /* The socketpair underlying io_pair is valid from the moment of fork,
+     * so the child can start the handshake immediately. The kernel buffers
+     * writes until the parent is ready to read. */
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
@@ -110,8 +111,9 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     uint8_t *buffer = malloc(total_size + iov[0].iov_len);
     int buffer_offs = 0;
 
-    /* Give the server a chance to listen */
-    sleep(1);
+    /* The socketpair underlying io_pair is valid from the moment of fork,
+     * so the child can start the handshake immediately. The kernel buffers
+     * writes until the parent is ready to read. */
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
@@ -336,8 +338,14 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_TRUE(remaining < data_size);
     EXPECT_TRUE(remaining > 0);
 
-    /* Wait for the child process to read some bytes and block itself*/
-    sleep(1);
+    /* Wait for the child to actually be stopped before sending SIGCONT.
+     * WUNTRACED causes waitpid to return when the child changes state to
+     * stopped, not just when it exits. This removes the timing race that
+     * would otherwise require a sleep() here. */
+    int stop_status = 0;
+    pid_t wait_rc = waitpid(pid, &stop_status, WUNTRACED);
+    EXPECT_EQUAL(wait_rc, pid);
+    EXPECT_TRUE(WIFSTOPPED(stop_status));
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
 
