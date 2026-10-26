@@ -25,7 +25,7 @@ This API will also change how much memory s2n-tls allocates internally.
 s2n-tls may receive records containing up to 2^14 bytes of plaintext regardless of any settings
 for sending data.
 
-A client can can call `s2n_config_send_max_fragment_length()` to indicate a lower preferred
+A client can call `s2n_config_send_max_fragment_length()` to indicate a lower preferred
 maximum plaintext size to the peer, and reduce the maximum size of TLS records sent. Specifically,
 it does this through the RFC 6066 defined maximum fragment length extension, which standardizes
 several maximum plaintext lengths. This RFC was designed to negotiate small record sizes for
