@@ -1264,7 +1264,7 @@ S2N_API extern int s2n_config_send_max_fragment_length(struct s2n_config *config
 S2N_API extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 
 /**
- * Sets the maximum size of outgoing records (the "fragment length") for all
+ * Sets the maximum size of outgoing record payloads (the "fragment length") for all
  * connections using this configuration.
  *
  * This is the config-level equivalent of `s2n_connection_prefer_throughput` and
