@@ -17,7 +17,7 @@ allows the receiver to decrypt the data faster. It also decreases s2n-tls's memo
 
 `s2n_config_set_max_fragment_length()` controls the maximum plaintext fragment that can be sent.
 The corresponding encrypted record carrying this fragment will be sized slightly larger than
-the max_fragment_length, due to due to encryption and record protocol overhead.
+the max_fragment_length, due to encryption and record protocol overhead.
 This API will also change how much memory s2n-tls allocates internally.
 
 ##  Receiving data
