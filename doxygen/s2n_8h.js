@@ -162,6 +162,7 @@ var s2n_8h =
     [ "s2n_config_set_key_log_cb", "s2n_8h.html#a0d8f3979557fc3d58b8618230bc5c332", null ],
     [ "s2n_config_set_max_blinding_delay", "s2n_8h.html#aa6202daaf67fa8e47cb8d79071ff5066", null ],
     [ "s2n_config_set_max_cert_chain_depth", "s2n_8h.html#adbe1f248fa4510df373890a70f6f39b9", null ],
+    [ "s2n_config_set_max_fragment_length", "s2n_8h.html#aaacd29d6904aa615886ae1860939d34e", null ],
     [ "s2n_config_set_monotonic_clock", "s2n_8h.html#a7b11c2ca37417cf74606870711a08741", null ],
     [ "s2n_config_set_protocol_preferences", "s2n_8h.html#a983bbc96f19466c51529501c63004910", null ],
     [ "s2n_config_set_psk_mode", "s2n_8h.html#a201761e445dcdb7d65e0e1ebf893c7d9", null ],

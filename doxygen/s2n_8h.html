@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.12-52c6f10e</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.12-ac6b27bb</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -363,6 +363,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a2250c2b461d0814c4e5dd969d0f372f1" id="r_a2250c2b461d0814c4e5dd969d0f372f1"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a2250c2b461d0814c4e5dd969d0f372f1">s2n_config_set_extension_data</a> (struct s2n_config *config, <a class="el" href="#ab2b46f61765da5529f931afb8dd8a1f8">s2n_tls_extension_type</a> type, const uint8_t *data, uint32_t length)</td></tr>
 <tr class="memitem:a0f2ab042e1f9dea7ff02b3746dc16188" id="r_a0f2ab042e1f9dea7ff02b3746dc16188"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a0f2ab042e1f9dea7ff02b3746dc16188">s2n_config_send_max_fragment_length</a> (struct s2n_config *config, <a class="el" href="#a1976b2365808c341247e03131c2423ac">s2n_max_frag_len</a> mfl_code)</td></tr>
 <tr class="memitem:a1d36a77c4bbcd04ea33b84ffd074fb8f" id="r_a1d36a77c4bbcd04ea33b84ffd074fb8f"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a1d36a77c4bbcd04ea33b84ffd074fb8f">s2n_config_accept_max_fragment_length</a> (struct s2n_config *config)</td></tr>
+<tr class="memitem:aaacd29d6904aa615886ae1860939d34e" id="r_aaacd29d6904aa615886ae1860939d34e"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#aaacd29d6904aa615886ae1860939d34e">s2n_config_set_max_fragment_length</a> (struct s2n_config *config, uint16_t max_fragment_length)</td></tr>
 <tr class="memitem:a012950b0841dad53f4ce0b7bd9892757" id="r_a012950b0841dad53f4ce0b7bd9892757"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a012950b0841dad53f4ce0b7bd9892757">s2n_config_set_session_state_lifetime</a> (struct s2n_config *config, uint64_t lifetime_in_secs)</td></tr>
 <tr class="memitem:afb17f02a0b6a6c74e3db143c7c3d62a6" id="r_afb17f02a0b6a6c74e3db143c7c3d62a6"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#afb17f02a0b6a6c74e3db143c7c3d62a6">s2n_config_set_session_tickets_onoff</a> (struct s2n_config *config, uint8_t enabled)</td></tr>
 <tr class="memitem:a746edac026a2d26f4a09ff4183beb9e9" id="r_a746edac026a2d26f4a09ff4183beb9e9"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a746edac026a2d26f4a09ff4183beb9e9">s2n_config_set_session_cache_onoff</a> (struct s2n_config *config, uint8_t enabled)</td></tr>
@@ -5324,6 +5325,49 @@ Safety</h1>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
     <tr><td class="paramname">max_depth</td><td>The number of allowed certificates in the certificate chain </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="aaacd29d6904aa615886ae1860939d34e" name="aaacd29d6904aa615886ae1860939d34e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aaacd29d6904aa615886ae1860939d34e">&#9670;&#160;</a></span>s2n_config_set_max_fragment_length()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_set_max_fragment_length </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *</td>          <td class="paramname"><span class="paramname"><em>config</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t</td>          <td class="paramname"><span class="paramname"><em>max_fragment_length</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel extern">extern</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Sets the maximum size of outgoing record payloads (the "fragment length") for all connections using this configuration.</p>
+<p>This is the config-level equivalent of <span class="tt"><a class="el" href="#a11c72914bfc09a9174b6a7b019e5aa5c">s2n_connection_prefer_throughput</a></span> and <span class="tt"><a class="el" href="#a9b4fafb7e9b8277f408af0ad17ab6e19">s2n_connection_prefer_low_latency</a></span>, but accepts any fragment length rather than a fixed preset.</p>
+<p><span class="tt">max_fragment_length</span> must be greater than 0 and no larger than the TLS maximum fragment length of 16384 (2^14) bytes.</p>
+<dl class="section note"><dt>Note</dt><dd>A TLS negotiated maximum fragment length (see <span class="tt"><a class="el" href="#a0f2ab042e1f9dea7ff02b3746dc16188">s2n_config_send_max_fragment_length</a></span> and <span class="tt"><a class="el" href="#a1d36a77c4bbcd04ea33b84ffd074fb8f">s2n_config_accept_max_fragment_length</a></span>) overrides this preference: the smaller of the two values is used for a connection.</dd>
+<dd>
+This setting only affects outgoing records. It does not limit the size of records received from the peer.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
+    <tr><td class="paramname">max_fragment_length</td><td>The maximum outgoing fragment length, in bytes </td></tr>
   </table>
   </dd>
 </dl>
