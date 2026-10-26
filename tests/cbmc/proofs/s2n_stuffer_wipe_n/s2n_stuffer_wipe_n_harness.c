@@ -34,6 +34,7 @@ void s2n_stuffer_wipe_n_harness()
     /* Save byte from untouched portion to compare after the wipe */
     uint32_t expect_wiped = S2N_MIN(n, old_stuffer.write_cursor);
     uint32_t expected_write_cursor = old_stuffer.write_cursor - expect_wiped;
+    uint32_t expected_wipe_span = old_stuffer.high_water_mark - expected_write_cursor;
     struct store_byte_from_buffer old_byte;
     save_byte_from_array(old_stuffer.blob.data, expected_write_cursor, &old_byte);
 
@@ -41,8 +42,9 @@ void s2n_stuffer_wipe_n_harness()
     assert(s2n_stuffer_wipe_n(stuffer, n) == S2N_SUCCESS);
     assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
-    /* The basic stuffer fields should NOT be updated */
-    assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
+    /* high_water_mark is reset to the new write cursor */
+    assert(stuffer->high_water_mark == expected_write_cursor);
+    /* The other basic stuffer fields should NOT be updated */
     assert(stuffer->tainted == old_stuffer.tainted);
     assert(stuffer->blob == old_stuffer.blob);
     assert(stuffer->blob.data == old_stuffer.blob.data);
@@ -58,9 +60,9 @@ void s2n_stuffer_wipe_n_harness()
         assert_byte_from_buffer_matches(stuffer->blob.data, &old_byte);
     }
 
-    /* Everything after the new write cursor should be wiped */
-    if (expect_wiped > 0) {
+    /* Everything from the new write cursor through the old high water mark is wiped */
+    if (expected_wipe_span > 0) {
         assert_all_bytes_are(stuffer->blob.data + stuffer->write_cursor,
-                S2N_WIPE_PATTERN, expect_wiped);
+                S2N_WIPE_PATTERN, expected_wipe_span);
     }
 }
