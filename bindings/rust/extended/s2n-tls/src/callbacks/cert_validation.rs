@@ -93,12 +93,14 @@ impl CertValidationInfo {
 ///
 /// Use in conjunction with [`set_cert_validation_callback_sync`].
 pub trait CertValidationCallbackSync: 'static + Send + Sync {
-    /// Return a boolean to indicate if the certificate chain passed the validation
+    /// Return `true` to accept the certificate chain, or `false` to reject it.
+    ///
+    /// This callback is invoked from an FFI context, so it must not panic.
     fn handle_validation(
         &self,
         connection: &mut Connection,
         validation_info: &mut CertValidationInfo,
-    ) -> Result<bool, Error>;
+    ) -> bool;
 }
 
 /// A trait for an asynchronous callback to perform additional validation on
@@ -146,14 +148,10 @@ mod tests {
 
     struct SyncCallback(Counter);
     impl CertValidationCallbackSync for SyncCallback {
-        fn handle_validation(
-            &self,
-            conn: &mut Connection,
-            _info: &mut CertValidationInfo,
-        ) -> Result<bool, Error> {
+        fn handle_validation(&self, conn: &mut Connection, _info: &mut CertValidationInfo) -> bool {
             self.0.increment();
             let context = conn.application_context::<ValidationContext>().unwrap();
-            Ok(context.accept)
+            context.accept
         }
     }
 
