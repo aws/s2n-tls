@@ -324,6 +324,14 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      */
     struct s2n_x509_validator new_validator = { 0 };
 
+    /* Stage the hostname verification callback for the same reason as the
+     * validator. Both describe how the new config validates certificates, so an
+     * early return below must leave neither installed on the connection.
+     */
+    bool commit_verify_host_fn = false;
+    s2n_verify_host_fn verify_host_fn_to_commit = NULL;
+    void *data_for_verify_host_to_commit = NULL;
+
     if (config->disable_x509_validation) {
         POSIX_GUARD(s2n_x509_validator_init_no_x509_validation(&new_validator));
     } else {
@@ -335,12 +343,13 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         }
 
         if (!conn->verify_host_fn_overridden) {
+            commit_verify_host_fn = true;
             if (config->verify_host_fn != NULL) {
-                conn->verify_host_fn = config->verify_host_fn;
-                conn->data_for_verify_host = config->data_for_verify_host;
+                verify_host_fn_to_commit = config->verify_host_fn;
+                data_for_verify_host_to_commit = config->data_for_verify_host;
             } else {
-                conn->verify_host_fn = s2n_default_verify_host;
-                conn->data_for_verify_host = conn;
+                verify_host_fn_to_commit = s2n_default_verify_host;
+                data_for_verify_host_to_commit = conn;
             }
         }
 
@@ -408,13 +417,19 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         conn->request_ocsp_status = true;
     }
 
-    /* All fallible work has succeeded. Commit the validator and config together
-     * as the final, infallible step. Disarm the cleanup so the now-installed
-     * validator is not freed on return.
+    /* All fallible work has succeeded. Commit the validator, the hostname
+     * verification callback and the config together as the final, infallible
+     * step. Disarm the cleanup so the now-installed validator is not freed on
+     * return.
      */
     s2n_x509_validator_wipe(&conn->x509_validator);
     conn->x509_validator = validator_to_commit;
     ZERO_TO_DISABLE_DEFER_CLEANUP(validator_to_commit);
+
+    if (commit_verify_host_fn) {
+        conn->verify_host_fn = verify_host_fn_to_commit;
+        conn->data_for_verify_host = data_for_verify_host_to_commit;
+    }
 
     conn->config = config;
     return S2N_SUCCESS;
