@@ -620,6 +620,18 @@ impl Builder {
         Ok(self)
     }
 
+    /// Sets the maximum size of outgoing records (the "fragment length").
+    /// Corresponds to [`s2n_config_set_max_fragment_length`].
+    pub fn set_max_fragment_length(
+        &mut self,
+        max_fragment_length: u16,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_max_fragment_length(self.as_mut_ptr(), max_fragment_length).into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Corresponds to [`s2n_config_add_custom_x509_extension`].
     #[cfg(feature = "unstable-custom_x509_extensions")]
     pub fn add_custom_x509_extension(&mut self, extension_oid: &str) -> Result<&mut Self, Error> {
