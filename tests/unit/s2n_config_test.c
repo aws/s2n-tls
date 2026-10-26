@@ -1680,7 +1680,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
 
-            /* Set up a buffer than is 3x the size of the fragment length */
+            /* Set up a buffer that is 3x the size of the fragment length */
             uint8_t buffer[24000] = "test data";
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             uint16_t bytes_written = s2n_send(server_conn, buffer, sizeof(buffer), &blocked);
