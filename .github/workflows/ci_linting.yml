@@ -139,7 +139,6 @@ jobs:
           tidy-checks: ''
           database: build
           version: '18'
-          file-annotations: false
           thread-comments: false
           tidy-review: false
       - name: Fail if clang-tidy found issues
