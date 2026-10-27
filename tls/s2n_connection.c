@@ -1201,6 +1201,9 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
     int len = strlen(server_name);
     S2N_ERROR_IF(len > S2N_MAX_SERVER_NAME, S2N_ERR_SERVER_NAME_TOO_LONG);
 
+    /* Clear the buffer first so that a shorter name fully replaces a longer one.
+     * Otherwise the tail of the previous name would remain. */
+    POSIX_CHECKED_MEMSET(&conn->server_name, 0, sizeof(conn->server_name));
     POSIX_CHECKED_MEMCPY(conn->server_name, server_name, len);
 
     return 0;
