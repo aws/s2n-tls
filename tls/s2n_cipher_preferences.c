@@ -85,6 +85,74 @@ const struct s2n_cipher_preferences cipher_preferences_20210831 = {
     .allow_chacha20_boosting = false,
 };
 
+/* Shared by the TLS12_20261021_1 and TLS10_20261021_2 security policies. */
+struct s2n_cipher_suite *cipher_suites_20261021_1[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+};
+const struct s2n_cipher_preferences cipher_preferences_20261021_1 = {
+    .count = s2n_array_len(cipher_suites_20261021_1),
+    .suites = cipher_suites_20261021_1,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20261021_2[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+const struct s2n_cipher_preferences cipher_preferences_20261021_2 = {
+    .count = s2n_array_len(cipher_suites_20261021_2),
+    .suites = cipher_suites_20261021_2,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20261021_3[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha,
+};
+const struct s2n_cipher_preferences cipher_preferences_20261021_3 = {
+    .count = s2n_array_len(cipher_suites_20261021_3),
+    .suites = cipher_suites_20261021_3,
+    .allow_chacha20_boosting = false,
+};
+
+struct s2n_cipher_suite *cipher_suites_20261021_4[] = {
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_chacha20_poly1305_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+};
+const struct s2n_cipher_preferences cipher_preferences_20261021_4 = {
+    .count = s2n_array_len(cipher_suites_20261021_4),
+    .suites = cipher_suites_20261021_4,
+    .allow_chacha20_boosting = false,
+};
+
 /*
  * These cipher suites were chosen based on the following specification:
  * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-52r2.pdf
