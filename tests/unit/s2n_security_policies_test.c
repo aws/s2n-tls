@@ -409,6 +409,11 @@ int main(int argc, char **argv)
             "CloudFront-Upstream-TLS-1-2-2025-PQ",
             "CloudFront-Upstream-TLS-1-3-2025",
             "CloudFront-Upstream-TLS-1-3-2025-PQ",
+            "CloudFront-Upstream-2025-PQ-KX",
+            "CloudFront-Upstream-TLS-1-0-2025-PQ-KX",
+            "CloudFront-Upstream-TLS-1-1-2025-PQ-KX",
+            "CloudFront-Upstream-TLS-1-2-2025-PQ-KX",
+            "CloudFront-Upstream-TLS-1-3-2025-PQ-KX",
             /* AWS Common Runtime SDK */
             "AWS-CRT-SDK-SSLv3.0",
             "AWS-CRT-SDK-TLSv1.0",
@@ -564,6 +569,24 @@ int main(int argc, char **argv)
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-TLS-1-3-2025-no-pq", &security_policy));
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20250813);
+    }
+
+    /* Test that the CloudFront upstream PQ-KX policies do not negotiate ML-DSA
+     * authentication, unlike the corresponding CloudFront upstream PQ policies.
+     */
+    if (s2n_mldsa_is_supported()) {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+
+        const struct s2n_security_policy *pq = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-Upstream-TLS-1-3-2025-PQ", &pq));
+        EXPECT_OK(s2n_test_security_policies_compatible(pq, "default_pq", mldsa87_chain_and_key));
+
+        const struct s2n_security_policy *pq_kx = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("CloudFront-Upstream-TLS-1-3-2025-PQ-KX", &pq_kx));
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_security_policies_compatible(pq_kx, "default_pq", mldsa87_chain_and_key),
+                S2N_ERR_INVALID_SIGNATURE_SCHEME);
+        EXPECT_OK(s2n_test_security_policies_compatible(pq_kx, "default_pq", ecdsa_chain_and_key));
     }
 
     /* Test that security policies have valid chacha20 boosting configurations when chacha20 is available */
