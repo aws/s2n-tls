@@ -11,6 +11,7 @@ mod hrr_client_hello;
 mod key_update;
 #[cfg(feature = "pq")]
 mod pq;
+mod public_private_key_check;
 mod renegotiate;
 mod serialization;
 mod session_resumption;
