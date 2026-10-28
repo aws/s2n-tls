@@ -362,6 +362,11 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     conn->tickets_to_send = config->initial_tickets_to_send;
 
+    /* Apply the config-level maximum outgoing fragment length, if set. */
+    if (config->max_fragment_length > 0) {
+        POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, config->max_fragment_length));
+    }
+
     if (conn->psk_params.psk_list.len == 0 && !conn->psk_mode_overridden) {
         POSIX_GUARD(s2n_connection_set_psk_mode(conn, config->psk_mode));
         conn->psk_mode_overridden = false;
@@ -1196,6 +1201,9 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
     int len = strlen(server_name);
     S2N_ERROR_IF(len > S2N_MAX_SERVER_NAME, S2N_ERR_SERVER_NAME_TOO_LONG);
 
+    /* Clear the buffer first so that a shorter name fully replaces a longer one.
+     * Otherwise the tail of the previous name would remain. */
+    POSIX_CHECKED_MEMSET(&conn->server_name, 0, sizeof(conn->server_name));
     POSIX_CHECKED_MEMCPY(conn->server_name, server_name, len);
 
     return 0;
