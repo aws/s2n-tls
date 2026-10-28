@@ -141,6 +141,7 @@ jobs:
           version: '18'
           thread-comments: false
           tidy-review: false
+          lines-changed-only: true
       - name: Fail if clang-tidy found issues
         if: steps.linter.outputs.checks-failed > 0
         run: exit 1
