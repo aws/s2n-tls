@@ -35,6 +35,7 @@ extern const struct s2n_ecc_preferences s2n_ecc_preferences_20201021;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_20210816;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_20240603;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_20251113;
+extern const struct s2n_ecc_preferences s2n_ecc_preferences_20261021;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_test_all;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_null;
 

@@ -1,37 +1,46 @@
 # TLS Record Sizes
 
-## Throughput vs Latency
+The TLS protocol includes a record protocol, which specifies how to chunk TLS messages and
+application data. A higher maximum record size has different tradeoffs than a lower
+maximum record size in s2n-tls. For this reason, s2n-tls has several different APIs
+for configuring this value.
 
-When sending data, s2n-tls uses a default maximum record size which experimentation
-has suggested provides a reasonable balance of performance and throughput.
+## Sending data
 
-`s2n_connection_prefer_throughput()` can be called to increase the record size, which
+When sending data, s2n-tls uses a default maximum record size of 8kb for historical reasons.
+
+`s2n_connection_prefer_throughput()` can be called to increase the max record size, which
 minimizes overhead. It also increases s2n-tls's memory usage.
 
-`s2n_connection_prefer_low_latency()` can be called to decrease the record size, which
+`s2n_connection_prefer_low_latency()` can be called to decrease the max record size, which
 allows the receiver to decrypt the data faster. It also decreases s2n-tls's memory usage.
 
-These options only affect the size of the records that s2n-tls sends, not the behavior
-of the peer.
+`s2n_config_set_max_fragment_length()` controls the maximum plaintext fragment that can be sent.
+The corresponding encrypted record carrying this fragment will be sized slightly larger than
+the max_fragment_length, due to encryption and record protocol overhead.
+This API will also change how much memory s2n-tls allocates internally.
 
-## Maximum Fragment Length
+##  Receiving data
 
-The maximum number of bytes that can be sent in a TLS record is called the "maximum fragment length",
-and is set to 2^14 bytes by default. Regardless of the maximum record size that s2n-tls
-uses when sending, it may receive records containing up to 2^14 bytes of plaintext.
+s2n-tls may receive records containing up to 2^14 bytes of plaintext regardless of any settings
+for sending data.
 
-A client can request a lower maximum fragment length by calling `s2n_config_send_max_fragment_length()`,
-reducing the size of TLS records sent and providing benefits similar to `s2n_connection_prefer_low_latency()`.
-However, many TLS servers either ignore these requests or handle them incorrectly, so a client should
-never assume that a lower maximum fragment length will be honored. If a server accepts the requested
-maximum fragment length, the client will respect that maximum when sending.
+A client can call `s2n_config_send_max_fragment_length()` to indicate a lower preferred
+maximum plaintext size to the peer, and reduce the maximum size of TLS records sent. Specifically,
+it does this through the RFC 6066 defined maximum fragment length extension, which standardizes
+several maximum plaintext lengths. This RFC was designed to negotiate small record sizes for
+memory-constrained clients. However, many TLS servers either ignore this extension or
+handle it incorrectly, so a client should not assume that its requested maximum plaintext
+fragment length will be honored.
 
-By default, an s2n-tls server will ignore a client's requested maximum fragment length.
-If `s2n_config_accept_max_fragment_length()` is called, the server will respect the client's requested
-maximum fragment length when sending, but will not reject client records with a larger fragment size.
+By default, an s2n-tls server will ignore a client's requested maximum plaintext fragment length.
+Call `s2n_config_accept_max_fragment_length()` to make an s2n-tls server respect a client's
+maximum plaintext fragment length when sending data. This setting will not make a server reject
+client records with a larger fragment size.
 
-If a maximum fragment length is negotiated during the connection, it will override the behavior
-configured by `s2n_connection_prefer_throughput()` and `s2n_connection_prefer_low_latency()`.
+If a maximum plaintext fragment length is negotiated during the connection, it will override the behavior
+configured by `s2n_connection_prefer_throughput()`, `s2n_connection_prefer_low_latency()`, and
+`s2n_config_set_max_fragment_length()`.
 
 ## Dynamic Record Sizing
 
