@@ -36,7 +36,7 @@
  *
  * This constant is enforced via unit tests.
  */
-#define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 112
+#define S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE 104
 
 int s2n_server_nst_recv(struct s2n_connection *conn)
 {

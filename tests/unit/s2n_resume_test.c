@@ -58,6 +58,16 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
+/* Test convenience wrapper: the production code inlines this init+encode pair
+ * in s2n_serialize_resumption_state. */
+static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *out)
+{
+    struct s2n_resumption_state_tls13 state = { 0 };
+    RESULT_GUARD(s2n_resumption_state_tls13_init(&state, conn));
+    RESULT_GUARD(s2n_resumption_state_tls13_encode(&state, out));
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -86,18 +96,19 @@ int main(int argc, char **argv)
     };
 
     uint8_t tls13_ticket[] = {
-        S2N_SERIALIZED_FORMAT_TLS13_V1,
+        S2N_SERIALIZED_FORMAT_TLS13_V2,
         S2N_TLS13,
         TLS_AES_128_GCM_SHA256,
         TICKET_ISSUE_TIME_BYTES,
         TICKET_AGE_ADD_BYTES,
         SECRET_LEN,
         SECRET,
+        KEYING_MATERIAL_EXPIRATION_BYTES,
         EMPTY_EARLY_DATA_SIZE,
     };
 
     uint8_t tls13_server_ticket[] = {
-        S2N_SERIALIZED_FORMAT_TLS13_V1,
+        S2N_SERIALIZED_FORMAT_TLS13_V2,
         S2N_TLS13,
         TLS_AES_128_GCM_SHA256,
         TICKET_ISSUE_TIME_BYTES,
@@ -109,13 +120,14 @@ int main(int argc, char **argv)
     };
 
     uint8_t tls13_ticket_with_early_data[] = {
-        S2N_SERIALIZED_FORMAT_TLS13_V1,
+        S2N_SERIALIZED_FORMAT_TLS13_V2,
         S2N_TLS13,
         TLS_AES_128_GCM_SHA256,
         TICKET_ISSUE_TIME_BYTES,
         TICKET_AGE_ADD_BYTES,
         SECRET_LEN,
         SECRET,
+        KEYING_MATERIAL_EXPIRATION_BYTES,
         0x00,
         0x00,
         0x00,
@@ -156,7 +168,9 @@ int main(int argc, char **argv)
             /* Result matches actual size of data */
             DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
-            EXPECT_SUCCESS(s2n_tls12_serialize_resumption_state(conn, &actual_data));
+            struct s2n_resumption_state_tls12 state = { 0 };
+            EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
+            EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &actual_data));
             const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
             if (expected_size != actual_size) {
                 printf("\nS2N_TLS12_STATE_SIZE_IN_BYTES (%i) should be set to %u\n\n",
@@ -391,7 +405,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
-    /* s2n_tls12_serialize_resumption_state */
+    /* s2n_resumption_state_tls12_init / s2n_resumption_state_tls12_encode */
     {
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -415,7 +429,9 @@ int main(int argc, char **argv)
             struct s2n_stuffer output = { 0 };
 
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
-            EXPECT_SUCCESS(s2n_tls12_serialize_resumption_state(conn, &output));
+            struct s2n_resumption_state_tls12 state = { 0 };
+                        EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
+                        EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
@@ -480,7 +496,7 @@ int main(int argc, char **argv)
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
-            EXPECT_EQUAL(serial_id, S2N_SERIALIZED_FORMAT_TLS13_V1);
+            EXPECT_EQUAL(serial_id, S2N_SERIALIZED_FORMAT_TLS13_V2);
 
             uint8_t version = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &version));
@@ -505,6 +521,11 @@ int main(int argc, char **argv)
             uint8_t session_secret[S2N_TLS_SECRET_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, session_secret, secret_len));
             EXPECT_BYTEARRAY_EQUAL(test_session_secret.data, session_secret, secret_len);
+
+            /* Clients serialize an expired (0) keying material expiration */
+            uint64_t client_keying_material_expiration = 1;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint64(&output, &client_keying_material_expiration));
+            EXPECT_EQUAL(client_keying_material_expiration, 0);
 
             uint32_t max_early_data_size = 1;
             EXPECT_SUCCESS(s2n_stuffer_read_uint32(&output, &max_early_data_size));
@@ -790,7 +811,9 @@ int main(int argc, char **argv)
             struct s2n_stuffer output = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
 
-            EXPECT_SUCCESS(s2n_tls12_serialize_resumption_state(conn, &output));
+            struct s2n_resumption_state_tls12 state = { 0 };
+                        EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
+                        EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
             EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &output));
 
             EXPECT_TRUE(conn->ems_negotiated);
@@ -822,7 +845,9 @@ int main(int argc, char **argv)
             struct s2n_stuffer output = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
 
-            EXPECT_SUCCESS(s2n_tls12_serialize_resumption_state(conn, &output));
+            struct s2n_resumption_state_tls12 state = { 0 };
+                        EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
+                        EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
 
             /* EMS state in current session matches EMS state in previous session */
             conn->ems_negotiated = true;
