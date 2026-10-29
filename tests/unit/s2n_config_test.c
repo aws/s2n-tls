@@ -68,6 +68,16 @@ static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_
     return S2N_SUCCESS;
 }
 
+static uint8_t s2n_test_reject_verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
+    return 0;
+}
+
+static uint8_t s2n_test_accept_verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
+    return 1;
+}
+
 static int s2n_test_failing_malloc_cb(void **ptr, uint32_t requested, uint32_t *allocated)
 {
     *ptr = NULL;
@@ -1398,6 +1408,132 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config_bad));
         EXPECT_EQUAL(conn->config, config_bad);
         EXPECT_EQUAL(conn->x509_validator.state, INIT);
+    };
+
+    /* Test: a set_config that fails leaves the hostname verification callback
+     * unchanged.
+     *
+     * The callback and conn->config must agree: a connection that still uses
+     * the old config must still use the old config's callback. The callback is
+     * read from the config before several steps that can fail, so it is only
+     * committed to the connection once those have passed.
+     */
+    {
+        /* A cert with no private key and no async pkey callback makes set_config
+         * fail at the S2N_ERR_NO_PRIVATE_KEY check, which runs after the
+         * callback is read from the config.
+         */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_only_chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_only_chain,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_SUCCESS(s2n_pkey_free(cert_only_chain->private_key));
+        EXPECT_SUCCESS(s2n_pkey_zero_init(cert_only_chain->private_key));
+
+        int old_data = 1;
+        int bad_data = 2;
+
+        /* The old config installs a callback, the rejected config does not. */
+        {
+            DEFER_CLEANUP(struct s2n_config *config_old = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config_old);
+            EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config_old,
+                    s2n_test_reject_verify_host_fn, &old_data));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config_old));
+            EXPECT_EQUAL(conn->verify_host_fn, s2n_test_reject_verify_host_fn);
+            EXPECT_EQUAL(conn->data_for_verify_host, &old_data);
+
+            DEFER_CLEANUP(struct s2n_config *config_bad = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config_bad);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_bad, cert_only_chain));
+            EXPECT_TRUE(config_bad->no_signing_key);
+            EXPECT_NULL(config_bad->verify_host_fn);
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config_bad),
+                    S2N_ERR_NO_PRIVATE_KEY);
+
+            /* The application's callback is still installed. Falling back to
+             * s2n's default hostname matching here would silently drop it.
+             */
+            EXPECT_EQUAL(conn->config, config_old);
+            EXPECT_EQUAL(conn->verify_host_fn, s2n_test_reject_verify_host_fn);
+            EXPECT_EQUAL(conn->data_for_verify_host, &old_data);
+        };
+
+        /* The rejected config installs a callback. Its function and data must
+         * not be left on the connection: the application is free to free the
+         * config it could not install.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config_old = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config_old);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config_old));
+            s2n_verify_host_fn old_verify_host_fn = conn->verify_host_fn;
+            void *old_data_for_verify_host = conn->data_for_verify_host;
+            EXPECT_NOT_NULL(old_verify_host_fn);
+
+            DEFER_CLEANUP(struct s2n_config *config_bad = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config_bad);
+            EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config_bad,
+                    s2n_test_reject_verify_host_fn, &bad_data));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_bad, cert_only_chain));
+            EXPECT_TRUE(config_bad->no_signing_key);
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config_bad),
+                    S2N_ERR_NO_PRIVATE_KEY);
+
+            EXPECT_EQUAL(conn->config, config_old);
+            EXPECT_EQUAL(conn->verify_host_fn, old_verify_host_fn);
+            EXPECT_EQUAL(conn->data_for_verify_host, old_data_for_verify_host);
+            EXPECT_NOT_EQUAL(conn->verify_host_fn, s2n_test_reject_verify_host_fn);
+            EXPECT_NOT_EQUAL(conn->data_for_verify_host, &bad_data);
+
+            /* A subsequent successful set_config still installs the callback. */
+            EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config_bad, s2n_test_async_pkey_fn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config_bad));
+            EXPECT_EQUAL(conn->config, config_bad);
+            EXPECT_EQUAL(conn->verify_host_fn, s2n_test_reject_verify_host_fn);
+            EXPECT_EQUAL(conn->data_for_verify_host, &bad_data);
+        };
+
+        /* A connection-level callback still suppresses the config's, on both
+         * the failure and the success path.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config_old = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config_old);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config_old));
+            EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn,
+                    s2n_test_reject_verify_host_fn, &old_data));
+
+            DEFER_CLEANUP(struct s2n_config *config_bad = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config_bad);
+            EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config_bad,
+                    s2n_test_accept_verify_host_fn, &bad_data));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_bad, cert_only_chain));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config_bad),
+                    S2N_ERR_NO_PRIVATE_KEY);
+            EXPECT_EQUAL(conn->verify_host_fn, s2n_test_reject_verify_host_fn);
+            EXPECT_EQUAL(conn->data_for_verify_host, &old_data);
+
+            EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config_bad, s2n_test_async_pkey_fn));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config_bad));
+            EXPECT_EQUAL(conn->verify_host_fn, s2n_test_reject_verify_host_fn);
+            EXPECT_EQUAL(conn->data_for_verify_host, &old_data);
+        };
     };
 
     /* Test: domain_name_to_cert_map remains usable after s2n_map_add fails
