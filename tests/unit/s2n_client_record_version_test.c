@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
+    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0)); /* NOLINT(concurrency-mt-unsafe) */
 
     /* Server negotiates TLS1.2 */
     {
@@ -71,7 +71,7 @@ int main(int argc, char **argv)
             (body_len >> 8) & 0xff,
             (body_len & 0xff),
         };
-        int message_len = sizeof(message_header) + body_len;
+        int message_len = (int) (sizeof(message_header) + body_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
@@ -205,7 +205,7 @@ int main(int argc, char **argv)
             (body_len >> 8) & 0xff,
             (body_len & 0xff),
         };
-        int message_len = sizeof(message_header) + body_len;
+        int message_len = (int) (sizeof(message_header) + body_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,

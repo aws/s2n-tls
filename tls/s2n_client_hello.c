@@ -323,7 +323,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
              *#    -  Including a "cookie" extension if one was provided in the
              *#       HelloRetryRequest.
              */
-            case TLS_EXTENSION_COOKIE:
+            case TLS_EXTENSION_COOKIE: /* NOLINT(bugprone-branch-clone) */
                 /* Handled when parsing the cookie extension */
                 break;
             /*
@@ -494,7 +494,7 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
     RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
 
     DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
-    client_hello = (struct s2n_client_hello *) (void *) mem.data;
+    client_hello = (struct s2n_client_hello *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
     client_hello->alloced = true;
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
@@ -979,7 +979,7 @@ int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint
 }
 
 S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
-        struct s2n_blob *raw_extensions, struct s2n_blob *extension)
+        struct s2n_blob *raw_extensions, struct s2n_blob *extension) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_REF(raw_extensions);
     RESULT_ENSURE_REF(extension);

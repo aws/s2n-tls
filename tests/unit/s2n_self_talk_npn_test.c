@@ -15,7 +15,7 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_client_hello.c"
+#include "tls/s2n_client_hello.c" /* NOLINT(bugprone-suspicious-include) */
 
 /* The server will always prefer to negotiate an application protocol with 
  * the ALPN extension. This callback wipes the ALPN extension from the client

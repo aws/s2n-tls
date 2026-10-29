@@ -81,7 +81,7 @@ int main(int argc, char **argv)
         }
 
         /* Reference value from command line md5sum */
-        EXPECT_EQUAL(memcmp(output_pad, "59ca0efa9f5633cb0371bbc0355478d8", 16 * 2), 0);
+        EXPECT_EQUAL(memcmp(output_pad, "59ca0efa9f5633cb0371bbc0355478d8", (size_t) 16 * 2), 0);
 
         POSIX_GUARD(s2n_hash_reset(&hash));
         EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
@@ -122,7 +122,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha1sum */
-    EXPECT_EQUAL(memcmp(output_pad, "47a013e660d408619d894b20806b1d5086aab03b", 20 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "47a013e660d408619d894b20806b1d5086aab03b", (size_t) 20 * 2), 0);
 
     /* Check the copy */
     EXPECT_SUCCESS(s2n_hash_digest(&copy, digest_pad, SHA_DIGEST_LENGTH));
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha1sum */
-    EXPECT_EQUAL(memcmp(output_pad, "47a013e660d408619d894b20806b1d5086aab03b", 20 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "47a013e660d408619d894b20806b1d5086aab03b", (size_t) 20 * 2), 0);
 
     EXPECT_SUCCESS(s2n_hash_reset(&hash));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha1sum */
-    EXPECT_EQUAL(memcmp(output_pad, "4afd618f797f0c6bd85b2035338bb26c62ab0dbc", 20 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "4afd618f797f0c6bd85b2035338bb26c62ab0dbc", (size_t) 20 * 2), 0);
 
     /* Test that a copy-update works */
     EXPECT_SUCCESS(s2n_hash_update(&copy, string2, strlen((char *) string2)));
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha1sum */
-    EXPECT_EQUAL(memcmp(output_pad, "4afd618f797f0c6bd85b2035338bb26c62ab0dbc", 20 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "4afd618f797f0c6bd85b2035338bb26c62ab0dbc", (size_t) 20 * 2), 0);
 
     POSIX_GUARD(s2n_hash_reset(&hash));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha224sum */
-    EXPECT_EQUAL(memcmp(output_pad, "f771a839cff678857feee21492184ca7a456ac3cf57e78057b7beaf5", 28 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "f771a839cff678857feee21492184ca7a456ac3cf57e78057b7beaf5", (size_t) 28 * 2), 0);
 
     /* Try SHA256 using a freed hash state */
     POSIX_GUARD(s2n_hash_new(&hash));
@@ -264,7 +264,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha256sum */
-    EXPECT_EQUAL(memcmp(output_pad, "0ba904eae8773b70c75333db4de2f3ac45a8ad4ddba1b242f0b3cfc199391dd8", 32 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "0ba904eae8773b70c75333db4de2f3ac45a8ad4ddba1b242f0b3cfc199391dd8", (size_t) 32 * 2), 0);
 
     POSIX_GUARD(s2n_hash_reset(&hash));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha384sum */
-    EXPECT_EQUAL(memcmp(output_pad, "f7f8f1b9d5a9a61742eeda26c20990282ac08dabda14e70376fcb4c8b46198a9959ea9d7d194b38520eed5397ffe6d8e", 48 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "f7f8f1b9d5a9a61742eeda26c20990282ac08dabda14e70376fcb4c8b46198a9959ea9d7d194b38520eed5397ffe6d8e", (size_t) 48 * 2), 0);
 
     POSIX_GUARD(s2n_hash_reset(&hash));
     EXPECT_TRUE(s2n_hash_is_ready_for_input(&hash));
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
     }
 
     /* Reference value from command line sha512sum */
-    EXPECT_EQUAL(memcmp(output_pad, "32c07a0b3a3fd0dd8f28021b4eea1c19d871f4586316b394124f3c99fb68e59579e05039c3bd9aab9841214f1c132f7666eb8800f14be8b9b091a7dba32bfe6f", 64 * 2), 0);
+    EXPECT_EQUAL(memcmp(output_pad, "32c07a0b3a3fd0dd8f28021b4eea1c19d871f4586316b394124f3c99fb68e59579e05039c3bd9aab9841214f1c132f7666eb8800f14be8b9b091a7dba32bfe6f", (size_t) 64 * 2), 0);
 
     END_TEST();
 }

@@ -39,7 +39,7 @@ struct client_hello_context {
     int legacy_rc_for_server_name_used;
 };
 
-int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect_server_name_used)
+int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect_server_name_used) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     struct s2n_connection *conn = NULL;
     struct s2n_config *config = NULL;
@@ -49,7 +49,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
     const char *protocols[] = { "h2", "http/1.1" };
 
     /* Give the server a chance to listen */
-    sleep(1);
+    sleep(1); /* NOLINT(concurrency-mt-unsafe) */
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
@@ -97,12 +97,12 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
     s2n_config_free(config);
 
     /* Give the server a chance to a void a sigpipe */
-    sleep(1);
+    sleep(1); /* NOLINT(concurrency-mt-unsafe) */
 
     s2n_cleanup();
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
-    exit(result);
+    exit(result); /* NOLINT(concurrency-mt-unsafe) */
 }
 
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
@@ -143,7 +143,7 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 
     /* Verify correct server name is returned. */
     received_server_name = s2n_get_server_name(conn);
-    if (received_server_name == NULL || strcmp(received_server_name, sent_server_name)) {
+    if (received_server_name == NULL || strcmp(received_server_name, sent_server_name) != 0) {
         return -1;
     }
 

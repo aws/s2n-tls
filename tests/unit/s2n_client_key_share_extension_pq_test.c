@@ -902,7 +902,7 @@ static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, cons
     POSIX_ENSURE_REF(kem_group);
 
     int keyshare_extension_offset = 6;
-    int init_read_pos = from->read_cursor;
+    uint32_t init_read_pos = from->read_cursor;
 
     POSIX_GUARD(s2n_alloc(to, kem_group->kem->public_key_length));
 

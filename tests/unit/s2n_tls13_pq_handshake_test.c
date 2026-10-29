@@ -24,7 +24,7 @@
 #include "tls/s2n_security_policies.h"
 
 /* Include C file directly to access static functions */
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 
 const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct s2n_security_policy *client_policy, const struct s2n_security_policy *server_policy)
 {
@@ -126,7 +126,7 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
     return NULL;
 }
 
-int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
+int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy, /* NOLINT(bugprone-easily-swappable-parameters) */
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
         const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected)
 {
@@ -135,16 +135,21 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Set up connections */
     struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-    POSIX_ENSURE_REF(client_conn = s2n_connection_new(S2N_CLIENT));
-    POSIX_ENSURE_REF(server_conn = s2n_connection_new(S2N_SERVER));
+    client_conn = s2n_connection_new(S2N_CLIENT);
+    POSIX_ENSURE_REF(client_conn);
+    server_conn = s2n_connection_new(S2N_SERVER);
+    POSIX_ENSURE_REF(server_conn);
 
     struct s2n_config *client_config = NULL, *server_config = NULL;
-    POSIX_ENSURE_REF(client_config = s2n_config_new());
-    POSIX_ENSURE_REF(server_config = s2n_config_new());
+    client_config = s2n_config_new();
+    POSIX_ENSURE_REF(client_config);
+    server_config = s2n_config_new();
+    POSIX_ENSURE_REF(server_config);
 
     char cert_chain[S2N_MAX_TEST_PEM_SIZE] = { 0 }, private_key[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    POSIX_ENSURE_REF(chain_and_key = s2n_cert_chain_and_key_new());
+    chain_and_key = s2n_cert_chain_and_key_new();
+    POSIX_ENSURE_REF(chain_and_key);
     POSIX_GUARD(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     POSIX_GUARD(s2n_read_test_pem(S2N_ECDSA_P384_PKCS1_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
     POSIX_GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));

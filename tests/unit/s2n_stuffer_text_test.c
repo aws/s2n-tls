@@ -129,7 +129,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(strlen("a LF terminated line"), s2n_stuffer_data_available(&token));
-        EXPECT_SUCCESS(memcmp("a LF terminated line", token.blob.data, s2n_stuffer_data_available(&token)));
+        EXPECT_EQUAL(memcmp("a LF terminated line", token.blob.data, s2n_stuffer_data_available(&token)), 0);
 
         EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) crlf_line, sizeof(crlf_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
@@ -139,7 +139,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(strlen("a CRLF terminated line"), s2n_stuffer_data_available(&token));
-        EXPECT_SUCCESS(memcmp("a CRLF terminated line", token.blob.data, s2n_stuffer_data_available(&token)));
+        EXPECT_EQUAL(memcmp("a CRLF terminated line", token.blob.data, s2n_stuffer_data_available(&token)), 0);
 
         EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) lf_line_trailing_cr, sizeof(lf_line_trailing_cr)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(strlen("a LF terminated line with trailing CR"), s2n_stuffer_data_available(&token));
-        EXPECT_SUCCESS(memcmp("a LF terminated line with trailing CR", token.blob.data, s2n_stuffer_data_available(&token)));
+        EXPECT_EQUAL(memcmp("a LF terminated line with trailing CR", token.blob.data, s2n_stuffer_data_available(&token)), 0);
 
         EXPECT_SUCCESS(s2n_blob_init(&line_blob, (uint8_t *) not_a_line, sizeof(not_a_line)));
         EXPECT_SUCCESS(s2n_stuffer_init(&lstuffer, &line_blob));
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(sizeof(not_a_line), s2n_stuffer_data_available(&token));
-        EXPECT_SUCCESS(memcmp("not a line", token.blob.data, s2n_stuffer_data_available(&token)));
+        EXPECT_EQUAL(memcmp("not a line", token.blob.data, s2n_stuffer_data_available(&token)), 0);
     };
 
     /* Test s2n_stuffer_printf */

@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
-    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
+    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0)); /* NOLINT(concurrency-mt-unsafe) */
 
     /* Test s2n_client_hello_get_extension_by_id */
     {
@@ -1019,7 +1019,7 @@ int main(int argc, char **argv)
             (client_extensions_len & 0xff),
         };
         int client_hello_prefix_len = sizeof(client_hello_prefix);
-        int sent_client_hello_len = client_hello_prefix_len + client_extensions_len;
+        int sent_client_hello_len = (int) (client_hello_prefix_len + client_extensions_len);
         uint8_t message_header[] = {
             /* Handshake message type CLIENT HELLO */
             0x01,
@@ -1028,7 +1028,7 @@ int main(int argc, char **argv)
             (sent_client_hello_len >> 8) & 0xff,
             (sent_client_hello_len & 0xff),
         };
-        int message_len = sizeof(message_header) + sent_client_hello_len;
+        int message_len = (int) (sizeof(message_header) + sent_client_hello_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
@@ -1387,7 +1387,7 @@ int main(int argc, char **argv)
             (sent_client_hello_len >> 8) & 0xff,
             (sent_client_hello_len & 0xff),
         };
-        int message_len = sizeof(message_header) + sent_client_hello_len;
+        int message_len = (int) (sizeof(message_header) + sent_client_hello_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
@@ -1626,7 +1626,7 @@ int main(int argc, char **argv)
             /* Avoid exhausting the smaller Windows stack. */
             DEFER_CLEANUP(struct s2n_blob cipher_suites_mem = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&cipher_suites_mem, cipher_suites_count * sizeof(struct s2n_cipher_suite *)));
-            struct s2n_cipher_suite **test_cipher_suites = (struct s2n_cipher_suite **) (void *) cipher_suites_mem.data;
+            struct s2n_cipher_suite **test_cipher_suites = (struct s2n_cipher_suite **) (void *) cipher_suites_mem.data; /* NOLINT(bugprone-casting-through-void) */
             for (size_t i = 0; i < cipher_suites_count; i++) {
                 test_cipher_suites[i] = &s2n_rsa_with_aes_128_gcm_sha256;
             }

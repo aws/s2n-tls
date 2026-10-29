@@ -29,7 +29,7 @@
 #include "utils/s2n_safety.h"
 
 /* Included so we can test functions that are otherwise unavailable */
-#include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_tls13_handshake.c" /* NOLINT(bugprone-suspicious-include) */
 
 S2N_RESULT s2n_tls13_derive_secret(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
         s2n_mode mode, struct s2n_blob *secret);
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
         &aes_256_sha_384_x25519_mlkem768_vector,
     };
 
-    EXPECT_EQUAL(s2n_array_len(all_test_vectors), (2 * S2N_HYBRID_KEM_GROUPS_COUNT));
+    EXPECT_EQUAL(s2n_array_len(all_test_vectors), ((size_t) 2 * S2N_HYBRID_KEM_GROUPS_COUNT));
 
     {
         /* Happy cases for computing the hybrid shared secret and client & server traffic secrets */
@@ -427,9 +427,9 @@ static int read_priv_ecc(EVP_PKEY **pkey, const char *priv_ecc)
         priv_ecc_blob.data[i] = priv_ecc[i];
     }
 
-    BIO *bio = BIO_new_mem_buf((void *) priv_ecc_blob.data, key_len);
+    BIO *bio = BIO_new_mem_buf((void *) priv_ecc_blob.data, (int) key_len);
 #else
-    BIO *bio = BIO_new_mem_buf((const void *) priv_ecc, key_len);
+    BIO *bio = BIO_new_mem_buf((const void *) priv_ecc, (int) key_len);
 #endif
 
     POSIX_ENSURE_REF(bio);

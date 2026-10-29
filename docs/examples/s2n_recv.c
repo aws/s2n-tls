@@ -18,9 +18,9 @@
 int s2n_example_recv(struct s2n_connection *conn, uint8_t *buffer, size_t buffer_size)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int bytes_read = 0;
+    size_t bytes_read = 0;
     while (bytes_read < buffer_size) {
-        int r = s2n_recv(conn, buffer + bytes_read, buffer_size - bytes_read, &blocked);
+        ssize_t r = s2n_recv(conn, buffer + bytes_read, (ssize_t) (buffer_size - bytes_read), &blocked);
         if (r > 0) {
             /* `r` bytes were successfully received. Update `bytes_read` so the next `s2n_recv()`
              * call writes into the buffer with the correct offset.
@@ -45,7 +45,7 @@ int s2n_example_recv(struct s2n_connection *conn, uint8_t *buffer, size_t buffer
             return -1;
         }
     }
-    fprintf(stdout, "Received: %.*s\n", bytes_read, buffer);
+    fprintf(stdout, "Received: %.*s\n", (int) bytes_read, buffer);
     return 0;
 }
 
@@ -53,12 +53,12 @@ int s2n_example_recv_echo(struct s2n_connection *conn, uint8_t *buffer, size_t b
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     while (true) {
-        int r = s2n_recv(conn, buffer, buffer_size, &blocked);
+        ssize_t r = s2n_recv(conn, buffer, (ssize_t) buffer_size, &blocked);
         if (r == 0) {
             fprintf(stdout, "End of data.\n");
             return 0;
         } else if (r > 0) {
-            fprintf(stdout, "Received: %.*s\n", r, buffer);
+            fprintf(stdout, "Received: %.*s\n", (int) r, buffer);
         } else if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Error: %s. %s\n", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
             return -1;

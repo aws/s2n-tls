@@ -25,12 +25,12 @@
 #define S2N_TEST_SEND_FD 66
 #define S2N_TEST_RECV_FD 55
 
-static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     return S2N_SUCCESS;
 }
 
-static int s2n_test_setsockopt_tcp_error(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_tcp_error(int fd, int level, int optname, const void *optval, socklen_t optlen) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     if (level == S2N_SOL_TCP) {
         errno = EINVAL;
@@ -39,7 +39,7 @@ static int s2n_test_setsockopt_tcp_error(int fd, int level, int optname, const v
     return 0;
 }
 
-static int s2n_test_setsockopt_tls_error(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_tls_error(int fd, int level, int optname, const void *optval, socklen_t optlen) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     if (level == S2N_SOL_TLS) {
         errno = EINVAL;
@@ -48,7 +48,7 @@ static int s2n_test_setsockopt_tls_error(int fd, int level, int optname, const v
     return 0;
 }
 
-static int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const void *optval, socklen_t optlen) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_EQ(fd, S2N_TEST_SEND_FD);
     if (level == S2N_SOL_TLS) {
@@ -63,7 +63,7 @@ static int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const v
     return S2N_SUCCESS;
 }
 
-static int s2n_test_setsockopt_aes128_rx(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_aes128_rx(int fd, int level, int optname, const void *optval, socklen_t optlen) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_EQ(fd, S2N_TEST_RECV_FD);
     if (level == S2N_SOL_TLS) {
@@ -85,7 +85,7 @@ struct s2n_test_setsockopt_expected_struct {
     struct s2n_ktls_crypto_info_inputs crypto_info_inputs;
 } s2n_test_setsockopt_expected;
 
-static int s2n_test_setsockopt_tls_cb(int fd, int level,
+static int s2n_test_setsockopt_tls_cb(int fd, int level, /* NOLINT(bugprone-easily-swappable-parameters) */
         int optname, const void *optval, socklen_t optlen)
 {
     if (level == S2N_SOL_TLS) {
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(crypto_info.value.size, sizeof(crypto_info.ciphers.aes_gcm_128));
             EXPECT_EQUAL(crypto_info.value.data, (uint8_t *) &crypto_info.ciphers.aes_gcm_128);
             s2n_ktls_crypto_info_tls12_aes_gcm_128 *value =
-                    (s2n_ktls_crypto_info_tls12_aes_gcm_128 *) (void *) crypto_info.value.data;
+                    (s2n_ktls_crypto_info_tls12_aes_gcm_128 *) (void *) crypto_info.value.data; /* NOLINT(bugprone-casting-through-void) */
 
             EXPECT_EQUAL(test_key.size, sizeof(value->key));
             EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(crypto_info.value.size, sizeof(crypto_info.ciphers.aes_gcm_256));
             EXPECT_EQUAL(crypto_info.value.data, (uint8_t *) &crypto_info.ciphers.aes_gcm_256);
             s2n_ktls_crypto_info_tls12_aes_gcm_256 *value =
-                    (s2n_ktls_crypto_info_tls12_aes_gcm_256 *) (void *) crypto_info.value.data;
+                    (s2n_ktls_crypto_info_tls12_aes_gcm_256 *) (void *) crypto_info.value.data; /* NOLINT(bugprone-casting-through-void) */
 
             EXPECT_EQUAL(test_key.size, sizeof(value->key));
             EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
@@ -674,7 +674,7 @@ int main(int argc, char **argv)
 
         /* Test: 2 records sent so far */
         {
-            EXPECT_OK(s2n_ktls_set_estimated_sequence_number(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2));
+            EXPECT_OK(s2n_ktls_set_estimated_sequence_number(conn, (size_t) S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 2));
 
             /* Requested bytes exactly hit encryption limit */
             size_t bytes_requested = S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
@@ -695,7 +695,7 @@ int main(int argc, char **argv)
 
         /* Test: 3 records sent so far (exactly at encryption limit) */
         {
-            EXPECT_OK(s2n_ktls_set_estimated_sequence_number(conn, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 3));
+            EXPECT_OK(s2n_ktls_set_estimated_sequence_number(conn, (size_t) S2N_TLS_MAXIMUM_FRAGMENT_LENGTH * 3));
 
             /* Requested bytes go over the encryption limit */
             size_t bytes_requested = 1;

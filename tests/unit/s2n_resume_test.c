@@ -19,7 +19,7 @@
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
 /* To test static function */
-#include "tls/s2n_resume.c"
+#include "tls/s2n_resume.c" /* NOLINT(bugprone-suspicious-include) */
 #include "utils/s2n_safety.h"
 
 #define TICKET_ISSUE_TIME_BYTES          0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07
@@ -40,7 +40,7 @@
 #define SIZE_OF_MAX_EARLY_DATA_SIZE sizeof(uint32_t)
 #define SIZE_OF_KEYING_EXPIRATION   sizeof(uint64_t)
 
-#define S2N_TLS12_STATE_SIZE_IN_BYTES_WITHOUT_EMS S2N_TLS12_STATE_SIZE_IN_BYTES - 1
+#define S2N_TLS12_STATE_SIZE_IN_BYTES_WITHOUT_EMS (S2N_TLS12_STATE_SIZE_IN_BYTES - 1)
 
 #define SECONDS_TO_NANOS(seconds) ((seconds) * (uint64_t) ONE_SEC_IN_NANOS)
 
@@ -1885,8 +1885,8 @@ int main(int argc, char **argv)
                 EXPECT_MEMCPY_SUCCESS(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, bad_ticket_size),
                         S2N_ERR_STUFFER_OUT_OF_DATA);
-                EXPECT_BYTEARRAY_EQUAL(saved_conn, conn, sizeof(struct s2n_connection));
-                EXPECT_BYTEARRAY_EQUAL(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
+                EXPECT_BYTEARRAY_EQUAL(saved_conn, conn, sizeof(struct s2n_connection));                  /* NOLINT(bugprone-suspicious-memory-comparison): large struct compared against a memcpy'd snapshot */
+                EXPECT_BYTEARRAY_EQUAL(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters)); /* NOLINT(bugprone-suspicious-memory-comparison): large struct compared against a memcpy'd snapshot */
 
                 /* No valid ticket */
                 EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
@@ -1913,8 +1913,8 @@ int main(int argc, char **argv)
                 EXPECT_MEMCPY_SUCCESS(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, ticket_size),
                         S2N_ERR_CIPHER_NOT_SUPPORTED);
-                EXPECT_BYTEARRAY_EQUAL(saved_conn, conn, sizeof(struct s2n_connection));
-                EXPECT_BYTEARRAY_EQUAL(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
+                EXPECT_BYTEARRAY_EQUAL(saved_conn, conn, sizeof(struct s2n_connection));                  /* NOLINT(bugprone-suspicious-memory-comparison): large struct compared against a memcpy'd snapshot */
+                EXPECT_BYTEARRAY_EQUAL(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters)); /* NOLINT(bugprone-suspicious-memory-comparison): large struct compared against a memcpy'd snapshot */
 
                 /* No valid ticket */
                 EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
@@ -1974,7 +1974,7 @@ int main(int argc, char **argv)
                 EXPECT_MEMCPY_SUCCESS(saved, conn, sizeof(struct s2n_connection));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, bad_ticket_size),
                         S2N_ERR_STUFFER_OUT_OF_DATA);
-                EXPECT_BYTEARRAY_EQUAL(saved, conn, sizeof(struct s2n_connection));
+                EXPECT_BYTEARRAY_EQUAL(saved, conn, sizeof(struct s2n_connection)); /* NOLINT(bugprone-suspicious-memory-comparison): large struct compared against a memcpy'd snapshot */
 
                 /* No valid ticket */
                 EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);

@@ -31,7 +31,7 @@ void s2n_detect_open_violation(int sig)
     EXPECT_FALSE(s2n_open_success);
 
     END_TEST_PRINT();
-    exit(0);
+    exit(0); /* NOLINT(concurrency-mt-unsafe) */
 }
 
 int main(int argc, char **argv)

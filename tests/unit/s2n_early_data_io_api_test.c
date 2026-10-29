@@ -58,7 +58,7 @@ static int s2n_blocking_buffer_read(void *io_context, uint8_t *buf, uint32_t len
     }
     s2n_allowed_reads--;
     POSIX_GUARD(s2n_stuffer_read_bytes(in, buf, len));
-    return len;
+    return (int) len;
 }
 
 uint8_t s2n_allowed_writes = 0;
@@ -73,7 +73,7 @@ static int s2n_blocking_buffer_write(void *io_context, const uint8_t *buf, uint3
     }
     s2n_allowed_writes--;
     POSIX_GUARD(s2n_stuffer_write_bytes(out, buf, len));
-    return len;
+    return (int) len;
 }
 
 static S2N_RESULT s2n_test_set_blocking_stuffer_io(

@@ -451,7 +451,7 @@ S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_re
 
         /* Send Keyupdate message */
         const struct iovec iov = {
-            .iov_base = (void *) (uintptr_t) key_update_data,
+            .iov_base = (void *) (uintptr_t) key_update_data, /* NOLINT(performance-no-int-to-ptr) */
             .iov_len = sizeof(key_update_data),
         };
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;

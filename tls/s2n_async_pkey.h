@@ -35,7 +35,7 @@ struct s2n_async_pkey_op;
     do {                                                                   \
         __typeof(conn) __tmp_conn = (conn);                                \
         POSIX_GUARD_PTR(__tmp_conn);                                       \
-        switch (conn->handshake.async_state) {                             \
+        switch ((conn)->handshake.async_state) {                           \
             case S2N_ASYNC_NOT_INVOKED:                                    \
                 break;                                                     \
                                                                            \

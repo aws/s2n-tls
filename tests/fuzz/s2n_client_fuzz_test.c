@@ -151,7 +151,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 
     /* read the number of bytes requested or less if it isn't available */
     n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
+    n_read = (int) ((len < n_avail) ? len : n_avail);
 
     if (n_read == 0) {
         errno = EAGAIN;
@@ -164,7 +164,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 
 int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    return len;
+    return (int) len;
 }
 
 static struct s2n_config *client_config;
@@ -172,7 +172,8 @@ static struct s2n_config *client_config;
 int s2n_fuzz_init(int *argc, char **argv[])
 {
     /* Set up Server Config */
-    POSIX_ENSURE_REF(client_config = s2n_config_new());
+    client_config = s2n_config_new();
+    POSIX_ENSURE_REF(client_config);
     POSIX_GUARD(s2n_config_add_cert_chain_and_key(client_config, certificate_chain, private_key));
     POSIX_GUARD(s2n_config_add_dhparams(client_config, dhparams));
 
@@ -189,7 +190,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Set up Server Connection */
     struct s2n_connection *client_conn;
-    POSIX_ENSURE_REF(client_conn = s2n_connection_new(S2N_CLIENT));
+    client_conn = s2n_connection_new(S2N_CLIENT);
+    POSIX_ENSURE_REF(client_conn);
     POSIX_GUARD(s2n_connection_set_recv_cb(client_conn, &buffer_read));
     POSIX_GUARD(s2n_connection_set_send_cb(client_conn, &buffer_write));
     POSIX_GUARD(s2n_connection_set_recv_ctx(client_conn, &in));

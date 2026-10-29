@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* NOLINTBEGIN(concurrency-mt-unsafe): this command-line tool is single-threaded */
+
 #include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
@@ -163,11 +165,12 @@ static int test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct
     GUARD_EXIT_NULL(ticket);
 
     GUARD_EXIT(s2n_session_ticket_get_data_len(ticket, &session_state_length), "Error getting ticket length ");
-    session_state = realloc(session_state, session_state_length);
-    if (session_state == NULL) {
+    uint8_t *new_session_state = realloc(session_state, session_state_length);
+    if (new_session_state == NULL) {
         print_s2n_error("Error getting new session state");
         exit(1);
     }
+    session_state = new_session_state;
     GUARD_EXIT(s2n_session_ticket_get_data(ticket, session_state_length, session_state), "Error getting ticket data");
 
     bool *session_ticket_recv = (bool *) ctx;
@@ -196,7 +199,7 @@ static int reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegoti
 }
 
 static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs, s2n_status_request_type type,
-        struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value)
+        struct verify_data *unsafe_verify_data, const char *host, const char *alpn_protocols, uint16_t mfl_value) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     if (config == NULL) {
         print_s2n_error("Error getting new config");
@@ -234,7 +237,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
             ptr++;
         }
 
-        char **protocols = malloc(sizeof(char *) * protocol_count);
+        char **protocols = (char **) malloc(sizeof(char *) * protocol_count);
         if (!protocols) {
             fprintf(stderr, "Error allocating memory\n");
             exit(1);
@@ -278,9 +281,8 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
             protocol_count--;
             free(protocols[protocol_count]);
         }
-        free(protocols);
+        free((void *) protocols);
     }
-
     uint8_t mfl_code = 0;
     if (mfl_value > 0) {
         switch (mfl_value) {
@@ -302,7 +304,7 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         }
     }
 
-    GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length");
+    GUARD_EXIT(s2n_config_send_max_fragment_length(config, mfl_code), "Error setting maximum fragment length"); /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): 0 disables the extension */
 }
 
 int main(int argc, char *const *argv)
@@ -582,7 +584,8 @@ int main(int argc, char *const *argv)
         printf("s2nc entered FIPS mode\n");
     }
 
-    if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
+    r = getaddrinfo(host, port, &hints, &ai_list);
+    if (r != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
         exit(1);
     }
@@ -590,7 +593,8 @@ int main(int argc, char *const *argv)
     do {
         int connected = 0;
         for (ai = ai_list; ai != NULL; ai = ai->ai_next) {
-            if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
+            sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+            if (sockfd == -1) {
                 continue;
             }
 
@@ -822,3 +826,5 @@ int main(int argc, char *const *argv)
     freeaddrinfo(ai_list);
     return 0;
 }
+
+/* NOLINTEND(concurrency-mt-unsafe) */

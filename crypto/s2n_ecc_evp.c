@@ -226,7 +226,7 @@ static S2N_RESULT s2n_ecc_check_key(EC_KEY *ec_key)
     return S2N_RESULT_OK;
 }
 
-static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret)
+static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_REF(peer_public);
     POSIX_ENSURE_REF(own_key);
@@ -496,7 +496,7 @@ int s2n_ecc_evp_write_params(struct s2n_ecc_evp_params *ecc_evp_params, struct s
     written->size = key_share_size + 4;
     written->data = out->blob.data + key_share_offset;
 
-    return written->size;
+    return (int) written->size;
 }
 
 int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_evp_params *ecc_evp_params)

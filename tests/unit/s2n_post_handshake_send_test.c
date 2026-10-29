@@ -26,7 +26,7 @@
 
 #define S2N_FRAG_LEN_SMALLER_THAN_NST 50
 
-static S2N_RESULT s2n_get_expected_record_count(uint32_t nst_size, uint32_t fragment_size, uint8_t tickets_to_send,
+static S2N_RESULT s2n_get_expected_record_count(uint32_t nst_size, uint32_t fragment_size, uint8_t tickets_to_send, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint64_t *expected_record_count)
 {
     uint32_t app_data_records = 1;

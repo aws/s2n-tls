@@ -362,7 +362,7 @@ int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *data, co
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count, uint32_t offs,
+int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count, uint32_t offs, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint32_t size)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));

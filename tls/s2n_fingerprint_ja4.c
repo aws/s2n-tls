@@ -80,7 +80,7 @@ const char *s2n_ja4_version_strings[] = {
 
 DEFINE_POINTER_CLEANUP_FUNC(struct s2n_stuffer *, s2n_stuffer_wipe);
 
-static int s2n_fingerprint_ja4_iana_compare(const void *a, const void *b)
+static int s2n_fingerprint_ja4_iana_compare(const void *a, const void *b) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     const uint8_t *iana_a = (const uint8_t *) a;
     const uint8_t *iana_b = (const uint8_t *) b;

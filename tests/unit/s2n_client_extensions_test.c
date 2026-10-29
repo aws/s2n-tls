@@ -68,7 +68,7 @@ int main(int argc, char **argv)
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
+    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0)); /* NOLINT(concurrency-mt-unsafe) */
 
     /* Create nonblocking pipes */
     struct s2n_test_io_pair io_pair;
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
             (client_extensions_len >> 8) & 0xff,
             (client_extensions_len & 0xff),
         };
-        int body_len = sizeof(client_hello_message) + client_extensions_len;
+        int body_len = (int) (sizeof(client_hello_message) + client_extensions_len);
         uint8_t message_header[] = {
             /* Handshake message type CLIENT HELLO */
             0x01,
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
             (body_len >> 8) & 0xff,
             (body_len & 0xff),
         };
-        int message_len = sizeof(message_header) + body_len;
+        int message_len = (int) (sizeof(message_header) + body_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
@@ -392,7 +392,7 @@ int main(int argc, char **argv)
             (client_extensions_len >> 8) & 0xff,
             (client_extensions_len & 0xff),
         };
-        int body_len = sizeof(client_hello_message) + client_extensions_len;
+        int body_len = (int) (sizeof(client_hello_message) + client_extensions_len);
         uint8_t message_header[] = {
             /* Handshake message type CLIENT HELLO */
             0x01,
@@ -401,7 +401,7 @@ int main(int argc, char **argv)
             (body_len >> 8) & 0xff,
             (body_len & 0xff),
         };
-        int message_len = sizeof(message_header) + body_len;
+        int message_len = (int) (sizeof(message_header) + body_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
             (client_extensions_len >> 8) & 0xff,
             (client_extensions_len & 0xff),
         };
-        int body_len = sizeof(client_hello_message) + client_extensions_len;
+        int body_len = (int) (sizeof(client_hello_message) + client_extensions_len);
         uint8_t message_header[] = {
             /* Handshake message type CLIENT HELLO */
             0x01,
@@ -494,7 +494,7 @@ int main(int argc, char **argv)
             (body_len >> 8) & 0xff,
             (body_len & 0xff),
         };
-        int message_len = sizeof(message_header) + body_len;
+        int message_len = (int) (sizeof(message_header) + body_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
@@ -588,7 +588,7 @@ int main(int argc, char **argv)
             (client_extensions_len >> 8) & 0xff,
             (client_extensions_len & 0xff),
         };
-        int body_len = sizeof(client_hello_message) + client_extensions_len;
+        int body_len = (int) (sizeof(client_hello_message) + client_extensions_len);
         uint8_t message_header[] = {
             /* Handshake message type CLIENT HELLO */
             0x01,
@@ -597,7 +597,7 @@ int main(int argc, char **argv)
             (body_len >> 8) & 0xff,
             (body_len & 0xff),
         };
-        int message_len = sizeof(message_header) + body_len;
+        int message_len = (int) (sizeof(message_header) + body_len);
         uint8_t record_header[] = {
             /* Record type HANDSHAKE */
             0x16,
@@ -1100,7 +1100,7 @@ int main(int argc, char **argv)
     };
 
     /* Client requests 512, 1024, 2048, and 4096 maximum fragment lengths */
-    for (uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code <= S2N_TLS_MAX_FRAG_LEN_4096; mfl_code++) {
+    for (int mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code <= S2N_TLS_MAX_FRAG_LEN_4096; mfl_code++) {
         struct s2n_connection *client_conn = NULL;
         struct s2n_connection *server_conn = NULL;
         struct s2n_config *server_config = NULL;

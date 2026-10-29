@@ -20,7 +20,7 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-static int reset_stuffers(struct s2n_stuffer *reread, struct s2n_stuffer *wipe)
+static int reset_stuffers(struct s2n_stuffer *reread, struct s2n_stuffer *wipe) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_GUARD(s2n_stuffer_reread(reread));
     POSIX_GUARD(s2n_stuffer_wipe(wipe));

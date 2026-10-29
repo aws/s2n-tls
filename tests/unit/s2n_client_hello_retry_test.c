@@ -33,7 +33,7 @@
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/extensions/s2n_server_key_share.h"
-#include "tls/s2n_server_hello.c"
+#include "tls/s2n_server_hello.c" /* NOLINT(bugprone-suspicious-include) */
 #include "utils/s2n_bitmap.h"
 #include "utils/s2n_safety.h"
 
@@ -1349,12 +1349,11 @@ int main(int argc, char **argv)
                 }
 
                 /* TLS1.2 session tickets and TLS1.3 session tickets are mutually exclusive */
-                if (tls13_tickets && iana == TLS_EXTENSION_SESSION_TICKET) {
-                    continue;
-                } else if (!tls13_tickets
-                        && (iana == TLS_EXTENSION_PRE_SHARED_KEY
-                                || iana == TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES
-                                || iana == TLS_EXTENSION_EARLY_DATA)) {
+                if ((tls13_tickets && iana == TLS_EXTENSION_SESSION_TICKET)
+                        || (!tls13_tickets
+                                && (iana == TLS_EXTENSION_PRE_SHARED_KEY
+                                        || iana == TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES
+                                        || iana == TLS_EXTENSION_EARLY_DATA))) {
                     continue;
                 }
 

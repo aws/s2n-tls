@@ -21,7 +21,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "tls/s2n_tls13_certificate_verify.c"
+#include "tls/s2n_tls13_certificate_verify.c" /* NOLINT(bugprone-suspicious-include) */
 
 uint8_t hello[] = "Hello, World!\n";
 uint8_t goodbye[] = "Goodbye, World!\n";

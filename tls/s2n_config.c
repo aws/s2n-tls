@@ -116,7 +116,8 @@ static int s2n_config_init(struct s2n_config *config)
         POSIX_GUARD(s2n_config_setup_fips(config));
     }
 
-    POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
+    config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1);
+    POSIX_GUARD_PTR(config->domain_name_to_cert_map);
     POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
@@ -308,7 +309,7 @@ struct s2n_config *s2n_config_new_minimal(void)
     PTR_GUARD_POSIX(s2n_alloc(&allocator, sizeof(struct s2n_config)));
     PTR_GUARD_POSIX(s2n_blob_zero(&allocator));
 
-    new_config = (struct s2n_config *) (void *) allocator.data;
+    new_config = (struct s2n_config *) (void *) allocator.data; /* NOLINT(bugprone-casting-through-void) */
     if (s2n_config_init(new_config) != S2N_SUCCESS) {
         s2n_free(&allocator);
         return NULL;
@@ -331,7 +332,8 @@ struct s2n_config *s2n_config_new(void)
 int s2n_config_init_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys == NULL) {
-        POSIX_ENSURE_REF(config->ticket_keys = s2n_array_new_with_capacity(sizeof(struct s2n_ticket_key), S2N_MAX_TICKET_KEYS));
+        config->ticket_keys = s2n_array_new_with_capacity(sizeof(struct s2n_ticket_key), S2N_MAX_TICKET_KEYS);
+        POSIX_ENSURE_REF(config->ticket_keys);
     }
 
     return 0;
@@ -1037,7 +1039,7 @@ int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config *config,
 
 int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         const uint8_t *name, uint32_t name_len,
-        uint8_t *key, uint32_t key_len,
+        uint8_t *key, uint32_t key_len, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint64_t intro_time_in_seconds_from_epoch)
 {
     POSIX_ENSURE_REF(config);
@@ -1078,7 +1080,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     struct s2n_ticket_key *session_ticket_key = { 0 };
     DEFER_CLEANUP(struct s2n_blob allocator = { 0 }, s2n_free);
     POSIX_GUARD(s2n_alloc(&allocator, sizeof(struct s2n_ticket_key)));
-    session_ticket_key = (struct s2n_ticket_key *) (void *) allocator.data;
+    session_ticket_key = (struct s2n_ticket_key *) (void *) allocator.data; /* NOLINT(bugprone-casting-through-void) */
 
     DEFER_CLEANUP(struct s2n_hmac_state hmac = { 0 }, s2n_hmac_free);
 

@@ -31,7 +31,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        EXPECT_SUCCESS(s2n_config_send_max_fragment_length(config, S2N_TLS_MAX_FRAG_LEN_EXT_NONE));
+        EXPECT_SUCCESS(s2n_config_send_max_fragment_length(config, S2N_TLS_MAX_FRAG_LEN_EXT_NONE)); /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): deliberately passes the 0 "none" value */
         EXPECT_FALSE(s2n_client_max_frag_len_extension.should_send(conn));
 
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(config, S2N_TLS_MAX_FRAG_LEN_512));

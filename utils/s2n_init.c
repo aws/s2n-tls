@@ -56,7 +56,7 @@ int s2n_init(void)
      */
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
 
-    if (getenv("S2N_INTEG_TEST")) {
+    if (getenv("S2N_INTEG_TEST")) { /* NOLINT(concurrency-mt-unsafe) */
         POSIX_GUARD(s2n_in_integ_test_set(true));
     }
 
@@ -83,7 +83,7 @@ int s2n_init(void)
         POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);
     }
 
-    if (getenv("S2N_PRINT_STACKTRACE")) {
+    if (getenv("S2N_PRINT_STACKTRACE")) { /* NOLINT(concurrency-mt-unsafe) */
         s2n_stack_traces_enabled_set(true);
     }
 

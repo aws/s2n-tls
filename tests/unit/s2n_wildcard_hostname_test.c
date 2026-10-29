@@ -46,10 +46,10 @@ int main(int argc, char **argv)
     for (size_t i = 0; i < num_wildcardify_tests; i++) {
         const char *hostname = wildcardify_test_cases[i].hostname;
         struct s2n_blob hostname_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&hostname_blob, (uint8_t *) (uintptr_t) hostname, strlen(hostname)));
+        EXPECT_SUCCESS(s2n_blob_init(&hostname_blob, (uint8_t *) (uintptr_t) hostname, strlen(hostname))); /* NOLINT(performance-no-int-to-ptr) */
         uint8_t output[S2N_MAX_SERVER_NAME] = { 0 };
         struct s2n_blob output_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&output_blob, (uint8_t *) (uintptr_t) output, sizeof(output)));
+        EXPECT_SUCCESS(s2n_blob_init(&output_blob, (uint8_t *) (uintptr_t) output, sizeof(output))); /* NOLINT(performance-no-int-to-ptr) */
         struct s2n_stuffer hostname_stuffer = { 0 };
         struct s2n_stuffer output_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&hostname_stuffer, &hostname_blob));
@@ -62,7 +62,7 @@ int main(int argc, char **argv)
         const char *expected_output = wildcardify_test_cases[i].output;
         if (wildcard_len > 0) {
             EXPECT_EQUAL(wildcard_len, strlen(expected_output));
-            EXPECT_SUCCESS(memcmp(output, expected_output, wildcard_len));
+            EXPECT_EQUAL(memcmp(output, expected_output, wildcard_len), 0);
         } else {
             EXPECT_EQUAL(expected_output, NULL);
         }

@@ -27,7 +27,7 @@
  * the session ticket issue time can be while still being accepted.
  */
 #define MAX_ALLOWED_CLOCK_SKEW_SEC     3600
-#define S2N_TLS_SESSION_CACHE_TTL      (6 * 60 * 60)
+#define S2N_TLS_SESSION_CACHE_TTL      ((uint64_t) 6 * 60 * 60)
 #define S2N_TICKET_KEY_NAME_LEN        16
 #define S2N_TICKET_AAD_IMPLICIT_LEN    12
 #define S2N_TICKET_AAD_LEN             (S2N_TICKET_AAD_IMPLICIT_LEN + S2N_TICKET_KEY_NAME_LEN)
@@ -46,10 +46,10 @@
 #define S2N_TICKET_LIFETIME_HINT_LEN                     4
 #define S2N_SESSION_TICKET_SIZE_LEN                      2
 #define S2N_GREATER_OR_EQUAL                             1
-#define S2N_LESS_THAN                                    -1
+#define S2N_LESS_THAN                                    (-1)
 
-#define S2N_TLS12_SESSION_SIZE S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN \
-        + S2N_TLS12_TICKET_SIZE_IN_BYTES + S2N_TLS12_STATE_SIZE_IN_BYTES
+#define S2N_TLS12_SESSION_SIZE (S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN \
+        + S2N_TLS12_TICKET_SIZE_IN_BYTES + S2N_TLS12_STATE_SIZE_IN_BYTES)
 
 struct s2n_connection;
 struct s2n_config;

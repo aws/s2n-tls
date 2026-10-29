@@ -252,7 +252,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_SUCCESS(s2n_free(&input));
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     pid_t server_pid = fork();
@@ -276,7 +276,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_SUCCESS(s2n_free(&input));
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     int status = 0;
@@ -317,7 +317,7 @@ static S2N_RESULT s2n_run_failure_tests()
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
 
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     int status = 0;

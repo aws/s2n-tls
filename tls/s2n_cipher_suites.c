@@ -1023,7 +1023,7 @@ int s2n_cipher_suites_init(void)
             struct s2n_blob new_suite_mem = { 0 };
             POSIX_GUARD(s2n_dup(&cur_suite_mem, &new_suite_mem));
 
-            struct s2n_cipher_suite *new_suite = (struct s2n_cipher_suite *) (void *) new_suite_mem.data;
+            struct s2n_cipher_suite *new_suite = (struct s2n_cipher_suite *) (void *) new_suite_mem.data; /* NOLINT(bugprone-casting-through-void) */
             new_suite->available = 1;
             new_suite->record_alg = cur_suite->sslv3_record_alg;
             cur_suite->sslv3_cipher_suite = new_suite;
@@ -1095,9 +1095,9 @@ S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t *iana, size_t iana_len, stru
             *cipher_suite = s2n_all_cipher_suites[mid];
             return S2N_RESULT_OK;
         } else if (m > 0) {
-            top = mid - 1;
+            top = (int) mid - 1;
         } else if (m < 0) {
-            low = mid + 1;
+            low = (int) mid + 1;
         }
     }
     RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
@@ -1175,7 +1175,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     return 0;
 }
 
-static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     for (size_t i = 0; i < count; i++) {
         const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);

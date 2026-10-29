@@ -27,9 +27,9 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-static const float minimum_send_percent = 5.0;
+static const float minimum_send_percent = 5.0f;
 
-#define MIN_PERCENT_COMPLETE(remaining, total) ((((total - remaining) / (total * 1.0)) * 100.0) > minimum_send_percent)
+#define MIN_PERCENT_COMPLETE(remaining, total) (((((total) - (remaining)) / ((total) * 1.0)) * 100.0) > minimum_send_percent)
 
 int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32_t size)
 {
@@ -45,7 +45,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     int should_block = 1;
 
     /* Give the server a chance to listen */
-    sleep(1);
+    sleep(1); /* NOLINT(concurrency-mt-unsafe) */
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
@@ -63,7 +63,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     /* Receive 10MB of data */
     uint32_t remaining = size;
     while (remaining) {
-        int r = s2n_recv(client_conn, ptr, remaining, &blocked);
+        ssize_t r = s2n_recv(client_conn, ptr, remaining, &blocked);
         if (r < 0) {
             return 1;
         }
@@ -105,19 +105,19 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     int should_block = 1;
 
     for (i = 0; i < iov_size; i++) {
-        total_size += iov[i].iov_len;
+        total_size += (int) iov[i].iov_len;
     }
     uint8_t *buffer = malloc(total_size + iov[0].iov_len);
     int buffer_offs = 0;
 
     /* Give the server a chance to listen */
-    sleep(1);
+    sleep(1); /* NOLINT(concurrency-mt-unsafe) */
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
-    POSIX_GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
+    POSIX_GUARD(s2n_config_set_cipher_preferences(client_config, "test_all")); /* NOLINT(clang-analyzer-unix.Malloc): only leaked on a failure path that ends the child process */
 
     s2n_connection_set_io_pair(client_conn, io_pair);
 
@@ -128,7 +128,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
 
     uint32_t remaining = total_size;
     while (remaining) {
-        int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
+        int r = (int) s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
         }
@@ -142,7 +142,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
 
     remaining = iov[0].iov_len;
     while (remaining) {
-        int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
+        int r = (int) s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
         }
@@ -156,13 +156,13 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     } while (shutdown_rc != 0);
 
     for (i = 0, buffer_offs = 0; i < iov_size; i++) {
-        if (memcmp(iov[i].iov_base, &buffer[buffer_offs], iov[i].iov_len)) {
+        if (memcmp(iov[i].iov_base, &buffer[buffer_offs], iov[i].iov_len) != 0) {
             return 1;
         }
-        buffer_offs += iov[i].iov_len;
+        buffer_offs += (int) iov[i].iov_len;
     }
 
-    if (memcmp(iov[0].iov_base, &buffer[buffer_offs], iov[0].iov_len)) {
+    if (memcmp(iov[0].iov_base, &buffer[buffer_offs], iov[0].iov_len) != 0) {
         return 1;
     }
 
@@ -187,7 +187,7 @@ S2N_RESULT cleanup_io_data(struct iovec **iov, int iov_size, struct s2n_blob *bl
     return S2N_RESULT_OK;
 }
 
-int test_send(int use_tls13, int use_iov, int prefer_throughput)
+int test_send(int use_tls13, int use_iov, int prefer_throughput) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     s2n_blocked_status blocked;
     int status = 0;
@@ -251,7 +251,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
 
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
         EXPECT_OK(cleanup_io_data(&iov, iov_size, &blob));
-        exit(client_rc);
+        exit(client_rc); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -308,8 +308,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     uint32_t iov_offs = 0;
 
     while (remaining) {
-        int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-                           s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
+        ssize_t r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
+                               s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
         /* We will send up to minimum_send_percent, after which the client will automatically block itself.
          * This allows us to cover the case where s2n_send gets EAGAIN on the very first call
          * which can happen on certain platforms. By making sure we've successfully sent something
@@ -337,7 +337,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     EXPECT_TRUE(remaining > 0);
 
     /* Wait for the child process to read some bytes and block itself*/
-    sleep(1);
+    sleep(1); /* NOLINT(concurrency-mt-unsafe) */
     /* Wake the child process by sending it SIGCONT */
     EXPECT_SUCCESS(kill(pid, SIGCONT));
 
@@ -346,8 +346,8 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
 
     /* Actually send the remaining data */
     while (remaining) {
-        int r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
-                           s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
+        ssize_t r = !use_iov ? s2n_send(conn, ptr, remaining, &blocked) :
+                               s2n_sendv_with_offset(conn, iov, iov_size, iov_offs, &blocked);
         EXPECT_TRUE(r > 0);
         remaining -= r;
         if (!use_iov) {
@@ -358,7 +358,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     }
 
     if (use_iov) {
-        int r = s2n_sendv(conn, iov, 1, &blocked);
+        ssize_t r = s2n_sendv(conn, iov, 1, &blocked);
         EXPECT_TRUE(r > 0);
     }
 

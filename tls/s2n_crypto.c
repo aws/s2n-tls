@@ -29,7 +29,7 @@ S2N_RESULT s2n_crypto_parameters_new(struct s2n_crypto_parameters **new_params)
     RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_crypto_parameters)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
 
-    DEFER_CLEANUP(struct s2n_crypto_parameters *params = (struct s2n_crypto_parameters *) (void *) mem.data,
+    DEFER_CLEANUP(struct s2n_crypto_parameters *params = (struct s2n_crypto_parameters *) (void *) mem.data, /* NOLINT(bugprone-casting-through-void) */
             s2n_crypto_parameters_free);
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 

@@ -57,7 +57,7 @@ S2N_RESULT s2n_stuffer_read_hex(struct s2n_stuffer *hex_in, const struct s2n_blo
         return S2N_RESULT_OK;
     }
 
-    size_t hex_size = bytes_out->size * 2;
+    size_t hex_size = (size_t) bytes_out->size * 2;
     RESULT_ENSURE(s2n_stuffer_data_available(hex_in) >= hex_size, S2N_ERR_BAD_HEX);
 
     uint8_t *out = bytes_out->data;
@@ -139,7 +139,7 @@ S2N_RESULT s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_stuffer_hex_write_n_bytes(struct s2n_stuffer *stuffer, uint8_t n, uint64_t u)
+static S2N_RESULT s2n_stuffer_hex_write_n_bytes(struct s2n_stuffer *stuffer, uint8_t n, uint64_t u) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_LTE(n, sizeof(uint64_t));
 

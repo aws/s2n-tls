@@ -19,7 +19,7 @@
 #include "tls/s2n_connection.h"
 
 /* Needed for s2n_handshake_get_hash_state_ptr */
-#include "tls/s2n_handshake.c"
+#include "tls/s2n_handshake.c" /* NOLINT(bugprone-suspicious-include) */
 
 int main(int argc, char **argv)
 {

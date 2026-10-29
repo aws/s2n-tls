@@ -84,7 +84,8 @@ S2N_RESULT s2n_inet_ntop(int af, const void *addr, struct s2n_blob *dst)
 
         /* Find the longest run of zeroes */
         for (int i = 0; i < 8; i++) {
-            octets[i] = (bytes[i * 2] << 8) + bytes[(i * 2) + 1];
+            int byte_index = i * 2;
+            octets[i] = (bytes[byte_index] << 8) + bytes[byte_index + 1];
 
             if (octets[i]) {
                 current_run_length = 0;

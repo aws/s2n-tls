@@ -22,11 +22,11 @@
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 
-#define SET_PARSED_EXTENSION(list, entry)                                                    \
-    do {                                                                                     \
-        s2n_extension_type_id id = 0;                                                        \
-        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(entry.extension_type, &id)); \
-        list.parsed_extensions[id] = entry;                                                  \
+#define SET_PARSED_EXTENSION(list, entry)                                                      \
+    do {                                                                                       \
+        s2n_extension_type_id id = 0;                                                          \
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id((entry).extension_type, &id)); \
+        (list).parsed_extensions[id] = entry;                                                  \
     } while (0)
 
 #define IS_EXTENSION_PROCESSED(list, id)     ((list).parsed_extensions[id].processed)

@@ -90,7 +90,7 @@ static int s2n_stuffer_pem_read_end(struct s2n_stuffer *pem, const char *keyword
     return s2n_stuffer_pem_read_encapsulation_line(pem, S2N_PEM_END_TOKEN, keyword);
 }
 
-static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
+static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stuffer *asn1) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     s2n_stack_blob(base64__blob, 64, 64);
     struct s2n_stuffer base64_stuffer = { 0 };

@@ -139,7 +139,7 @@ int main(int argc, char **argv)
     /* Check that we can read it again */
     EXPECT_SUCCESS(s2n_stuffer_alloc(&scratch, 50));
     EXPECT_SUCCESS(s2n_stuffer_read_base64(&stuffer, &scratch));
-    EXPECT_SUCCESS(memcmp(scratch.blob.data, hello_world, strlen(hello_world)));
+    EXPECT_EQUAL(memcmp(scratch.blob.data, hello_world, strlen(hello_world)), 0);
 
     /* Now try with some randomly generated data. Make sure we try each boundary case,
      * where size % 3 == 0, 1, 2

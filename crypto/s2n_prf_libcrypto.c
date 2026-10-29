@@ -155,8 +155,8 @@ S2N_RESULT s2n_prf_libcrypto(struct s2n_connection *conn,
          * Even the examples in the Openssl documentation cast const strings to
          * non-const void pointers when setting up OSSL_PARAMs.
          */
-        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_PROPERTIES, (void *) (uintptr_t) fetch_properties),
-        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_DIGEST, (void *) (uintptr_t) digest_name),
+        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_PROPERTIES, (void *) (uintptr_t) fetch_properties), /* NOLINT(performance-no-int-to-ptr) */
+        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_DIGEST, (void *) (uintptr_t) digest_name),          /* NOLINT(performance-no-int-to-ptr) */
         S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SECRET, secret),
         /* "TLS1-PRF" handles the label like just another seed */
         S2N_OSSL_PARAM_BLOB(OSSL_KDF_PARAM_SEED, label),

@@ -15,6 +15,7 @@
 
 #pragma once
 
+#include <stddef.h>
 #define s2n_likely(x)   __builtin_expect(!!(x), 1)
 #define s2n_unlikely(x) __builtin_expect(!!(x), 0)
 

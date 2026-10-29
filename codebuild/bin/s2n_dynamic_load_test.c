@@ -26,47 +26,47 @@ static void *s2n_load_dynamic_lib(void *ctx)
     void *s2n_so = dlopen(s2n_so_path, RTLD_NOW);
     if (!s2n_so) {
         printf("Error dynamically loading libs2n\n");
-        printf("%s\n", dlerror());
-        exit(1);
+        printf("%s\n", dlerror()); /* NOLINT(concurrency-mt-unsafe) */
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     int (*s2n_init_dl)(void) = NULL;
     *(void **) (&s2n_init_dl) = dlsym(s2n_so, "s2n_init");
-    if (dlerror()) {
+    if (dlerror()) { /* NOLINT(concurrency-mt-unsafe) */
         printf("Error dynamically loading s2n_init\n");
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     int (*s2n_cleanup_final_dl)(void) = NULL;
     *(void **) (&s2n_cleanup_final_dl) = dlsym(s2n_so, "s2n_cleanup_final");
-    if (dlerror()) {
+    if (dlerror()) { /* NOLINT(concurrency-mt-unsafe) */
         printf("Error dynamically loading s2n_cleanup_final\n");
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     int (*s2n_errno_location_dl)(void) = NULL;
     *(void **) (&s2n_errno_location_dl) = dlsym(s2n_so, "s2n_errno_location");
-    if (dlerror()) {
+    if (dlerror()) { /* NOLINT(concurrency-mt-unsafe) */
         printf("Error dynamically loading s2n_errno_location\n");
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     const char *(*s2n_strerror_debug_dl)(int error, const char *lang) = NULL;
     *(void **) (&s2n_strerror_debug_dl) = dlsym(s2n_so, "s2n_strerror_debug");
-    if (dlerror()) {
+    if (dlerror()) { /* NOLINT(concurrency-mt-unsafe) */
         printf("Error dynamically loading s2n_strerror_debug\n");
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     if ((*s2n_init_dl)()) {
         int s2n_errno = (*s2n_errno_location_dl)();
         fprintf(stderr, "Error calling s2n_init: '%s'\n", (*s2n_strerror_debug_dl)(s2n_errno, "EN"));
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
     if ((*s2n_cleanup_final_dl)()) {
         int s2n_errno = (*s2n_errno_location_dl)();
         fprintf(stderr, "Error calling s2n_cleanup_final: '%s'\n", (*s2n_strerror_debug_dl)(s2n_errno, "EN"));
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     /* TODO: https://github.com/aws/s2n-tls/issues/4827
@@ -87,7 +87,7 @@ int main(int argc, char *argv[])
 {
     if (argc != 2) {
         printf("Usage: s2n_dynamic_load_test <path to s2n shared object>\n");
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     /* s2n-tls library can be dynamically loaded and cleaned up safely 
@@ -100,11 +100,11 @@ int main(int argc, char *argv[])
         pthread_t thread_id = { 0 };
         if (pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
             printf("Error creating thread at loop index: %li\n", i);
-            exit(1);
+            exit(1); /* NOLINT(concurrency-mt-unsafe) */
         }
         if (pthread_join(thread_id, NULL)) {
             printf("Error joining thread at loop index: %li\n", i);
-            exit(1);
+            exit(1); /* NOLINT(concurrency-mt-unsafe) */
         }
     }
 

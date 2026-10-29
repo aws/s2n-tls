@@ -208,7 +208,7 @@ S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *conf
     return S2N_RESULT_OK;
 }
 
-int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size,
+int s2n_psk_configure_early_data(struct s2n_psk *psk, uint32_t max_early_data_size, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint8_t cipher_suite_first_byte, uint8_t cipher_suite_second_byte)
 {
     POSIX_ENSURE_REF(psk);

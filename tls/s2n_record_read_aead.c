@@ -36,7 +36,7 @@ int s2n_record_parse_aead(
         uint8_t *sequence_number,
         struct s2n_session_key *session_key)
 {
-    const int is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
+    const bool is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
     /* TLS 1.3 record protection uses a different 5 byte associated data than TLS 1.2's */
     s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
 

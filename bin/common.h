@@ -19,9 +19,10 @@
 
 #include "api/s2n.h"
 
+/* NOLINTBEGIN(concurrency-mt-unsafe): the CLI tools that use these macros are single-threaded */
 #define GUARD_EXIT_NULL(x)                                 \
     do {                                                   \
-        if (x == NULL) {                                   \
+        if ((x) == NULL) {                                 \
             fprintf(stderr, "NULL pointer encountered\n"); \
             exit(1);                                       \
         }                                                  \
@@ -43,9 +44,11 @@
         }                                 \
     } while (0)
 
+/* NOLINTEND(concurrency-mt-unsafe) */
+
 #define GUARD_RETURN_NULL(x)                               \
     do {                                                   \
-        if (x == NULL) {                                   \
+        if ((x) == NULL) {                                 \
             fprintf(stderr, "NULL pointer encountered\n"); \
             return -1;                                     \
         }                                                  \

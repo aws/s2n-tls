@@ -109,7 +109,7 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     while (s2n_stuffer_data_available(stuffer) > 0) {
-        if (stuffer->blob.data[stuffer->read_cursor] == target) {
+        if (stuffer->blob.data[stuffer->read_cursor] == (uint8_t) target) {
             break;
         }
         stuffer->read_cursor += 1;
@@ -119,7 +119,7 @@ int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, const char target)
 }
 
 /* Skips an expected character in the stuffer between min and max times */
-int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
+int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min, /* NOLINT(bugprone-easily-swappable-parameters) */
         const uint32_t max, uint32_t *skipped)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
@@ -127,7 +127,7 @@ int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expec
 
     uint32_t skip = 0;
     while (stuffer->read_cursor < stuffer->write_cursor && skip < max) {
-        if (stuffer->blob.data[stuffer->read_cursor] == expected) {
+        if (stuffer->blob.data[stuffer->read_cursor] == (uint8_t) expected) {
             stuffer->read_cursor += 1;
             skip += 1;
         } else {
@@ -166,7 +166,7 @@ int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *toke
     uint32_t token_size = 0;
 
     while ((stuffer->read_cursor + token_size) < stuffer->write_cursor) {
-        if (stuffer->blob.data[stuffer->read_cursor + token_size] == delim) {
+        if (stuffer->blob.data[stuffer->read_cursor + token_size] == (uint8_t) delim) {
             break;
         }
         token_size++;
@@ -239,7 +239,7 @@ int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list
      * str_len does not include the one byte vsnprintf requires for a trailing '\0',
      * so we need one more byte.
      */
-    int str_len = vsnprintf(NULL, 0, format, vargs_1.va_list);
+    int str_len = vsnprintf(NULL, 0, format, vargs_1.va_list); /* NOLINT(clang-analyzer-valist.Unterminated): s2n_va_list_cleanup calls va_end */
     POSIX_ENSURE_GTE(str_len, 0);
     POSIX_ENSURE_LT(str_len, INT_MAX);
     int mem_size = str_len + 1;
@@ -260,7 +260,7 @@ int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list
     va_copy(vargs_2.va_list, vargs_in);
 
     /* This time, vsnprintf actually writes the formatted string */
-    int written = vsnprintf(str, mem_size, format, vargs_2.va_list);
+    int written = vsnprintf(str, mem_size, format, vargs_2.va_list); /* NOLINT(clang-analyzer-valist.Unterminated): s2n_va_list_cleanup calls va_end */
     if (written != str_len) {
         /* If the write fails, undo our raw write */
         POSIX_GUARD(s2n_stuffer_wipe_n(stuffer, mem_size));
@@ -278,6 +278,6 @@ int s2n_stuffer_printf(struct s2n_stuffer *stuffer, const char *format, ...)
 {
     DEFER_CLEANUP(struct s2n_va_list vargs = { 0 }, s2n_va_list_cleanup);
     va_start(vargs.va_list, format);
-    POSIX_GUARD(s2n_stuffer_vprintf(stuffer, format, vargs.va_list));
+    POSIX_GUARD(s2n_stuffer_vprintf(stuffer, format, vargs.va_list)); /* NOLINT(clang-analyzer-valist.Unterminated): s2n_va_list_cleanup calls va_end */
     return S2N_SUCCESS;
 }

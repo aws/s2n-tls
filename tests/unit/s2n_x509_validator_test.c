@@ -2195,7 +2195,7 @@ int main(int argc, char **argv)
          */
         if (!s2n_libcrypto_is_libressl()) {
             /* Override the system cert file with the non-root test cert. */
-            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", non_root_cert_path, 1));
+            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", non_root_cert_path, 1)); /* NOLINT(concurrency-mt-unsafe) */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
 
             DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
@@ -2218,7 +2218,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                     &public_key_out));
 
-            EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE"));
+            EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE")); /* NOLINT(concurrency-mt-unsafe) */
         }
     }
 

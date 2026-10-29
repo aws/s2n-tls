@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* NOLINTBEGIN(concurrency-mt-unsafe): only used by the single-threaded command-line tools */
+
 #include <errno.h>
 #include <inttypes.h>
 #include <netdb.h>
@@ -66,7 +68,7 @@ void print_s2n_error(const char *app_error)
 }
 
 /* Poll the given file descriptor for an event determined by the blocked status */
-int wait_for_event(int fd, s2n_blocked_status blocked)
+int wait_for_event(int fd, s2n_blocked_status blocked) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     struct pollfd reader = { .fd = fd, .events = 0 };
 
@@ -152,19 +154,23 @@ int print_connection_info(struct s2n_connection *conn)
     int server_protocol_version = 0;
     int actual_protocol_version = 0;
 
-    if ((client_hello_version = s2n_connection_get_client_hello_version(conn)) < 0) {
+    client_hello_version = s2n_connection_get_client_hello_version(conn);
+    if (client_hello_version < 0) {
         fprintf(stderr, "Could not get client hello version\n");
         POSIX_BAIL(S2N_ERR_CLIENT_HELLO_VERSION);
     }
-    if ((client_protocol_version = s2n_connection_get_client_protocol_version(conn)) < 0) {
+    client_protocol_version = s2n_connection_get_client_protocol_version(conn);
+    if (client_protocol_version < 0) {
         fprintf(stderr, "Could not get client protocol version\n");
         POSIX_BAIL(S2N_ERR_CLIENT_PROTOCOL_VERSION);
     }
-    if ((server_protocol_version = s2n_connection_get_server_protocol_version(conn)) < 0) {
+    server_protocol_version = s2n_connection_get_server_protocol_version(conn);
+    if (server_protocol_version < 0) {
         fprintf(stderr, "Could not get server protocol version\n");
         POSIX_BAIL(S2N_ERR_SERVER_PROTOCOL_VERSION);
     }
-    if ((actual_protocol_version = s2n_connection_get_actual_protocol_version(conn)) < 0) {
+    actual_protocol_version = s2n_connection_get_actual_protocol_version(conn);
+    if (actual_protocol_version < 0) {
         fprintf(stderr, "Could not get actual protocol version\n");
         POSIX_BAIL(S2N_ERR_ACTUAL_PROTOCOL_VERSION);
     }
@@ -478,3 +484,5 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
     return 0;
 }
+
+/* NOLINTEND(concurrency-mt-unsafe) */

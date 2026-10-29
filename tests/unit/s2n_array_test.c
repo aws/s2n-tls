@@ -35,8 +35,8 @@ int main(int argc, char **argv)
 
     struct array_element elements[NUM_OF_ELEMENTS] = { 0 };
     for (size_t i = 0; i < NUM_OF_ELEMENTS; i++) {
-        elements[i].first = i;
-        elements[i].second = 'a' + i;
+        elements[i].first = (int) i;
+        elements[i].second = (char) ('a' + i);
     }
 
     {
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_array_num_elements(array, &len));
         EXPECT_EQUAL(len, 17);
         EXPECT_EQUAL(array->element_size, element_size);
-        EXPECT_SUCCESS(memcmp(array->mem.data, elements, NUM_OF_ELEMENTS * element_size));
+        EXPECT_EQUAL(memcmp(array->mem.data, elements, NUM_OF_ELEMENTS * element_size), 0);
 
         /* Insert element at given index */
         struct array_element *insert_element = NULL;

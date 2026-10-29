@@ -149,9 +149,9 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
     POSIX_ENSURE(p->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_ENSURE(g->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_ENSURE(Ys->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    BIGNUM *bn_p = BN_bin2bn((const unsigned char *) p->data, p->size, NULL);
-    BIGNUM *bn_g = BN_bin2bn((const unsigned char *) g->data, g->size, NULL);
-    BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *) Ys->data, Ys->size, NULL);
+    BIGNUM *bn_p = BN_bin2bn((const unsigned char *) p->data, (int) p->size, NULL);
+    BIGNUM *bn_g = BN_bin2bn((const unsigned char *) g->data, (int) g->size, NULL);
+    BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *) Ys->data, (int) Ys->size, NULL);
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
@@ -185,7 +185,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
     DEFER_CLEANUP(struct s2n_dh_params temp_dh_params = { 0 }, s2n_dh_params_free);
 
     uint8_t *original_ptr = pkcs3->data;
-    temp_dh_params.dh = d2i_DHparams(NULL, (const unsigned char **) (void *) &pkcs3->data, pkcs3->size);
+    temp_dh_params.dh = d2i_DHparams(NULL, (const unsigned char **) (void *) &pkcs3->data, pkcs3->size); /* NOLINT(bugprone-casting-through-void) */
 
     POSIX_GUARD(s2n_check_p_g_dh_params(&temp_dh_params));
 
@@ -359,7 +359,7 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     Yc.data = s2n_stuffer_raw_read(Yc_in, Yc.size);
     POSIX_ENSURE_REF(Yc.data);
 
-    pub_key = BN_bin2bn((const unsigned char *) Yc.data, Yc.size, NULL);
+    pub_key = BN_bin2bn((const unsigned char *) Yc.data, (int) Yc.size, NULL);
     POSIX_ENSURE_REF(pub_key);
     POSIX_GUARD(s2n_alloc(shared_key, server_dh_params_size));
 

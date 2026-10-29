@@ -315,7 +315,7 @@ int main()
         srand(0);
 
         for (size_t i = 0; i < 250; i++) {
-            int r = rand();
+            int r = rand(); /* NOLINT(concurrency-mt-unsafe) */
             bool hrr = (r % 2) == 0;
             bool cookie = (r % 3) == 0;
             size_t cookie_i = i % TEST_COOKIE_COUNT;

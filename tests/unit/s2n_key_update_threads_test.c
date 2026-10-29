@@ -26,14 +26,14 @@
 #define S2N_TEST_BUFFER_SIZE      1000
 #define S2N_TEST_ENCRYPTION_LIMIT 3
 #define S2N_TEST_KEY_UPDATE_COUNT 25
-#define S2N_TEST_RECORD_COUNT     (S2N_TEST_ENCRYPTION_LIMIT * S2N_TEST_KEY_UPDATE_COUNT)
-#define S2N_TEST_BYTES_TO_SEND    (S2N_DEFAULT_FRAGMENT_LENGTH * S2N_TEST_RECORD_COUNT)
+#define S2N_TEST_RECORD_COUNT     ((size_t) S2N_TEST_ENCRYPTION_LIMIT * S2N_TEST_KEY_UPDATE_COUNT)
+#define S2N_TEST_BYTES_TO_SEND    ((size_t) S2N_DEFAULT_FRAGMENT_LENGTH * S2N_TEST_RECORD_COUNT)
 
-#define S2N_CIPHER_SUITE_WITH_LIMIT(name, source, limit)                 \
-    struct s2n_cipher_suite name = *(source);                            \
-    struct s2n_record_algorithm _##name##_record_alg = *name.record_alg; \
-    _##name##_record_alg.encryption_limit = limit;                       \
-    name.record_alg = &_##name##_record_alg;
+#define S2N_CIPHER_SUITE_WITH_LIMIT(name, source, limit)                   \
+    struct s2n_cipher_suite name = *(source);                              \
+    struct s2n_record_algorithm _##name##_record_alg = *(name).record_alg; \
+    _##name##_record_alg.encryption_limit = limit;                         \
+    (name).record_alg = &_##name##_record_alg;
 
 S2N_RESULT s2n_set_key_update_request_for_testing(s2n_peer_key_update request);
 
@@ -46,7 +46,7 @@ static void *s2n_send_random_data(void *arg)
     size_t bytes_to_send = S2N_TEST_BYTES_TO_SEND;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     while (bytes_to_send) {
-        int r = s2n_send(conn, buffer, S2N_MIN(sizeof(buffer), bytes_to_send), &blocked);
+        ssize_t r = s2n_send(conn, buffer, S2N_MIN(sizeof(buffer), bytes_to_send), &blocked);
         if (r >= 0) {
             bytes_to_send -= r;
         } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
@@ -66,7 +66,7 @@ static void *s2n_recv_random_data(void *arg)
     size_t bytes_to_read = S2N_TEST_BYTES_TO_SEND;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     while (bytes_to_read) {
-        int r = s2n_recv(conn, buffer, S2N_MIN(sizeof(buffer), bytes_to_read), &blocked);
+        ssize_t r = s2n_recv(conn, buffer, S2N_MIN(sizeof(buffer), bytes_to_read), &blocked);
         if (r >= 0) {
             bytes_to_read -= r;
         } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
@@ -210,7 +210,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     pid_t server_pid = fork();
@@ -234,7 +234,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     int status = 0;

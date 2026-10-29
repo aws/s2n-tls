@@ -30,7 +30,7 @@
 #include "utils/s2n_random.h"
 
 /* Mock block cipher that does nothing */
-int mock_block_endecrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
+int mock_block_endecrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     return 0;
 }
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
         s2n_result result = s2n_record_write(conn, TLS_ALERT, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_OK(result);
-            bytes_written = i;
+            bytes_written = (int) i;
         } else {
             EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
             bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
@@ -151,7 +151,7 @@ int main(int argc, char **argv)
         s2n_result result = s2n_record_write(conn, TLS_ALERT, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_OK(result);
-            bytes_written = i;
+            bytes_written = (int) i;
         } else {
             EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
             bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
         s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_OK(result);
-            bytes_written = i;
+            bytes_written = (int) i;
         } else {
             EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
             bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;

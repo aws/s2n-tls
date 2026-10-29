@@ -247,7 +247,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->kems);
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_pq_tls_1_3_ietf_2025_07);
         EXPECT_EQUAL(3, security_policy->kem_preferences->tls13_kem_group_count);
@@ -259,9 +259,9 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->kems);
 
         /* The "all" security policy contains both TLS 1.2 KEM extension and TLS 1.3 KEM SupportedGroup entries*/
         security_policy = NULL;
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->kems);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, ALL_SUPPORTED_KEM_GROUPS);
         /* All supported kem groups should be in the preference list, but not all of them may be available. */
         EXPECT_EQUAL(S2N_KEM_GROUPS_COUNT, security_policy->kem_preferences->tls13_kem_group_count);
@@ -296,8 +296,8 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->kems);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
@@ -305,8 +305,8 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->kems);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
 
         security_policy = NULL;
@@ -314,8 +314,8 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
-        EXPECT_NULL(security_policy->kem_preferences->kems);
-        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->kems);
+        EXPECT_NULL((const void *) security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
     }
 

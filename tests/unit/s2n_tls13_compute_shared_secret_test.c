@@ -20,7 +20,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
-#include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_tls13_handshake.c" /* NOLINT(bugprone-suspicious-include) */
 
 int main(int argc, char **argv)
 {

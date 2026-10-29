@@ -68,12 +68,12 @@ static S2N_RESULT s2n_test_send_records(struct s2n_connection *conn, struct s2n_
  * In the process, we also verify that the receiver can receive all previous
  * data sent by the sender, since TCP / TLS messages have a guaranteed order.
  */
-static S2N_RESULT s2n_test_basic_recv(struct s2n_connection *sender, struct s2n_connection *receiver)
+static S2N_RESULT s2n_test_basic_recv(struct s2n_connection *sender, struct s2n_connection *receiver) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     uint8_t app_data[1] = { 0 };
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-    int send_ret = s2n_send(sender, app_data, sizeof(app_data), &blocked);
+    ssize_t send_ret = s2n_send(sender, app_data, sizeof(app_data), &blocked);
     RESULT_GUARD_POSIX(send_ret);
     RESULT_ENSURE_EQ(send_ret, sizeof(app_data));
 
@@ -82,7 +82,7 @@ static S2N_RESULT s2n_test_basic_recv(struct s2n_connection *sender, struct s2n_
     tickets_count = 0;
     hello_request_count = 0;
 
-    int recv_ret = s2n_recv(receiver, app_data, sizeof(app_data), &blocked);
+    ssize_t recv_ret = s2n_recv(receiver, app_data, sizeof(app_data), &blocked);
     RESULT_GUARD_POSIX(recv_ret);
     RESULT_ENSURE_EQ(recv_ret, sizeof(app_data));
 
@@ -94,13 +94,13 @@ static S2N_RESULT s2n_test_basic_recv(struct s2n_connection *sender, struct s2n_
  * This forces us to call s2n_recv repeatedly and verifies that s2n_recv
  * can resume across s2n_recv calls while handling fragmented post-handshake messages.
  */
-static S2N_RESULT s2n_test_blocking_recv(struct s2n_connection *sender, struct s2n_connection *receiver,
+static S2N_RESULT s2n_test_blocking_recv(struct s2n_connection *sender, struct s2n_connection *receiver, /* NOLINT(bugprone-easily-swappable-parameters) */
         struct s2n_test_io_stuffer_pair *io_pair)
 {
     uint8_t app_data[1] = { 0 };
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-    int send_ret = s2n_send(sender, app_data, sizeof(app_data), &blocked);
+    ssize_t send_ret = s2n_send(sender, app_data, sizeof(app_data), &blocked);
     RESULT_GUARD_POSIX(send_ret);
     RESULT_ENSURE_EQ(send_ret, sizeof(app_data));
 

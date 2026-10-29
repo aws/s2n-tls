@@ -25,7 +25,7 @@ static int s2n_expect_concurrent_error_send_fn(void *io_context, const uint8_t *
     s2n_custom_send_fn_called = true;
 
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    ssize_t result = s2n_negotiate(conn, &blocked);
+    int result = s2n_negotiate(conn, &blocked);
     EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_REENTRANCY);
     return result;
 }

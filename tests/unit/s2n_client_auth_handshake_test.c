@@ -31,8 +31,8 @@
 #include "utils/s2n_safety.h"
 
 /* To get access to the static functions / variables we need to test */
-#include "tls/s2n_handshake_io.c"
-#include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_handshake_io.c"    /* NOLINT(bugprone-suspicious-include) */
+#include "tls/s2n_tls13_handshake.c" /* NOLINT(bugprone-suspicious-include) */
 
 int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2n_config *client_config, struct s2n_cert_chain_and_key *ecdsa_cert, bool no_cert)
 {

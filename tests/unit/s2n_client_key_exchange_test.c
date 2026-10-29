@@ -36,7 +36,7 @@ struct s2n_test_rsa_client_key_send_ctx {
 
 DEFINE_POINTER_CLEANUP_FUNC(RSA *, RSA_free);
 
-static S2N_RESULT s2n_test_rsa_pkcs1_v15_padding_encrypt(struct s2n_connection *conn, struct s2n_blob *in,
+static S2N_RESULT s2n_test_rsa_pkcs1_v15_padding_encrypt(struct s2n_connection *conn, struct s2n_blob *in, /* NOLINT(bugprone-easily-swappable-parameters) */
         struct s2n_blob *out)
 {
     /* RSAES-PKCS1-V1_5-ENCRYPT ((n, e), M) from https://www.rfc-editor.org/rfc/rfc8017#section-7.2.1 */

@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* NOLINTBEGIN(concurrency-mt-unsafe): only used by the single-threaded command-line tools */
+
 #include "common.h"
 
 #include <errno.h>
@@ -149,7 +151,11 @@ char *load_file_to_cstring(const char *path)
         return NULL;
     }
 
-    rewind(pem_file);
+    if (fseek(pem_file, 0, SEEK_SET) < 0) {
+        fprintf(stderr, "Failed calling fseek: '%s'\n", strerror(errno));
+        fclose(pem_file);
+        return NULL;
+    }
 
     char *pem_out = malloc(pem_file_size + 1);
     if (pem_out == NULL) {
@@ -264,9 +270,10 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
     GUARD_EXIT_NULL(params);
 
     /* duplicate params as strtok will modify the input string */
-    char *params_dup = malloc(strlen(params) + 1);
+    size_t params_len = strlen(params);
+    char *params_dup = malloc(params_len + 1);
     GUARD_EXIT_NULL(params_dup);
-    strcpy(params_dup, params);
+    memcpy(params_dup, params, params_len + 1);
 
     size_t token_idx = 0;
     for (char *token = strtok(params_dup, ","); token != NULL; token = strtok(NULL, ","), token_idx++) {
@@ -312,7 +319,7 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
     return S2N_SUCCESS;
 }
 
-int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path)
+int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     /* The s2n-tls blinding security feature is disabled for testing purposes to make debugging easier. */
     GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
@@ -441,7 +448,7 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
     return 0;
 }
 
-int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size)
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     struct session_cache_entry *cache = ctx;
 
@@ -464,7 +471,7 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
     return 0;
 }
 
-int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     struct session_cache_entry *cache = ctx;
 
@@ -563,9 +570,19 @@ int s2n_connection_deserialize_in(struct s2n_connection *conn, const char *file_
     ENSURE_RETURN(deserialize_length <= UINT32_MAX, "deserialize-in file size is too large");
     uint8_t *mem = malloc(deserialize_length);
     GUARD_RETURN_NULL(mem);
-    GUARD_RETURN(load_file_to_array(file_path, mem, deserialize_length), "Failed to read deserialize-in file");
-    GUARD_RETURN(s2n_connection_deserialize(conn, mem, (uint32_t) deserialize_length), "Failed to deserialize connection");
+    if (load_file_to_array(file_path, mem, deserialize_length) < 0) {
+        free(mem);
+        print_s2n_error("Failed to read deserialize-in file");
+        return -1;
+    }
+    if (s2n_connection_deserialize(conn, mem, (uint32_t) deserialize_length) < 0) {
+        free(mem);
+        print_s2n_error("Failed to deserialize connection");
+        return -1;
+    }
     free(mem);
 
     return 0;
 }
+
+/* NOLINTEND(concurrency-mt-unsafe) */

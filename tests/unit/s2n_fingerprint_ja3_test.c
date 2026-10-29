@@ -100,7 +100,7 @@ static S2N_RESULT s2n_validate_ja3_str(uint8_t *ja3, uint32_t ja3_size,
 }
 
 static S2N_RESULT s2n_client_hello_from_source(struct s2n_client_hello **client_hello,
-        struct s2n_connection *server, uint8_t *input, uint32_t input_size, s2n_ch_source source)
+        struct s2n_connection *server, uint8_t *input, uint32_t input_size, s2n_ch_source source) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     switch (source) {
         case S2N_CH_FROM_IO:

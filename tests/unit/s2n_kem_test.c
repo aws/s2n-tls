@@ -79,7 +79,7 @@ int s2n_test_generate_keypair(const struct s2n_kem *kem, unsigned char *public_k
 
 int s2n_test_encrypt(const struct s2n_kem *kem, unsigned char *ciphertext, unsigned char *shared_secret, const unsigned char *public_key)
 {
-    POSIX_GUARD(memcmp(public_key, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
+    POSIX_ENSURE_EQ(memcmp(public_key, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH), 0);
     memset(ciphertext, kem->ciphertext_length, kem->ciphertext_length);
     memset(shared_secret, kem->shared_secret_key_length, kem->shared_secret_key_length);
     return 0;
@@ -87,8 +87,8 @@ int s2n_test_encrypt(const struct s2n_kem *kem, unsigned char *ciphertext, unsig
 
 int s2n_test_decrypt(const struct s2n_kem *kem, unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key)
 {
-    POSIX_GUARD(memcmp(ciphertext, TEST_CIPHERTEXT, TEST_CIPHERTEXT_LENGTH));
-    POSIX_GUARD(memcmp(private_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
+    POSIX_ENSURE_EQ(memcmp(ciphertext, TEST_CIPHERTEXT, TEST_CIPHERTEXT_LENGTH), 0);
+    POSIX_ENSURE_EQ(memcmp(private_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH), 0);
     memset(shared_secret, kem->shared_secret_key_length, kem->shared_secret_key_length);
     return 0;
 }

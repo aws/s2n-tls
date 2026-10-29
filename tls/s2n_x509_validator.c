@@ -69,7 +69,7 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
  * in a time_t. This constant represents the largest internal clock value that
  * can be safely represented as a time_t.
  */
-#define MAX_32_TIMESTAMP_NANOS 2147483647 * ONE_SEC_IN_NANOS
+#define MAX_32_TIMESTAMP_NANOS ((uint64_t) 2147483647 * ONE_SEC_IN_NANOS)
 
 #define OSSL_VERIFY_CALLBACK_IGNORE_ERROR 1
 

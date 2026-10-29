@@ -22,7 +22,7 @@
 
 #define S2N_UNUSED(x) \
     do {              \
-        (void) x;     \
+        (void) (x);   \
     } while (0)
 
 struct foo {

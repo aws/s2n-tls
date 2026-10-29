@@ -264,7 +264,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     }
     const char *name = conn->server_name;
     struct s2n_blob hostname_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&hostname_blob, (uint8_t *) (uintptr_t) name, strlen(name)));
+    POSIX_GUARD(s2n_blob_init(&hostname_blob, (uint8_t *) (uintptr_t) name, strlen(name))); /* NOLINT(performance-no-int-to-ptr) */
     POSIX_ENSURE_LTE(hostname_blob.size, S2N_MAX_SERVER_NAME);
     char normalized_hostname[S2N_MAX_SERVER_NAME + 1] = { 0 };
     POSIX_CHECKED_MEMCPY(normalized_hostname, hostname_blob.data, hostname_blob.size);

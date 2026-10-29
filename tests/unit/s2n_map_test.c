@@ -149,7 +149,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_map_lookup(map, &key, &val, &key_found));
         EXPECT_EQUAL(key_found, true);
 
-        EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
+        EXPECT_EQUAL(memcmp(val.data, valstr, strlen(valstr) + 1), 0);
     }
 
     /* Check for a key that shouldn't be there */
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
     /* Check the element added after map unlock */
     EXPECT_OK(s2n_map_lookup(map, &key, &val, &key_found));
     EXPECT_EQUAL(key_found, true);
-    EXPECT_SUCCESS(memcmp(val.data, valstr, strlen(valstr) + 1));
+    EXPECT_EQUAL(memcmp(val.data, valstr, strlen(valstr) + 1), 0);
 
     EXPECT_OK(s2n_map_free(map));
 

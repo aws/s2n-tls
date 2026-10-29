@@ -71,7 +71,7 @@ static int s2n_mem_init_impl(void)
     POSIX_ENSURE_LTE(sysconf_rc, max_page_size);
     page_size = (uint32_t) sysconf_rc;
 
-    if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) {
+    if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) { /* NOLINT(concurrency-mt-unsafe) */
         s2n_mem_malloc_cb = s2n_mem_malloc_no_mlock_impl;
         s2n_mem_free_cb = s2n_mem_free_no_mlock_impl;
     }
@@ -194,7 +194,7 @@ int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_clean
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_mem_override_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
+S2N_RESULT s2n_mem_override_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback, /* NOLINT(bugprone-easily-swappable-parameters) */
         s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
 {
     RESULT_ENSURE_REF(mem_init_callback);
@@ -210,7 +210,7 @@ S2N_RESULT s2n_mem_override_callbacks(s2n_mem_init_callback mem_init_callback, s
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_mem_cleanup_callback *mem_cleanup_callback,
+S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_mem_cleanup_callback *mem_cleanup_callback, /* NOLINT(bugprone-easily-swappable-parameters) */
         s2n_mem_malloc_callback *mem_malloc_callback, s2n_mem_free_callback *mem_free_callback)
 {
     RESULT_ENSURE_REF(mem_init_callback);

@@ -51,7 +51,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
      * plus the padding length byte */
     POSIX_ENSURE_GT(decrypted->size, mac_digest_size);
 
-    int payload_and_padding_size = decrypted->size - mac_digest_size;
+    int payload_and_padding_size = (int) (decrypted->size - mac_digest_size);
 
     /* Determine what the padding length is */
     uint8_t padding_length = decrypted->data[decrypted->size - 1];
@@ -60,7 +60,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
 
     /* Update the MAC */
     POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
-    int currently_in_hash_block = hmac->currently_in_hash_block;
+    int currently_in_hash_block = (int) hmac->currently_in_hash_block;
 
     /* Check the MAC */
     uint8_t check_digest[S2N_MAX_DIGEST_LEN] = { 0 };

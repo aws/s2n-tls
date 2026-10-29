@@ -166,7 +166,7 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
      * We only care about the result of this call if it would prevent us from calling s2n_send. */
     int negotiate_result = s2n_negotiate(conn, blocked);
     if (negotiate_result < S2N_SUCCESS) {
-        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) { /* NOLINT(bugprone-branch-clone) */
             RESULT_GUARD_POSIX(negotiate_result);
         } else if (*blocked != S2N_BLOCKED_ON_EARLY_DATA && *blocked != S2N_BLOCKED_ON_READ) {
             RESULT_GUARD_POSIX(negotiate_result);
@@ -192,7 +192,7 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
      * If we got this far, the result must have been success or a blocking error. */
     if (negotiate_result < S2N_SUCCESS) {
         RESULT_ENSURE_EQ(s2n_error_get_type(negotiate_error), S2N_ERR_T_BLOCKED);
-        if (negotiate_blocked == S2N_BLOCKED_ON_EARLY_DATA) {
+        if (negotiate_blocked == S2N_BLOCKED_ON_EARLY_DATA) { /* NOLINT(bugprone-branch-clone) */
             return S2N_RESULT_OK;
         } else if (s2n_early_data_can_continue(conn)) {
             *blocked = negotiate_blocked;
@@ -239,7 +239,7 @@ S2N_RESULT s2n_recv_early_data_impl(struct s2n_connection *conn, uint8_t *data, 
 
     int negotiate_result = S2N_SUCCESS;
     while ((negotiate_result = s2n_negotiate(conn, blocked)) != S2N_SUCCESS) {
-        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) { /* NOLINT(bugprone-branch-clone) */
             RESULT_GUARD_POSIX(negotiate_result);
         } else if (max_data_len <= *data_received) {
             RESULT_GUARD_POSIX(negotiate_result);

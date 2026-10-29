@@ -117,7 +117,7 @@ int main(int argc, char **argv)
             while (total_received < size) {
                 if (total_sent < size) {
                     ssize_t sent = s2n_send(client_conn, send_buffer + total_sent,
-                            size - total_sent, &blocked);
+                            (ssize_t) (size - total_sent), &blocked);
                     if (sent > 0) {
                         total_sent += sent;
                     } else {
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
                 }
 
                 ssize_t received = s2n_recv(server_conn, recv_buffer + total_received,
-                        size - total_received, &blocked);
+                        (ssize_t) (size - total_received), &blocked);
                 if (received > 0) {
                     total_received += received;
                 } else {

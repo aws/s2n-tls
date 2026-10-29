@@ -60,7 +60,7 @@ int cache_store_callback(struct s2n_connection *conn, void *ctx, uint64_t ttl, c
     return 0;
 }
 
-int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size)
+int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size, void *value, uint64_t *value_size) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     struct session_cache_entry *cache = ctx;
 
@@ -82,7 +82,7 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
         return -1;
     }
 
-    if (memcmp(cache[idx].key, key, key_size)) {
+    if (memcmp(cache[idx].key, key, key_size) != 0) {
         return -1;
     }
 
@@ -96,7 +96,7 @@ int cache_retrieve_callback(struct s2n_connection *conn, void *ctx, const void *
     return 0;
 }
 
-int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     struct session_cache_entry *cache = ctx;
 
@@ -114,7 +114,7 @@ int cache_delete_callback(struct s2n_connection *conn, void *ctx, const void *ke
         return -1;
     }
 
-    if (memcmp(cache[idx].key, key, key_size)) {
+    if (memcmp(cache[idx].key, key, key_size) != 0) {
         return -1;
     }
 

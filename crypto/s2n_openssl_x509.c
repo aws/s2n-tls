@@ -52,7 +52,7 @@ S2N_RESULT s2n_openssl_x509_parse_impl(struct s2n_blob *asn1der, X509 **cert_out
     RESULT_ENSURE_REF(parsed_length);
 
     uint8_t *cert_to_parse = asn1der->data;
-    *cert_out = d2i_X509(NULL, (const unsigned char **) (void *) &cert_to_parse, asn1der->size);
+    *cert_out = d2i_X509(NULL, (const unsigned char **) (void *) &cert_to_parse, asn1der->size); /* NOLINT(bugprone-casting-through-void) */
     RESULT_ENSURE(*cert_out != NULL, S2N_ERR_DECODE_CERTIFICATE);
 
     /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */

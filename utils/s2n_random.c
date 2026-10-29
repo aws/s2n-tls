@@ -70,7 +70,7 @@
 #include "utils/s2n_safety.h"
 
 #if defined(O_CLOEXEC)
-    #define ENTROPY_FLAGS O_RDONLY | O_CLOEXEC
+    #define ENTROPY_FLAGS (O_RDONLY | O_CLOEXEC)
 #else
     #define ENTROPY_FLAGS O_RDONLY
 #endif
@@ -79,7 +79,7 @@
 #define ONE_S INT64_C(1000000000)
 
 /* Placeholder value for an uninitialized entropy file descriptor */
-#define UNINITIALIZED_ENTROPY_FD -1
+#define UNINITIALIZED_ENTROPY_FD (-1)
 
 static struct s2n_rand_device s2n_dev_urandom = {
     .source = "/dev/urandom",
@@ -208,7 +208,7 @@ static S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
     device->fd = fd;
 
     /* Disable closing the file descriptor with defer cleanup */
-    fd = UNINITIALIZED_ENTROPY_FD;
+    fd = UNINITIALIZED_ENTROPY_FD; /* NOLINT(clang-analyzer-deadcode.DeadStores) */
 
     return S2N_RESULT_OK;
 }
@@ -259,7 +259,7 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
 
     while (n) {
         errno = 0;
-        int r = read(s2n_dev_urandom.fd, data, n);
+        ssize_t r = read(s2n_dev_urandom.fd, data, n);
         if (r <= 0) {
             /*
              * A non-blocking read() on /dev/urandom should "never" fail,
@@ -373,9 +373,9 @@ S2N_RESULT s2n_rand_cleanup(void)
     return S2N_RESULT_OK;
 }
 
-int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback,
+int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback, /* NOLINT(bugprone-easily-swappable-parameters) */
         s2n_rand_cleanup_callback rand_cleanup_callback,
-        s2n_rand_seed_callback rand_seed_callback,
+        s2n_rand_seed_callback rand_seed_callback, /* NOLINT(bugprone-easily-swappable-parameters) */
         s2n_rand_mix_callback rand_mix_callback)
 {
     /* Custom random callbacks are no longer supported. Randomness is now

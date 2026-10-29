@@ -23,7 +23,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 #include "tls/s2n_record.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"

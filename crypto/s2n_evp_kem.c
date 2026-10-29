@@ -95,19 +95,19 @@ int s2n_evp_kem_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_se
 
 #else /* If !S2N_LIBCRYPTO_SUPPORTS_EVP_KEM, we won't have a kem impl so define relevant stubs here. */
 
-int s2n_evp_kem_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
+int s2n_evp_kem_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, /* NOLINT(bugprone-easily-swappable-parameters) */
         OUT uint8_t *private_key)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_evp_kem_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
+int s2n_evp_kem_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret, /* NOLINT(bugprone-easily-swappable-parameters) */
         IN const uint8_t *public_key)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_evp_kem_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
+int s2n_evp_kem_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext, /* NOLINT(bugprone-easily-swappable-parameters) */
         IN const uint8_t *private_key)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);

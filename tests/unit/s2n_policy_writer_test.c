@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 
             uint32_t length = 0;
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_security_policy_write_length(policy, 999, &length),
+                    s2n_security_policy_write_length(policy, 999, &length), /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): deliberately invalid format */
                     S2N_ERR_INVALID_ARGUMENT);
         };
 

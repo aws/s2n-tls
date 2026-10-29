@@ -17,7 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 /* Include source to test static methods. */
-#include "tls/extensions/s2n_client_psk.c"
+#include "tls/extensions/s2n_client_psk.c" /* NOLINT(bugprone-suspicious-include) */
 
 #define TEST_BYTES      0x01, 0xFF, 0x23
 #define TEST_BYTES_SIZE 0x00, 0x03
@@ -25,7 +25,7 @@
 #define TEST_BYTES_2      0x0A, 0x0B, 0x0C
 #define TEST_BYTES_SIZE_2 0x00, 0x03
 
-#define MILLIS_TO_NANOS(millis) (millis * (uint64_t) ONE_MILLISEC_IN_NANOS)
+#define MILLIS_TO_NANOS(millis) ((millis) * (uint64_t) ONE_MILLISEC_IN_NANOS)
 
 #define BINDER_SIZE 32
 
@@ -575,8 +575,8 @@ int main(int argc, char **argv)
             size_t wire_match_index;
             size_t local_match_index;
         } test_cases[] = {
-#define WIRE_IDENTITIES(list)  .wire_identities = list, .wire_identities_len = s2n_array_len(list)
-#define LOCAL_IDENTITIES(list) .local_identities = list, .local_identities_len = s2n_array_len(list)
+#define WIRE_IDENTITIES(list)  .wire_identities = (list), .wire_identities_len = s2n_array_len(list)
+#define LOCAL_IDENTITIES(list) .local_identities = (list), .local_identities_len = s2n_array_len(list)
             /* No wire or local identities */
             { .match = false },
 

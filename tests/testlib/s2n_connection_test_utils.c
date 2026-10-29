@@ -70,7 +70,7 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 
     /* read the number of bytes requested or less if it isn't available */
     n_avail = s2n_stuffer_data_available(in_buf);
-    n_read = (len < n_avail) ? len : n_avail;
+    n_read = (int) ((len < n_avail) ? len : n_avail);
 
     if (n_read == 0) {
         errno = EAGAIN;
@@ -100,11 +100,11 @@ static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    return len;
+    return (int) len;
 }
 
 /* The connection will read/write to/from a stuffer, instead of sockets */
-int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn)
+int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_GUARD(s2n_connection_set_recv_io_stuffer(input, conn));
     POSIX_GUARD(s2n_connection_set_send_io_stuffer(output, conn));
@@ -307,7 +307,7 @@ int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_clos
     return 0;
 }
 
-int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close, int how)
+int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close, int how) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     if (mode_to_close == S2N_CLIENT) {
         POSIX_GUARD(shutdown(io_pair->client, how));

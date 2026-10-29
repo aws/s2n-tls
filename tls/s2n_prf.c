@@ -261,7 +261,7 @@ const struct s2n_p_hash_hmac *s2n_get_hmac_implementation()
     return &s2n_internal_p_hash_hmac;
 }
 
-static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret, struct s2n_blob *label,
+static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret, struct s2n_blob *label, /* NOLINT(bugprone-easily-swappable-parameters) */
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     uint8_t digest_size = 0;
@@ -330,7 +330,7 @@ S2N_RESULT s2n_prf_new(struct s2n_connection *conn)
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_realloc(&mem, sizeof(struct s2n_prf_working_space)));
     RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
-    conn->prf_space = (struct s2n_prf_working_space *) (void *) mem.data;
+    conn->prf_space = (struct s2n_prf_working_space *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
     /* Allocate the hmac state */

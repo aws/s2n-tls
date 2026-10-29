@@ -38,7 +38,7 @@ int RSA_verify(int dtype, const unsigned char *m, unsigned int m_len,
     return 1;
 }
 
-bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len)
+bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, uint32_t len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     /* Allow all signatures checked with s2n_constant_time_equals to always pass verification even if they are invalid
      * in order to aid code coverage with server fuzz test.

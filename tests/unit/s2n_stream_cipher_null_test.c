@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "crypto/s2n_stream_cipher_null.c"
+#include "crypto/s2n_stream_cipher_null.c" /* NOLINT(bugprone-suspicious-include) */
 
 #include "api/s2n.h"
 #include "s2n_test.h"

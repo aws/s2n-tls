@@ -336,7 +336,7 @@ const char *s2n_strerror(int error, const char *lang)
         lang = "EN";
     }
 
-    if (strcasecmp(lang, "EN")) {
+    if (strcasecmp(lang, "EN") != 0) {
         return no_such_language;
     }
 
@@ -390,7 +390,7 @@ const char *s2n_strerror_debug(int error, const char *lang)
         lang = "EN";
     }
 
-    if (strcasecmp(lang, "EN")) {
+    if (strcasecmp(lang, "EN") != 0) {
         return no_such_language;
     }
 
@@ -445,7 +445,7 @@ __thread struct s2n_stacktrace tl_stacktrace = { 0 };
 int s2n_free_stacktrace(void)
 {
     if (tl_stacktrace.trace != NULL) {
-        free(tl_stacktrace.trace);
+        free((void *) tl_stacktrace.trace);
         struct s2n_stacktrace zero_stacktrace = { 0 };
         tl_stacktrace = zero_stacktrace;
     }

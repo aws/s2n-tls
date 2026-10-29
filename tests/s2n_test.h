@@ -59,7 +59,8 @@ bool s2n_use_color_in_output = true;
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
 #define EXPECT_TRUE_WITHOUT_COUNT(condition)      \
     do {                                          \
-        if (!(condition)) {                       \
+        bool s2n_expect_result = (condition);     \
+        if (!s2n_expect_result) {                 \
             FAIL_MSG(#condition " is not true "); \
         }                                         \
     } while (0)
@@ -123,6 +124,7 @@ bool s2n_use_color_in_output = true;
 
 #define FAIL() FAIL_MSG("")
 
+/* NOLINTBEGIN(concurrency-mt-unsafe): exit and strerror are only reached when a test fails */
 #define FAIL_MSG(msg)        \
     do {                     \
         FAIL_MSG_PRINT(msg); \
@@ -141,6 +143,7 @@ bool s2n_use_color_in_output = true;
         }                                                                                                                                                                                                                                                                          \
         S2N_TEST_PRINT_STACKTRACE();                                                                                                                                                                                                                                               \
     } while (0)
+/* NOLINTEND(concurrency-mt-unsafe) */
 
 #define RESET_ERRNO()           \
     do {                        \
@@ -152,7 +155,8 @@ bool s2n_use_color_in_output = true;
 #define EXPECT_TRUE(condition)                    \
     do {                                          \
         test_count++;                             \
-        if (!(condition)) {                       \
+        bool s2n_expect_result = (condition);     \
+        if (!s2n_expect_result) {                 \
             FAIL_MSG(#condition " is not true "); \
         }                                         \
     } while (0)
@@ -235,7 +239,7 @@ bool s2n_use_color_in_output = true;
 
 #define EXPECT_BYTEARRAY_EQUAL(p1, p2, l)             \
     do {                                              \
-        if (l != 0) {                                 \
+        if ((l) != 0) {                               \
             EXPECT_EQUAL(memcmp((p1), (p2), (l)), 0); \
         }                                             \
     } while (0)
@@ -272,32 +276,32 @@ bool s2n_use_color_in_output = true;
 #endif
 
 /* Creates a fuzz target */
-#define S2N_FUZZ_TARGET(fuzz_init, fuzz_entry, fuzz_cleanup)                      \
-    void s2n_test__fuzz_cleanup()                                                 \
-    {                                                                             \
-        if (fuzz_cleanup) {                                                       \
-            ((void (*)()) fuzz_cleanup)();                                        \
-        }                                                                         \
-        s2n_cleanup_final();                                                      \
-    }                                                                             \
-    int LLVMFuzzerInitialize(int *argc, char **argv[])                            \
-    {                                                                             \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                                 \
-        EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup));             \
-        if (!fuzz_init) {                                                         \
-            return S2N_SUCCESS;                                                   \
-        }                                                                         \
-        int result = ((int (*)(int *argc, char **argv[])) fuzz_init)(argc, argv); \
-        if (result != S2N_SUCCESS) {                                              \
-            FAIL_MSG_PRINT(#fuzz_init " did not return S2N_SUCCESS");             \
-        }                                                                         \
-        return result;                                                            \
-    }                                                                             \
-    int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)                    \
-    {                                                                             \
-        int result = fuzz_entry(buf, len);                                        \
-        if (result != S2N_SUCCESS) {                                              \
-            FAIL_MSG_PRINT(#fuzz_entry " did not return S2N_SUCCESS");            \
-        }                                                                         \
-        return result;                                                            \
+#define S2N_FUZZ_TARGET(fuzz_init, fuzz_entry, fuzz_cleanup)                       \
+    void s2n_test__fuzz_cleanup()                                                  \
+    {                                                                              \
+        if (fuzz_cleanup) {                                                        \
+            ((void (*)())(fuzz_cleanup))();                                        \
+        }                                                                          \
+        s2n_cleanup_final();                                                       \
+    }                                                                              \
+    int LLVMFuzzerInitialize(int *argc, char **argv[])                             \
+    {                                                                              \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                                  \
+        EXPECT_SUCCESS_WITHOUT_COUNT(atexit(s2n_test__fuzz_cleanup));              \
+        if (!(fuzz_init)) {                                                        \
+            return S2N_SUCCESS;                                                    \
+        }                                                                          \
+        int result = ((int (*)(int *argc, char **argv[]))(fuzz_init))(argc, argv); \
+        if (result != S2N_SUCCESS) {                                               \
+            FAIL_MSG_PRINT(#fuzz_init " did not return S2N_SUCCESS");              \
+        }                                                                          \
+        return result;                                                             \
+    }                                                                              \
+    int LLVMFuzzerTestOneInput(const uint8_t *buf, size_t len)                     \
+    {                                                                              \
+        int result = fuzz_entry(buf, len);                                         \
+        if (result != S2N_SUCCESS) {                                               \
+            FAIL_MSG_PRINT(#fuzz_entry " did not return S2N_SUCCESS");             \
+        }                                                                          \
+        return result;                                                             \
     }

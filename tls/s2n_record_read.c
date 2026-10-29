@@ -28,7 +28,7 @@
 
 int s2n_sslv2_record_header_parse(
         struct s2n_connection *conn,
-        uint8_t *record_type,
+        uint8_t *record_type, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint8_t *client_protocol_version,
         uint16_t *fragment_length)
 {

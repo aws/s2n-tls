@@ -547,7 +547,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(test_cipher_preferences(config, config, chain_and_key, S2N_SIGNATURE_RSA));
             }
 
-            exit(EXIT_SUCCESS);
+            exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
         }
 
         int status = 0;

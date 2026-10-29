@@ -20,7 +20,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
-#define S2N_CLOSED_FD -1
+#define S2N_CLOSED_FD (-1)
 
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
@@ -288,10 +288,10 @@ S2N_RESULT s2n_test_new_iovecs(struct s2n_test_iovecs *iovecs,
 S2N_CLEANUP_RESULT s2n_test_iovecs_free(struct s2n_test_iovecs *in);
 
 /* Expects 2 s2n_blobs to be equal (same size and contents) */
-#define S2N_BLOB_EXPECT_EQUAL(blob1, blob2)                         \
-    do {                                                            \
-        EXPECT_EQUAL(blob1.size, blob2.size);                       \
-        EXPECT_BYTEARRAY_EQUAL(blob1.data, blob2.data, blob1.size); \
+#define S2N_BLOB_EXPECT_EQUAL(blob1, blob2)                               \
+    do {                                                                  \
+        EXPECT_EQUAL((blob1).size, (blob2).size);                         \
+        EXPECT_BYTEARRAY_EQUAL((blob1).data, (blob2).data, (blob1).size); \
     } while (0)
 
 /* Expects data of type in stuffer, where type is uint32, uint64 etc.. */
@@ -312,8 +312,9 @@ S2N_CLEANUP_RESULT s2n_test_iovecs_free(struct s2n_test_iovecs *in);
 int s2n_public_ecc_keys_are_equal(struct s2n_ecc_evp_params *params_1, struct s2n_ecc_evp_params *params_2);
 
 extern const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_COUNT];
-#define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list)     EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
-#define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) EXPECT_BYTEARRAY_NOT_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
+bool s2n_parsed_extensions_are_empty(const s2n_parsed_extension *parsed_extensions);
+#define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list)     EXPECT_TRUE(s2n_parsed_extensions_are_empty((list).parsed_extensions))
+#define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) EXPECT_FALSE(s2n_parsed_extensions_are_empty((list).parsed_extensions))
 
 int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
@@ -324,7 +325,7 @@ S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
 #define S2N_BLOB_FROM_HEX(name, hex) S2N_CHECKED_BLOB_FROM_HEX(name, POSIX_GUARD_RESULT, hex)
 #define S2N_CHECKED_BLOB_FROM_HEX(name, check, hex)        \
     DEFER_CLEANUP(struct s2n_blob name = { 0 }, s2n_free); \
-    check(s2n_blob_alloc_from_hex_with_whitespace(&name, (const char *) hex));
+    check(s2n_blob_alloc_from_hex_with_whitespace(&(name), (const char *) (hex)));
 
 bool s2n_is_seccomp_supported();
 S2N_RESULT s2n_seccomp_init();

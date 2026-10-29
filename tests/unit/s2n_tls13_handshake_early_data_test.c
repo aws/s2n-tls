@@ -22,9 +22,9 @@
 #include "utils/s2n_mem.h"
 
 /* Just to get access to the static functions / variables we need to test */
-#include "tls/s2n_handshake_io.c"
-#include "tls/s2n_handshake_transcript.c"
-#include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_handshake_io.c"         /* NOLINT(bugprone-suspicious-include) */
+#include "tls/s2n_handshake_transcript.c" /* NOLINT(bugprone-suspicious-include) */
+#include "tls/s2n_tls13_handshake.c"      /* NOLINT(bugprone-suspicious-include) */
 
 #define S2N_SECRET_TYPE_COUNT 5
 
@@ -342,7 +342,7 @@ int main()
 
             DEFER_CLEANUP(struct s2n_blob actual_payload = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&actual_payload, payload.size));
-            int r = s2n_recv(server_conn, actual_payload.data, actual_payload.size, &blocked);
+            ssize_t r = s2n_recv(server_conn, actual_payload.data, actual_payload.size, &blocked);
             EXPECT_EQUAL(r, payload.size);
             EXPECT_BYTEARRAY_EQUAL(actual_payload.data, payload.data, payload.size);
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);

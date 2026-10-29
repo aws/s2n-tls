@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     struct s2n_blob g7 = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&g7, hello_world, sizeof(hello_world)));
     EXPECT_SUCCESS(s2n_blob_char_to_lower(&g7));
-    EXPECT_SUCCESS(memcmp(g7.data, "hello world", sizeof(hello_world)));
+    EXPECT_EQUAL(memcmp(g7.data, "hello world", sizeof(hello_world)), 0);
 
     /* Slicing works */
     struct s2n_blob g8 = { 0 };

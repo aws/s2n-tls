@@ -144,25 +144,25 @@ static s2n_result RESULT_ENSURE_NE_harness_int32(int32_t a, int32_t b)
     return S2N_RESULT_OK;
 }
 
-static s2n_result RESULT_ENSURE_INCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
+static s2n_result RESULT_ENSURE_INCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_INCLUSIVE_RANGE(a, b, c);
     return S2N_RESULT_OK;
 }
 
-static s2n_result RESULT_ENSURE_INCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c)
+static s2n_result RESULT_ENSURE_INCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_INCLUSIVE_RANGE(a, b, c);
     return S2N_RESULT_OK;
 }
 
-static s2n_result RESULT_ENSURE_EXCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
+static s2n_result RESULT_ENSURE_EXCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_EXCLUSIVE_RANGE(a, b, c);
     return S2N_RESULT_OK;
 }
 
-static s2n_result RESULT_ENSURE_EXCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c)
+static s2n_result RESULT_ENSURE_EXCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_EXCLUSIVE_RANGE(a, b, c);
     return S2N_RESULT_OK;
@@ -210,7 +210,7 @@ static s2n_result RESULT_CHECKED_MEMCPY_harness(uint32_t* dest, uint32_t* source
     return S2N_RESULT_OK;
 }
 
-static s2n_result RESULT_CHECKED_MEMSET_harness(uint32_t* dest, uint8_t value, size_t len)
+static s2n_result RESULT_CHECKED_MEMSET_harness(uint32_t* dest, uint8_t value, size_t len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_CHECKED_MEMSET(dest, value, len);
     return S2N_RESULT_OK;
@@ -222,7 +222,7 @@ static s2n_result RESULT_GUARD_harness(s2n_result result)
     return S2N_RESULT_OK;
 }
 
-static s2n_result RESULT_GUARD_OSSL_harness(int result, int error)
+static s2n_result RESULT_GUARD_OSSL_harness(int result, int error) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_GUARD_OSSL(result, error);
     return S2N_RESULT_OK;
@@ -344,25 +344,25 @@ static int POSIX_ENSURE_NE_harness_int32(int32_t a, int32_t b)
     return S2N_SUCCESS;
 }
 
-static int POSIX_ENSURE_INCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
+static int POSIX_ENSURE_INCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_INCLUSIVE_RANGE(a, b, c);
     return S2N_SUCCESS;
 }
 
-static int POSIX_ENSURE_INCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c)
+static int POSIX_ENSURE_INCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_INCLUSIVE_RANGE(a, b, c);
     return S2N_SUCCESS;
 }
 
-static int POSIX_ENSURE_EXCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
+static int POSIX_ENSURE_EXCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_EXCLUSIVE_RANGE(a, b, c);
     return S2N_SUCCESS;
 }
 
-static int POSIX_ENSURE_EXCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c)
+static int POSIX_ENSURE_EXCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_EXCLUSIVE_RANGE(a, b, c);
     return S2N_SUCCESS;
@@ -410,7 +410,7 @@ static int POSIX_CHECKED_MEMCPY_harness(uint32_t* dest, uint32_t* source, size_t
     return S2N_SUCCESS;
 }
 
-static int POSIX_CHECKED_MEMSET_harness(uint32_t* dest, uint8_t value, size_t len)
+static int POSIX_CHECKED_MEMSET_harness(uint32_t* dest, uint8_t value, size_t len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_CHECKED_MEMSET(dest, value, len);
     return S2N_SUCCESS;
@@ -422,7 +422,7 @@ static int POSIX_GUARD_harness(int result)
     return S2N_SUCCESS;
 }
 
-static int POSIX_GUARD_OSSL_harness(int result, int error)
+static int POSIX_GUARD_OSSL_harness(int result, int error) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_GUARD_OSSL(result, error);
     return S2N_SUCCESS;
@@ -544,25 +544,25 @@ static const char* PTR_ENSURE_NE_harness_int32(int32_t a, int32_t b)
     return "ok";
 }
 
-static const char* PTR_ENSURE_INCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
+static const char* PTR_ENSURE_INCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     PTR_ENSURE_INCLUSIVE_RANGE(a, b, c);
     return "ok";
 }
 
-static const char* PTR_ENSURE_INCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c)
+static const char* PTR_ENSURE_INCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     PTR_ENSURE_INCLUSIVE_RANGE(a, b, c);
     return "ok";
 }
 
-static const char* PTR_ENSURE_EXCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c)
+static const char* PTR_ENSURE_EXCLUSIVE_RANGE_harness_uint32(uint32_t a, uint32_t b, uint32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     PTR_ENSURE_EXCLUSIVE_RANGE(a, b, c);
     return "ok";
 }
 
-static const char* PTR_ENSURE_EXCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c)
+static const char* PTR_ENSURE_EXCLUSIVE_RANGE_harness_int32(int32_t a, int32_t b, int32_t c) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     PTR_ENSURE_EXCLUSIVE_RANGE(a, b, c);
     return "ok";
@@ -610,7 +610,7 @@ static const char* PTR_CHECKED_MEMCPY_harness(uint32_t* dest, uint32_t* source, 
     return "ok";
 }
 
-static const char* PTR_CHECKED_MEMSET_harness(uint32_t* dest, uint8_t value, size_t len)
+static const char* PTR_CHECKED_MEMSET_harness(uint32_t* dest, uint8_t value, size_t len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     PTR_CHECKED_MEMSET(dest, value, len);
     return "ok";
@@ -622,7 +622,7 @@ static const char* PTR_GUARD_harness(const char* result)
     return "ok";
 }
 
-static const char* PTR_GUARD_OSSL_harness(int result, int error)
+static const char* PTR_GUARD_OSSL_harness(int result, int error) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     PTR_GUARD_OSSL(result, error);
     return "ok";
