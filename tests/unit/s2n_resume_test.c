@@ -430,8 +430,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
             struct s2n_resumption_state_tls12 state = { 0 };
-                        EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
-                        EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
+            EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
+            EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
 
             uint8_t serial_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &serial_id));
@@ -812,8 +812,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
 
             struct s2n_resumption_state_tls12 state = { 0 };
-                        EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
-                        EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
+            EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
+            EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
             EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &output));
 
             EXPECT_TRUE(conn->ems_negotiated);
@@ -846,8 +846,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&output, &state_blob));
 
             struct s2n_resumption_state_tls12 state = { 0 };
-                        EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
-                        EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
+            EXPECT_OK(s2n_resumption_state_tls12_init(&state, conn));
+            EXPECT_OK(s2n_resumption_state_tls12_encode(&state, &output));
 
             /* EMS state in current session matches EMS state in previous session */
             conn->ems_negotiated = true;

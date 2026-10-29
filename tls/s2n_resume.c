@@ -132,7 +132,8 @@ struct s2n_resumption_state_tls12 {
     uint8_t ems_negotiated;
 };
 
-static S2N_RESULT s2n_resumption_state_tls12_init(struct s2n_resumption_state_tls12 *state, struct s2n_connection *conn) {
+static S2N_RESULT s2n_resumption_state_tls12_init(struct s2n_resumption_state_tls12 *state, struct s2n_connection *conn)
+{
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);
 
@@ -148,7 +149,8 @@ static S2N_RESULT s2n_resumption_state_tls12_init(struct s2n_resumption_state_tl
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_resumption_state_tls12_encode(struct s2n_resumption_state_tls12 *state, struct s2n_stuffer *to) {
+static S2N_RESULT s2n_resumption_state_tls12_encode(struct s2n_resumption_state_tls12 *state, struct s2n_stuffer *to)
+{
     RESULT_ENSURE_REF(state);
     RESULT_ENSURE_REF(to);
 
@@ -1107,7 +1109,7 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
 
     struct s2n_unique_ticket_key ticket_key = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&ticket_key.initial_key, key.aes_key, sizeof(key.aes_key)));
-    memcpy(ticket_key.info, header.nonce, sizeof(header.nonce));
+    RESULT_CHECKED_MEMCPY(ticket_key.info, header.nonce, sizeof(ticket_key.info));
     RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key));
 
     /* Initialize AES key */

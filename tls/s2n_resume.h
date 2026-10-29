@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include "tls/s2n_crypto_constants.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_crypto_constants.h"
 #include "utils/s2n_blob.h"
 
 #define S2N_STATE_LIFETIME_IN_NANOS           54000000000000 /* 15 hours */
