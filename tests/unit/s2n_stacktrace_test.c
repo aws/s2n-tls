@@ -31,13 +31,13 @@ int main(int argc, char **argv)
     struct s2n_stacktrace trace;
     /* If nothing has errored yet, we have no stacktrace */
     EXPECT_SUCCESS(s2n_get_stacktrace(&trace));
-    EXPECT_NULL(trace.trace);
+    EXPECT_NULL((const void *) trace.trace);
     EXPECT_EQUAL(trace.trace_size, 0);
 
     /* Raise an error, and see that it generates a stacktrace */
     EXPECT_FAILURE(raises_error());
     EXPECT_SUCCESS(s2n_get_stacktrace(&trace));
-    EXPECT_NOT_NULL(trace.trace);
+    EXPECT_NOT_NULL((const void *) trace.trace);
     EXPECT_NOT_EQUAL(trace.trace_size, 0);
 
     /* Test printing the stacktrace. */

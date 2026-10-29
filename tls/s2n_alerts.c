@@ -38,7 +38,7 @@
 static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t *alert)
 {
     RESULT_ENSURE_REF(alert);
-
+    /* NOLINTBEGIN(bugprone-branch-clone): one case per error keeps this a lookup table */
     switch (error_code) {
         S2N_ALERT_CASE(S2N_ERR_MISSING_EXTENSION, S2N_TLS_ALERT_MISSING_EXTENSION);
         S2N_ALERT_CASE(S2N_ERR_NO_VALID_SIGNATURE_SCHEME, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
@@ -208,6 +208,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
              * post-switch RESULT_BAIL. */
             RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
     }
+    /* NOLINTEND(bugprone-branch-clone) */
 }
 
 static bool s2n_alerts_supported(struct s2n_connection *conn)
@@ -222,7 +223,7 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
  *# MUST be treated as error alerts when received
  *# regardless of the AlertLevel in the message.
  */
-static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
+static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     /* Only TLS1.2 considers the alert level. The alert level field is
      * considered deprecated in TLS1.3. If the protocol version has not
@@ -256,7 +257,7 @@ int s2n_error_get_alert(int error, uint8_t *alert)
         case S2N_ERR_T_PROTO:
             POSIX_GUARD_RESULT(s2n_translate_protocol_error_to_alert(error, alert));
             break;
-        case S2N_ERR_T_IO:
+        case S2N_ERR_T_IO: /* NOLINT(bugprone-branch-clone) */
         case S2N_ERR_T_INTERNAL:
             *alert = S2N_TLS_ALERT_INTERNAL_ERROR;
             break;

@@ -34,7 +34,7 @@ extern uint8_t s2n_unknown_protocol_version;
 /* In TLS1.3 the record type is obfuscated as APPLICATION_DATA once the handshake begins to be encrypted.
  * The real record type is encrypted and written in the final byte of the record.
  * In TLS1.2 the record type is always cleartext. */
-#define RECORD_TYPE(is_tls13_record, content_type) (is_tls13_record ? TLS_APPLICATION_DATA : content_type)
+#define RECORD_TYPE(is_tls13_record, content_type) ((is_tls13_record) ? TLS_APPLICATION_DATA : (content_type))
 
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
 static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t *out)
@@ -103,7 +103,7 @@ S2N_RESULT s2n_record_max_write_size(struct s2n_connection *conn, uint16_t max_f
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_MUT(max_record_size);
 
-    if (!IS_NEGOTIATED(conn)) {
+    if (!IS_NEGOTIATED(conn)) { /* NOLINT(bugprone-branch-clone) */
         *max_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(max_fragment_size);
     } else if (conn->actual_protocol_version < S2N_TLS13) {
         *max_record_size = S2N_TLS12_MAX_RECORD_LEN_FOR(max_fragment_size);
@@ -261,7 +261,7 @@ static inline int s2n_record_encrypt(
     return 0;
 }
 
-static S2N_RESULT s2n_record_write_mac(struct s2n_connection *conn, struct s2n_blob *record_header,
+static S2N_RESULT s2n_record_write_mac(struct s2n_connection *conn, struct s2n_blob *record_header, /* NOLINT(bugprone-easily-swappable-parameters) */
         struct s2n_blob *plaintext, struct s2n_stuffer *out, uint32_t *bytes_written)
 {
     RESULT_ENSURE_REF(conn);
@@ -399,7 +399,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         POSIX_ENSURE(content_type != TLS_APPLICATION_DATA, S2N_ERR_ENCRYPT);
     }
 
-    const int is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
+    const bool is_tls13_record = cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
     s2n_stack_blob(aad, is_tls13_record ? S2N_TLS13_AAD_LEN : S2N_TLS_MAX_AAD_LEN, S2N_TLS_MAX_AAD_LEN);
 
     /* If we aren't buffering multiple records, then the output stuffer should be empty. */

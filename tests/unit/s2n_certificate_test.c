@@ -84,7 +84,7 @@ static S2N_RESULT s2n_compare_cert_chain(struct s2n_connection *conn, struct s2n
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_compare_utf8_strings(struct s2n_blob *input_der, const char *expected_utf8_str, uint32_t utf8_len_in, uint32_t expected_utf8_len)
+static S2N_RESULT s2n_compare_utf8_strings(struct s2n_blob *input_der, const char *expected_utf8_str, uint32_t utf8_len_in, uint32_t expected_utf8_len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_REF(input_der);
     RESULT_ENSURE_REF(expected_utf8_str);
@@ -446,11 +446,11 @@ int main(int argc, char **argv)
 
         struct {
             const char *oid;
-            uint32_t ext_value_len;
             const char *expected_utf8;
-            uint32_t utf8_len;
             struct s2n_blob expected_der;
             struct s2n_blob returned_der;
+            uint32_t ext_value_len;
+            uint32_t utf8_len;
             bool critical;
         } test_cases[] = {
             { .oid = "X509v3 Subject Key Identifier",
@@ -1030,7 +1030,7 @@ int main(int argc, char **argv)
 
         /* Try loading a zero length CN name */
         EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
-                (unsigned char *) (uintptr_t) "", -1, -1, 1));
+                (unsigned char *) (uintptr_t) "", -1, -1, 1)); /* NOLINT(performance-no-int-to-ptr) */
         EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 
@@ -1040,7 +1040,7 @@ int main(int argc, char **argv)
 
         /* Try loading an invalid CN name */
         EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, 29,
-                (unsigned char *) (uintptr_t) "invalid", -1, -1, 1));
+                (unsigned char *) (uintptr_t) "invalid", -1, -1, 1)); /* NOLINT(performance-no-int-to-ptr) */
         EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 
@@ -1050,7 +1050,7 @@ int main(int argc, char **argv)
 
         /* Add a valid CN name */
         EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
-                (unsigned char *) (uintptr_t) "valid", -1, -1, 1));
+                (unsigned char *) (uintptr_t) "valid", -1, -1, 1)); /* NOLINT(performance-no-int-to-ptr) */
         EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 

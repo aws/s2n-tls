@@ -54,7 +54,7 @@ int main(int argc, char **argv)
         {
             /* Test all protocol errors are handled */
             for (size_t i = S2N_ERR_T_PROTO_START; i < S2N_ERR_T_PROTO_END; i++) {
-                int ret_val = s2n_error_get_alert(i, &alert);
+                int ret_val = s2n_error_get_alert((int) i, &alert);
                 if (ret_val != S2N_SUCCESS && s2n_errno == S2N_ERR_UNIMPLEMENTED) {
                     fprintf(stdout, "\n\nNo alert mapping for protocol error %s\n\n", s2n_strerror_name(i));
                     FAIL_MSG("Missing alert mapping for protocol error.");

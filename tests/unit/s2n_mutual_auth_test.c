@@ -81,7 +81,7 @@ static int cert_req_cb(struct s2n_connection *conn, void *ctx_in, struct s2n_cer
     EXPECT_NOT_NULL(ctx_in);
     EXPECT_NOT_NULL(req);
 
-    struct s2n_cert_chain_and_key **ctx = ctx_in;
+    struct s2n_cert_chain_and_key **ctx = (struct s2n_cert_chain_and_key **) ctx_in;
 
     struct s2n_certificate_authority_list *list = s2n_certificate_request_get_ca_list(req);
     EXPECT_NOT_NULL(list);

@@ -24,7 +24,8 @@
 int s2n_session_key_alloc(struct s2n_session_key *key)
 {
     POSIX_ENSURE_EQ(key->evp_cipher_ctx, NULL);
-    POSIX_ENSURE_REF(key->evp_cipher_ctx = EVP_CIPHER_CTX_new());
+    key->evp_cipher_ctx = EVP_CIPHER_CTX_new();
+    POSIX_ENSURE_REF(key->evp_cipher_ctx);
 #if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
     POSIX_ENSURE_EQ(key->evp_aead_ctx, NULL);
     key->evp_aead_ctx = OPENSSL_malloc(sizeof(EVP_AEAD_CTX));

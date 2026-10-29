@@ -94,7 +94,7 @@ enum {
 #define S2N_JA4_C_RAW_START (S2N_JA4_B_START + 4 + 1)
 
 static S2N_RESULT s2n_test_ja4_hash_from_bytes(
-        uint8_t *client_hello_bytes, size_t client_hello_bytes_size,
+        uint8_t *client_hello_bytes, size_t client_hello_bytes_size, /* NOLINT(bugprone-easily-swappable-parameters) */
         size_t max_hash_size, uint8_t *hash, uint32_t *hash_size)
 {
     DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
@@ -112,7 +112,7 @@ static S2N_RESULT s2n_test_ja4_hash_from_bytes(
 }
 
 static S2N_RESULT s2n_test_ja4_raw_from_bytes(
-        uint8_t *client_hello_bytes, size_t client_hello_bytes_size,
+        uint8_t *client_hello_bytes, size_t client_hello_bytes_size, /* NOLINT(bugprone-easily-swappable-parameters) */
         size_t max_output_size, uint8_t *output, uint32_t *output_size)
 {
     DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
@@ -129,7 +129,7 @@ static S2N_RESULT s2n_test_ja4_raw_from_bytes(
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_ja4_hash_from_cipher_count(uint16_t cipher_count,
+static S2N_RESULT s2n_test_ja4_hash_from_cipher_count(uint16_t cipher_count, /* NOLINT(bugprone-easily-swappable-parameters) */
         size_t max_hash_size, uint8_t *hash, uint32_t *hash_size)
 {
     DEFER_CLEANUP(struct s2n_stuffer bytes = { 0 }, s2n_stuffer_free);
@@ -176,7 +176,7 @@ static S2N_RESULT s2n_test_ja4_hash_from_cipher_count(uint16_t cipher_count,
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_ja4_hash_from_extension_count(uint16_t extension_count,
+static S2N_RESULT s2n_test_ja4_hash_from_extension_count(uint16_t extension_count, /* NOLINT(bugprone-easily-swappable-parameters) */
         size_t max_hash_size, uint8_t *hash, uint32_t *hash_size)
 {
     DEFER_CLEANUP(struct s2n_stuffer bytes = { 0 }, s2n_stuffer_free);
@@ -194,7 +194,7 @@ static S2N_RESULT s2n_test_ja4_hash_from_extension_count(uint16_t extension_coun
     };
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&bytes, before_ciphers, sizeof(before_ciphers)));
 
-    size_t extensions_size = extension_count * 4;
+    size_t extensions_size = (size_t) extension_count * 4;
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&bytes, extensions_size));
     for (size_t i = 0; i < extension_count; i++) {
         RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&bytes, UINT16_MAX - i));
@@ -374,8 +374,8 @@ int main(int argc, char **argv)
                             sizeof(output), output, &output_size));
 
                     EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                    EXPECT_FALSE((output[S2N_JA4_A_VERSION_1] == test_cases[i].str[0])
-                            && (output[S2N_JA4_A_VERSION_2] == test_cases[i].str[1]));
+                    EXPECT_FALSE((output[S2N_JA4_A_VERSION_1] == (uint8_t) test_cases[i].str[0])
+                            && (output[S2N_JA4_A_VERSION_2] == (uint8_t) test_cases[i].str[1]));
                 };
 
                 /* Test version from extension
@@ -404,8 +404,8 @@ int main(int argc, char **argv)
                             sizeof(output), output, &output_size));
 
                     EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[i].str[0]);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[i].str[1]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], (uint8_t) test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], (uint8_t) test_cases[i].str[1]);
                 };
 
                 /* Test version from legacy field
@@ -431,8 +431,8 @@ int main(int argc, char **argv)
                             sizeof(output), output, &output_size));
 
                     EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[i].str[0]);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[i].str[1]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], (uint8_t) test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], (uint8_t) test_cases[i].str[1]);
                 };
             }
 
@@ -471,8 +471,8 @@ int main(int argc, char **argv)
                         sizeof(output), output, &output_size));
 
                 EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[0].str[0]);
-                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[0].str[1]);
+                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], (uint8_t) test_cases[0].str[0]);
+                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], (uint8_t) test_cases[0].str[1]);
             };
         };
 
@@ -515,8 +515,8 @@ int main(int argc, char **argv)
                         sizeof(output), output, &output_size));
 
                 EXPECT_TRUE(output_size > S2N_JA4_A_CIPHER_COUNT_2);
-                EXPECT_EQUAL(output[S2N_JA4_A_CIPHER_COUNT_1], count_test_cases[i].str[0]);
-                EXPECT_EQUAL(output[S2N_JA4_A_CIPHER_COUNT_2], count_test_cases[i].str[1]);
+                EXPECT_EQUAL(output[S2N_JA4_A_CIPHER_COUNT_1], (uint8_t) count_test_cases[i].str[0]);
+                EXPECT_EQUAL(output[S2N_JA4_A_CIPHER_COUNT_2], (uint8_t) count_test_cases[i].str[1]);
             };
 
             /* Test with grease values
@@ -568,8 +568,8 @@ int main(int argc, char **argv)
                         sizeof(output), output, &output_size));
 
                 EXPECT_TRUE(output_size > S2N_JA4_A_EXT_COUNT_2);
-                EXPECT_EQUAL(output[S2N_JA4_A_EXT_COUNT_1], count_test_cases[i].str[0]);
-                EXPECT_EQUAL(output[S2N_JA4_A_EXT_COUNT_2], count_test_cases[i].str[1]);
+                EXPECT_EQUAL(output[S2N_JA4_A_EXT_COUNT_1], (uint8_t) count_test_cases[i].str[0]);
+                EXPECT_EQUAL(output[S2N_JA4_A_EXT_COUNT_2], (uint8_t) count_test_cases[i].str[1]);
             };
 
             /* Test with grease values
@@ -859,8 +859,8 @@ int main(int argc, char **argv)
                             sizeof(output), output, &output_size));
 
                     EXPECT_TRUE(output_size > S2N_JA4_A_ALPN_LAST);
-                    EXPECT_EQUAL(output[S2N_JA4_A_ALPN_FIRST], test_cases[i].str[0]);
-                    EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], test_cases[i].str[1]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_ALPN_FIRST], (uint8_t) test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], (uint8_t) test_cases[i].str[1]);
                 }
             };
 

@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* NOLINTBEGIN(concurrency-mt-unsafe): this command-line tool is single-threaded */
+
 #include <stdint.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -57,3 +59,5 @@ int main(int argc, char *const *argv)
     s2n_cleanup();
     return 0;
 }
+
+/* NOLINTEND(concurrency-mt-unsafe) */

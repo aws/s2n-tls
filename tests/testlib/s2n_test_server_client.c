@@ -163,7 +163,7 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
     return rc;
 }
 
-S2N_RESULT s2n_send_and_recv_test(struct s2n_connection *send_conn, struct s2n_connection *recv_conn)
+S2N_RESULT s2n_send_and_recv_test(struct s2n_connection *send_conn, struct s2n_connection *recv_conn) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_REF(send_conn);
     RESULT_ENSURE_REF(recv_conn);

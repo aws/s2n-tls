@@ -33,7 +33,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE(s2n_extension_type_list_get(0, NULL));
 
             /* Should fail for a bad list type */
-            EXPECT_FAILURE(s2n_extension_type_list_get(-1, &list));
+            EXPECT_FAILURE(s2n_extension_type_list_get(-1, &list)); /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): deliberately invalid value */
             EXPECT_FAILURE(s2n_extension_type_list_get(S2N_EXTENSION_LIST_IDS_COUNT, &list));
         };
 

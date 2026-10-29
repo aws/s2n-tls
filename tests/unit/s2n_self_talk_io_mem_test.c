@@ -252,7 +252,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&client_in));
 
         s2n_blocked_status blocked = 0;
-        int send_status = S2N_SUCCESS;
+        ssize_t send_status = S2N_SUCCESS;
 
         /* choose a large enough payload to send a full record, 4k is a common page size so we'll go with that */
         uint8_t buf[4096] = { 42 };

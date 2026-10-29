@@ -26,13 +26,13 @@
 #define IS_CLIENT_AUTH(client, server) \
     (IS_CLIENT_AUTH_HANDSHAKE(client) && IS_CLIENT_AUTH_HANDSHAKE(server))
 
-#define IS_HELLO_RETRY(client, server)                          \
-    (((client->handshake.handshake_type) & HELLO_RETRY_REQUEST) \
-            && ((server->handshake.handshake_type) & HELLO_RETRY_REQUEST))
+#define IS_HELLO_RETRY(client, server)                            \
+    ((((client)->handshake.handshake_type) & HELLO_RETRY_REQUEST) \
+            && (((server)->handshake.handshake_type) & HELLO_RETRY_REQUEST))
 
-#define s2n_set_io_pair_both_connections(client, server, io_pair) \
-    EXPECT_SUCCESS(s2n_connection_set_io_pair(client, &io_pair)); \
-    EXPECT_SUCCESS(s2n_connection_set_io_pair(server, &io_pair));
+#define s2n_set_io_pair_both_connections(client, server, io_pair)   \
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(client, &(io_pair))); \
+    EXPECT_SUCCESS(s2n_connection_set_io_pair(server, &(io_pair)));
 
 #define s2n_set_config_both_connections(client, server, config) \
     EXPECT_SUCCESS(s2n_connection_set_config(client, config));  \
@@ -46,7 +46,7 @@ uint8_t test_other_client_data[] = "test other client data";
 uint8_t test_other_server_data[] = "test other server data";
 
 static s2n_result setup_psk(struct s2n_connection *conn, const uint8_t *test_identity_data, uint16_t test_identity_size,
-        const uint8_t *test_secret_data, uint16_t test_secret_size, s2n_psk_hmac test_hmac)
+        const uint8_t *test_secret_data, uint16_t test_secret_size, s2n_psk_hmac test_hmac) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(test_identity_data);
@@ -113,7 +113,7 @@ static s2n_result setup_psks_with_no_match(struct s2n_connection *client_conn, s
 }
 
 static s2n_result validate_chosen_psk(struct s2n_connection *server_conn, uint8_t *psk_identity_data,
-        size_t psk_identity_size, size_t chosen_index)
+        size_t psk_identity_size, size_t chosen_index) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_REF(server_conn);
     RESULT_ENSURE_REF(psk_identity_data);

@@ -211,7 +211,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(buffer_size > 0);
 
         /* Try to write more data than the buffer can hold in a single sendfile call */
-        size_t bytes_to_write = buffer_size * 2;
+        size_t bytes_to_write = (size_t) buffer_size * 2;
         size_t bytes_written = 0;
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_SUCCESS(s2n_sendfile(conn, ro_file, 0, bytes_to_write,

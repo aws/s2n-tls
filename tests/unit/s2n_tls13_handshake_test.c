@@ -32,9 +32,9 @@
 #include "utils/s2n_safety.h"
 
 /* Just to get access to the static functions / variables we need to test */
-#include "tls/s2n_handshake_io.c"
-#include "tls/s2n_handshake_transcript.c"
-#include "tls/s2n_tls13_handshake.c"
+#include "tls/s2n_handshake_io.c"         /* NOLINT(bugprone-suspicious-include) */
+#include "tls/s2n_handshake_transcript.c" /* NOLINT(bugprone-suspicious-include) */
+#include "tls/s2n_tls13_handshake.c"      /* NOLINT(bugprone-suspicious-include) */
 
 #define S2N_SECRET_TYPE_COUNT 5
 #define S2N_TEST_PSK_COUNT    10

@@ -24,7 +24,7 @@ struct s2n_crl *s2n_crl_new(void)
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_crl)));
     PTR_GUARD_POSIX(s2n_blob_zero(&mem));
 
-    struct s2n_crl *crl = (struct s2n_crl *) (void *) mem.data;
+    struct s2n_crl *crl = (struct s2n_crl *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return crl;
@@ -87,7 +87,7 @@ int s2n_crl_get_issuer_hash(struct s2n_crl *crl, uint64_t *hash)
 
     /* X509_NAME_hash takes a non-const X509_NAME* even on libcryptos (AWS-LC)
      * whose X509_CRL_get_issuer returns const; it only reads the name. */
-    unsigned long temp_hash = X509_NAME_hash((X509_NAME *) (uintptr_t) crl_name);
+    unsigned long temp_hash = X509_NAME_hash((X509_NAME *) (uintptr_t) crl_name); /* NOLINT(performance-no-int-to-ptr) */
     POSIX_ENSURE(temp_hash != 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
     *hash = temp_hash;

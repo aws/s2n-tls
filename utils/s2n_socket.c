@@ -195,7 +195,7 @@ int s2n_socket_read(void *io_context, uint8_t *buf, uint32_t len)
      * returned and errno is set appropriately. */
     ssize_t result = read(rfd, buf, len);
     POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
-    return result;
+    return (int) result;
 }
 
 int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
@@ -212,7 +212,7 @@ int s2n_socket_write(void *io_context, const uint8_t *buf, uint32_t len)
      * returned and errno is set appropriately. */
     ssize_t result = write(wfd, buf, len);
     POSIX_ENSURE_INCLUSIVE_RANGE(INT_MIN, result, INT_MAX);
-    return result;
+    return (int) result;
 }
 
 #endif

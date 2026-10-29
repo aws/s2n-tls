@@ -54,12 +54,12 @@ struct iovec {
 /**
  * Function return code
  */
-#define S2N_FAILURE -1
+#define S2N_FAILURE (-1)
 
 /**
  * Callback return code 
  */
-#define S2N_CALLBACK_BLOCKED -2
+#define S2N_CALLBACK_BLOCKED (-2)
 
 /**
  * s2n minimum supported TLS record major version 

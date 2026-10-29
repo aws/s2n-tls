@@ -24,7 +24,7 @@
 /* clang-format off */
 #define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
 #define BLOCK_SEND_RESULT { .result = -1, .error = EAGAIN }
-#define PARTIAL_SEND_RESULT(bytes) { .result = bytes, .error = EAGAIN }
+#define PARTIAL_SEND_RESULT(bytes) { .result = (bytes), .error = EAGAIN }
 #define OK_SEND_RESULT { .result = INT_MAX }
 /* clang-format on */
 
@@ -78,7 +78,7 @@ int s2n_expect_concurrent_error_send_fn(void *io_context, const uint8_t *buf, ui
     s2n_blocked_status blocked = 0;
     ssize_t result = s2n_send(conn, buf, len, &blocked);
     EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_REENTRANCY);
-    return result;
+    return (int) result;
 }
 
 static int s2n_test_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
     /* Calculating the record size for given data can be tricky.
      * Instead, let's set the values based on the results of tests.
      */
-    ssize_t test_data_bytes_sent = 0;
+    size_t test_data_bytes_sent = 0;
 
     /* s2n_send */
     {
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(context.calls, 1);
 
         /* Set the expected record size for future tests */
-        max_frag_bytes_sent[mfl] = context.bytes_sent;
+        max_frag_bytes_sent[mfl] = (ssize_t) context.bytes_sent;
         EXPECT_TRUE(max_frag_bytes_sent[mfl] > 0);
 
         /* Set the expected output buffer size for future tests */
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
         /* Second attempt blocks */
         EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, test_data, sizeof(test_data), &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
-        EXPECT_EQUAL(context.bytes_sent, partial_send * 2);
+        EXPECT_EQUAL(context.bytes_sent, (size_t) partial_send * 2);
 
         /* Third attempt completes */
         EXPECT_EQUAL(s2n_send(conn, test_data, sizeof(test_data), &blocked), sizeof(test_data));
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
     /* Calculating the record size for given data can be tricky.
      * Instead, let's set the values based on the results of tests.
      */
-    ssize_t large_test_data_bytes_sent = 0;
+    size_t large_test_data_bytes_sent = 0;
 
     /* s2n_send sends multiple records worth of data */
     {
@@ -462,7 +462,7 @@ int main(int argc, char **argv)
         ssize_t record_size = max_frag_bytes_sent[S2N_MFL_DEFAULT];
 
         /* First attempt blocks after writing two records */
-        ssize_t expected_send = S2N_DEFAULT_FRAGMENT_LENGTH * 2;
+        ssize_t expected_send = (ssize_t) S2N_DEFAULT_FRAGMENT_LENGTH * 2;
         EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), expected_send);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
         EXPECT_EQUAL(context.bytes_sent, record_size * 2);
@@ -535,7 +535,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_send_cb(conn, s2n_test_send_cb));
 
         s2n_blocked_status blocked = 0;
-        const size_t send_size = single_mtu_mfl * 2;
+        const size_t send_size = (size_t) single_mtu_mfl * 2;
 
         /* The first call to s2n_send blocks before sending the first record. */
         EXPECT_FAILURE_WITH_ERRNO(s2n_send(conn, large_test_data, send_size, &blocked),
@@ -557,7 +557,7 @@ int main(int argc, char **argv)
         /* The second call to s2n_send flushes the buffered first record,
          * but blocks before sending the second record.
          */
-        ssize_t result = s2n_send(conn, large_test_data, send_size, &blocked);
+        ssize_t result = s2n_send(conn, large_test_data, (ssize_t) send_size, &blocked);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
         /* First small, single-MTU record was sent. */
         EXPECT_EQUAL(result, single_mtu_mfl);
@@ -573,7 +573,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
 
         /* The third call to s2n_send flushes the second record. */
-        result = s2n_send(conn, large_test_data, send_size - single_mtu_mfl, &blocked);
+        result = s2n_send(conn, large_test_data, (ssize_t) (send_size - single_mtu_mfl), &blocked);
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
         /* Second small, single-MTU record was sent. */
         EXPECT_EQUAL(result, single_mtu_mfl);
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->out.blob.size, out_size[S2N_MFL_DEFAULT]);
 
         /* The fourth call to s2n_send sends the third record. */
-        result = s2n_send(conn, large_test_data, conn->max_outgoing_fragment_length * 2, &blocked);
+        result = s2n_send(conn, large_test_data, (ssize_t) conn->max_outgoing_fragment_length * 2, &blocked);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
         /* We have passed the resize_threshold, so records are no longer small.
          * Instead they use the standard connection fragment length.
@@ -710,7 +710,7 @@ int main(int argc, char **argv)
             const struct iovec test_buf = { .iov_len = 10 };
             ssize_t out = 0;
 
-            ssize_t test_buf_offset = test_buf.iov_len + 1;
+            ssize_t test_buf_offset = (ssize_t) (test_buf.iov_len + 1);
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_sendv_with_offset_total_size(&test_buf, 1, test_buf_offset, &out),
                     S2N_ERR_INVALID_ARGUMENT);

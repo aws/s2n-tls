@@ -17,7 +17,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
 /* To test static functions */
-#include "tls/s2n_server_new_session_ticket.c"
+#include "tls/s2n_server_new_session_ticket.c" /* NOLINT(bugprone-suspicious-include) */
 
 #define TEST_TICKET_AGE_ADD 0x01, 0x02, 0x03, 0x04
 #define TEST_LIFETIME       0x00, 0x01, 0x01, 0x01
@@ -31,13 +31,13 @@
 #define REDUCED_LIFETIME_IN_SECS  (REDUCED_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS)
 
 #define S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_NANOS (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS)
-#define S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_SECS  S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS
+#define S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_SECS  (S2N_DEFAULT_SESSION_STATE_LIFETIME_IN_NANOS / ONE_SEC_IN_NANOS)
 
-#define TICKET_AGE_ADD_MARKER sizeof(uint8_t) + /* message id  */ \
-        SIZEOF_UINT24 +                         /* message len */ \
-        sizeof(uint32_t)                        /* ticket lifetime */
-#define RECORD_LEN_MARKER sizeof(uint8_t) +     /* message type */ \
-        sizeof(uint16_t)                        /* protocol version */
+#define TICKET_AGE_ADD_MARKER (sizeof(uint8_t) + /* message id  */ \
+        SIZEOF_UINT24 +                          /* message len */ \
+        sizeof(uint32_t))                        /* ticket lifetime */
+#define RECORD_LEN_MARKER (sizeof(uint8_t) +     /* message type */ \
+        sizeof(uint16_t))                        /* protocol version */
 
 #define MAX_TEST_SESSION_SIZE 300
 

@@ -39,7 +39,7 @@ struct s2n_psk *s2n_external_psk_new()
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_psk)));
 
-    struct s2n_psk *psk = (struct s2n_psk *) (void *) mem.data;
+    struct s2n_psk *psk = (struct s2n_psk *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
     PTR_GUARD_RESULT(s2n_psk_init(psk, S2N_PSK_TYPE_EXTERNAL));
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
@@ -356,7 +356,7 @@ struct s2n_offered_psk *s2n_offered_psk_new()
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_offered_psk)));
     PTR_GUARD_POSIX(s2n_blob_zero(&mem));
 
-    struct s2n_offered_psk *psk = (struct s2n_offered_psk *) (void *) mem.data;
+    struct s2n_offered_psk *psk = (struct s2n_offered_psk *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return psk;

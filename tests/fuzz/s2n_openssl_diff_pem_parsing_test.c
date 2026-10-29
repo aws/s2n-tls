@@ -44,7 +44,7 @@
 static int openssl_parse_cert_chain(struct s2n_stuffer *in)
 {
     uint8_t chain_len = 0;
-    BIO *membio = BIO_new_mem_buf((void *) in->blob.data, in->blob.size - 1);
+    BIO *membio = BIO_new_mem_buf((void *) in->blob.data, (int) (in->blob.size - 1));
     X509 *cert = NULL;
 
     while (1) {

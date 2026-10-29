@@ -298,7 +298,8 @@ static S2N_RESULT s2n_client_psk_recv_binder_list(struct s2n_connection *conn, s
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(wire_binders_in, &wire_binder_size));
 
         uint8_t *wire_binder_data = NULL;
-        RESULT_ENSURE_REF(wire_binder_data = s2n_stuffer_raw_read(wire_binders_in, wire_binder_size));
+        wire_binder_data = s2n_stuffer_raw_read(wire_binders_in, wire_binder_size);
+        RESULT_ENSURE_REF(wire_binder_data);
 
         struct s2n_blob wire_binder = { 0 };
         RESULT_GUARD_POSIX(s2n_blob_init(&wire_binder, wire_binder_data, wire_binder_size));
@@ -321,7 +322,8 @@ static S2N_RESULT s2n_client_psk_recv_identities(struct s2n_connection *conn, st
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &identity_list_size));
 
     uint8_t *identity_list_data = NULL;
-    RESULT_ENSURE_REF(identity_list_data = s2n_stuffer_raw_read(extension, identity_list_size));
+    identity_list_data = s2n_stuffer_raw_read(extension, identity_list_size);
+    RESULT_ENSURE_REF(identity_list_data);
 
     struct s2n_blob identity_list_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&identity_list_blob, identity_list_data, identity_list_size));
@@ -341,7 +343,8 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &binder_list_size));
 
     uint8_t *binder_list_data = NULL;
-    RESULT_ENSURE_REF(binder_list_data = s2n_stuffer_raw_read(extension, binder_list_size));
+    binder_list_data = s2n_stuffer_raw_read(extension, binder_list_size);
+    RESULT_ENSURE_REF(binder_list_data);
 
     struct s2n_blob binder_list_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&binder_list_blob, binder_list_data, binder_list_size));

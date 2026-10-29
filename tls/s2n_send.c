@@ -105,7 +105,7 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     return 0;
 }
 
-S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t count,
+S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t count, /* NOLINT(bugprone-easily-swappable-parameters) */
         ssize_t offs, ssize_t *total_size_out)
 {
     RESULT_ENSURE_REF(total_size_out);
@@ -120,7 +120,7 @@ S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t co
         if (offs > 0) {
             size_t offs_consumed = S2N_MIN((size_t) offs, iov_len);
             iov_len -= offs_consumed;
-            offs -= offs_consumed;
+            offs -= (ssize_t) offs_consumed;
         }
         RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(total_size, iov_len, SIZE_MAX),
                 S2N_ERR_INVALID_ARGUMENT);
@@ -133,7 +133,7 @@ S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t co
     RESULT_ENSURE(offs == 0, S2N_ERR_INVALID_ARGUMENT);
 
     RESULT_ENSURE(total_size <= SSIZE_MAX, S2N_ERR_INVALID_ARGUMENT);
-    *total_size_out = total_size;
+    *total_size_out = (ssize_t) total_size;
     return S2N_RESULT_OK;
 }
 
@@ -213,7 +213,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
 
         /* Write and encrypt the record */
-        int written_to_record = s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, count,
+        int written_to_record = s2n_record_writev(conn, TLS_APPLICATION_DATA, bufs, (int) count,
                 conn->current_user_data_consumed + offs, to_write);
         POSIX_GUARD(written_to_record);
         conn->current_user_data_consumed += written_to_record;
@@ -272,7 +272,7 @@ ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t
 ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked)
 {
     struct iovec iov = { 0 };
-    iov.iov_base = (void *) (uintptr_t) buf;
+    iov.iov_base = (void *) (uintptr_t) buf; /* NOLINT(performance-no-int-to-ptr) */
     iov.iov_len = size;
     return s2n_sendv_with_offset(conn, &iov, 1, 0, blocked);
 }

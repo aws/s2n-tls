@@ -99,7 +99,7 @@ static int s2n_mem_test_free_cb(void *ptr, uint32_t size)
     struct s2n_stuffer read_copy = s2n_mem_test_ctx.mallocs;
     while (s2n_stuffer_data_available(&read_copy)) {
         uint8_t *mem = s2n_stuffer_raw_read(&read_copy, sizeof(struct s2n_mem_test_malloc));
-        struct s2n_mem_test_malloc *info = (struct s2n_mem_test_malloc *) (void *) mem;
+        struct s2n_mem_test_malloc *info = (struct s2n_mem_test_malloc *) (void *) mem; /* NOLINT(bugprone-casting-through-void) */
         if (info->ptr == ptr) {
             info->freed = true;
         }

@@ -147,13 +147,15 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     /* Set up Server Config */
     struct s2n_config *server_config;
-    POSIX_ENSURE_REF(server_config = s2n_config_new());
+    server_config = s2n_config_new();
+    POSIX_ENSURE_REF(server_config);
     POSIX_GUARD(s2n_config_add_cert_chain_and_key(server_config, certificate_chain, private_key));
     POSIX_GUARD(s2n_config_add_dhparams(server_config, dhparams));
 
     /* Set up Server Connection */
     struct s2n_connection *server_conn;
-    POSIX_ENSURE_REF(server_conn = s2n_connection_new(S2N_SERVER));
+    server_conn = s2n_connection_new(S2N_SERVER);
+    POSIX_ENSURE_REF(server_conn);
     POSIX_GUARD(s2n_connection_set_read_fd(server_conn, client_to_server[0]));
     POSIX_GUARD(s2n_connection_set_config(server_conn, server_config));
     POSIX_GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
@@ -168,7 +170,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     s2n_config_disable_x509_verification(client_config);
 
     struct s2n_connection *client_conn;
-    POSIX_ENSURE_REF(client_conn = s2n_connection_new(S2N_CLIENT));
+    client_conn = s2n_connection_new(S2N_CLIENT);
+    POSIX_ENSURE_REF(client_conn);
     POSIX_GUARD(s2n_connection_set_config(client_conn, client_config));
     POSIX_GUARD(s2n_connection_set_write_fd(client_conn, client_to_server[1]));
 

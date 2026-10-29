@@ -56,7 +56,7 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
         POSIX_GUARD(s2n_blob_zero(&mem));
 
-        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
+        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
         POSIX_GUARD(s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)));
         POSIX_GUARD(s2n_stuffer_read(&cert_out_stuffer, &new_node->raw));
         ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
@@ -197,9 +197,9 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
     san_names = s2n_array_new(sizeof(struct s2n_blob));
     PTR_ENSURE_REF(san_names);
 
-    struct s2n_cert_chain_and_key *chain_and_key = (struct s2n_cert_chain_and_key *) (void *) chain_and_key_mem.data;
-    chain_and_key->cert_chain = (struct s2n_cert_chain *) (void *) cert_chain_mem.data;
-    chain_and_key->private_key = (s2n_cert_private_key *) (void *) pkey_mem.data;
+    struct s2n_cert_chain_and_key *chain_and_key = (struct s2n_cert_chain_and_key *) (void *) chain_and_key_mem.data; /* NOLINT(bugprone-casting-through-void) */
+    chain_and_key->cert_chain = (struct s2n_cert_chain *) (void *) cert_chain_mem.data;                               /* NOLINT(bugprone-casting-through-void) */
+    chain_and_key->private_key = (s2n_cert_private_key *) (void *) pkey_mem.data;                                     /* NOLINT(bugprone-casting-through-void) */
     chain_and_key->cn_names = cn_names;
     chain_and_key->san_names = san_names;
 
@@ -380,7 +380,7 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     return S2N_SUCCESS;
 }
 
-int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem)
+int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_REF(chain_and_key);
 
@@ -715,7 +715,7 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
      * https://www.openssl.org/docs/man1.1.0/man3/d2i_ASN1_UTF8STRING.html.
      */
     const uint8_t *asn1_str_data = extension_data;
-    asn1_str = d2i_ASN1_UTF8STRING(NULL, (const unsigned char **) (void *) &asn1_str_data, extension_len);
+    asn1_str = d2i_ASN1_UTF8STRING(NULL, (const unsigned char **) (void *) &asn1_str_data, extension_len); /* NOLINT(bugprone-casting-through-void) */
     POSIX_ENSURE(asn1_str != NULL, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
     /* ASN1_STRING_type() returns the type of `asn1_str`, using standard constants such as V_ASN1_OCTET_STRING.
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_type.html.
@@ -774,7 +774,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
      * https://www.openssl.org/docs/man1.1.0/man3/d2i_X509.html.
      */
     uint8_t *der_in = cert->raw.data;
-    DEFER_CLEANUP(X509 *x509_cert = d2i_X509(NULL, (const unsigned char **) (void *) &der_in, cert->raw.size),
+    DEFER_CLEANUP(X509 *x509_cert = d2i_X509(NULL, (const unsigned char **) (void *) &der_in, cert->raw.size), /* NOLINT(bugprone-casting-through-void) */
             X509_free_pointer);
     POSIX_ENSURE_REF(x509_cert);
 
@@ -804,7 +804,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
          * The returned extension is an internal pointer which must not be freed up by the application.
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext.html.
          */
-        S2N_X509_CONST X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
+        S2N_X509_CONST X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, (int) loc);
         POSIX_ENSURE_REF(x509_ext);
 
         /* Retrieve the extension object/OID/extnId.

@@ -22,7 +22,7 @@ int main(int argc, char** argv)
 {
     BEGIN_TEST();
 
-    const char* env_libcrypto = getenv("S2N_LIBCRYPTO");
+    const char* env_libcrypto = getenv("S2N_LIBCRYPTO"); /* NOLINT(concurrency-mt-unsafe) */
     if (env_libcrypto == NULL) {
         END_TEST();
     }

@@ -86,7 +86,7 @@ int main(int argc, char **argv)
      * This test is too unreliable to run in all customer environments.
      * We should choose specific, known builds to run this test in.
      */
-    const char *env_var = getenv("S2N_EXPECTED_CONNECTION_MEMORY_KB");
+    const char *env_var = getenv("S2N_EXPECTED_CONNECTION_MEMORY_KB"); /* NOLINT(concurrency-mt-unsafe) */
     if (env_var == NULL) {
         END_TEST();
     }
@@ -101,8 +101,8 @@ int main(int argc, char **argv)
         connectionsToUse = S2N_MAX(1, (file_limit.rlim_cur - 16) / 4);
     }
 
-    struct s2n_connection **clients = calloc(connectionsToUse, sizeof(struct s2n_connection *));
-    struct s2n_connection **servers = calloc(connectionsToUse, sizeof(struct s2n_connection *));
+    struct s2n_connection **clients = (struct s2n_connection **) calloc(connectionsToUse, sizeof(struct s2n_connection *));
+    struct s2n_connection **servers = (struct s2n_connection **) calloc(connectionsToUse, sizeof(struct s2n_connection *));
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -176,8 +176,8 @@ int main(int argc, char **argv)
 
     free(cert_chain);
     free(private_key);
-    free(clients);
-    free(servers);
+    free((void *) clients);
+    free((void *) servers);
 
     EXPECT_TRUE(vm_data_after_free_handshake <= vm_data_after_handshakes);
     EXPECT_TRUE(vm_data_after_release_buffers <= vm_data_after_free_handshake);
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
     ssize_t allocation_diff = (vm_data_after_allocation - vm_data_initial);
     EXPECT_TRUE(allocation_diff <= handshake_diff);
 
-    ssize_t mem_per_conn = handshake_diff / (connectionsToUse * 2);
+    ssize_t mem_per_conn = (ssize_t) (handshake_diff / (connectionsToUse * 2));
     ssize_t kbs_per_conn = mem_per_conn / 1024;
 
     if (kbs_per_conn != expected_kbs_per_conn) {

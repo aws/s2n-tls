@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+/* NOLINTBEGIN(concurrency-mt-unsafe): this command-line tool is single-threaded */
+
 #include <errno.h>
 #include <fcntl.h>
 #include <getopt.h>
@@ -425,7 +427,7 @@ int main(int argc, char *const *argv)
                 conn_settings.https_server = 1;
                 break;
             case 'b':
-                bytes = strtoul(optarg, NULL, 10);
+                bytes = (long int) strtoul(optarg, NULL, 10);
                 GUARD_EXIT(bytes, "https-bench bytes needs to be some positive long value.");
                 conn_settings.https_bench = bytes;
                 break;
@@ -522,12 +524,14 @@ int main(int argc, char *const *argv)
         exit(1);
     }
 
-    if ((r = getaddrinfo(host, port, &hints, &ai)) < 0) {
+    r = getaddrinfo(host, port, &hints, &ai);
+    if (r < 0) {
         fprintf(stderr, "getaddrinfo error: %s\n", gai_strerror(r));
         exit(1);
     }
 
-    if ((sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol)) == -1) {
+    sockfd = socket(ai->ai_family, ai->ai_socktype, ai->ai_protocol);
+    if (sockfd == -1) {
         fprintf(stderr, "socket error: %s\n", strerror(errno));
         exit(1);
     }
@@ -710,3 +714,5 @@ int main(int argc, char *const *argv)
 
     return 0;
 }
+
+/* NOLINTEND(concurrency-mt-unsafe) */

@@ -19,7 +19,7 @@
 #include "utils/s2n_result.h"
 
 /* Get access to s2n_handshake_read_io */
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 
 bool async_blocked = false;
 size_t blocking_handler_count = 0;

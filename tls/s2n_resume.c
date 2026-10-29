@@ -562,7 +562,7 @@ int s2n_connection_get_session_ticket_lifetime_hint(struct s2n_connection *conn)
     S2N_ERROR_IF(!(conn->config->use_tickets && conn->client_ticket.size > 0), S2N_ERR_SESSION_TICKET_NOT_SUPPORTED);
 
     /* Session resumption using session ticket */
-    return conn->ticket_lifetime_hint;
+    return (int) conn->ticket_lifetime_hint;
 }
 
 S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, size_t *state_size)
@@ -615,7 +615,7 @@ int s2n_connection_get_session_length(struct s2n_connection *conn)
 {
     size_t length = 0;
     if (s2n_result_is_ok(s2n_connection_get_session_length_impl(conn, &length))) {
-        return length;
+        return (int) length;
     }
     return 0;
 }
@@ -669,7 +669,7 @@ S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config)
  */
 int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
         uint8_t *encrypt_decrypt_keys_index,
-        uint8_t num_encrypt_decrypt_keys,
+        uint8_t num_encrypt_decrypt_keys, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint64_t now)
 {
     double total_weight = 0;
@@ -685,10 +685,10 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
 
         /* The % of encryption using this key is linearly increasing */
         if (now < key_encryption_peak_time) {
-            ticket_keys_weight[i].key_weight = now - key_intro_time;
+            ticket_keys_weight[i].key_weight = (double) (now - key_intro_time);
         } else {
             /* The % of encryption using this key is linearly decreasing */
-            ticket_keys_weight[i].key_weight = (config->encrypt_decrypt_key_lifetime_in_nanos / 2) - (now - key_encryption_peak_time);
+            ticket_keys_weight[i].key_weight = (double) ((config->encrypt_decrypt_key_lifetime_in_nanos / 2) - (now - key_encryption_peak_time)); /* NOLINT(bugprone-integer-division) */
         }
 
         ticket_keys_weight[i].key_index = encrypt_decrypt_keys_index[i];
@@ -756,8 +756,8 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
         return ticket_key;
     }
 
-    int8_t idx = 0;
-    PTR_GUARD_POSIX(idx = s2n_compute_weight_of_encrypt_decrypt_keys(config, encrypt_decrypt_keys_index, num_encrypt_decrypt_keys, now));
+    int8_t idx = (int8_t) s2n_compute_weight_of_encrypt_decrypt_keys(config, encrypt_decrypt_keys_index, num_encrypt_decrypt_keys, now);
+    PTR_GUARD_POSIX(idx);
 
     PTR_GUARD_RESULT(s2n_array_get(config->ticket_keys, idx, (void **) &ticket_key));
     return ticket_key;
@@ -989,7 +989,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
     struct s2n_ticket_key *ticket_key = NULL;
 
     if (expired_key_index != -1) {
-        expired_keys_index[num_of_expired_keys] = expired_key_index;
+        expired_keys_index[num_of_expired_keys] = (int) expired_key_index;
         num_of_expired_keys++;
 
         goto end;
@@ -1006,7 +1006,7 @@ int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t
         if (now >= ticket_key->intro_timestamp
                         + config->encrypt_decrypt_key_lifetime_in_nanos
                         + config->decrypt_key_lifetime_in_nanos) {
-            expired_keys_index[num_of_expired_keys] = i;
+            expired_keys_index[num_of_expired_keys] = (int) i;
             num_of_expired_keys++;
         }
     }

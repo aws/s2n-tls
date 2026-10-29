@@ -42,4 +42,4 @@ struct s2n_evp_digest {
  * issue by turning off this compiler check for this one function with a cast through.
  */
 #define S2N_EVP_PKEY_CTX_set_signature_md(ctx, md) \
-    EVP_PKEY_CTX_set_signature_md(ctx, (EVP_MD *) (uintptr_t) md)
+    EVP_PKEY_CTX_set_signature_md(ctx, (EVP_MD *) (uintptr_t) (md)) /* NOLINT(performance-no-int-to-ptr) */

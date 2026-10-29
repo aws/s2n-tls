@@ -37,7 +37,8 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
     POSIX_GUARD(s2n_read_test_pem(cert_chain_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     POSIX_GUARD(s2n_read_test_pem(private_key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
-    POSIX_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
+    *chain_and_key = s2n_cert_chain_and_key_new();
+    POSIX_GUARD_PTR(*chain_and_key);
     POSIX_GUARD(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
 
     return S2N_SUCCESS;
@@ -58,7 +59,8 @@ S2N_RESULT s2n_test_cert_permutation_load_server_chain_from_name(
             "../pems/permutations/%s/server-key.pem", name);
     RESULT_GUARD_POSIX(s2n_read_test_pem(path_buffer, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
-    RESULT_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
+    *chain_and_key = s2n_cert_chain_and_key_new();
+    RESULT_GUARD_PTR(*chain_and_key);
     RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
 
     return S2N_RESULT_OK;
@@ -110,7 +112,9 @@ int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *
     fseek(pem_file, 0, SEEK_END);
     const long int pem_file_size = ftell(pem_file);
     /* one extra for the null byte */
-    rewind(pem_file);
+    if (fseek(pem_file, 0, SEEK_SET) < 0) {
+        POSIX_BAIL(S2N_ERR_IO);
+    }
 
     if (max_size < (pem_file_size)) {
         POSIX_BAIL(S2N_ERR_NOMEM);
@@ -169,7 +173,7 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
         DIR *root = opendir("../pems/permutations");
         RESULT_ENSURE_REF(root);
         struct dirent *dir = NULL;
-        while ((dir = readdir(root)) != NULL) {
+        while ((dir = readdir(root)) != NULL) { /* NOLINT(concurrency-mt-unsafe) */
             /* Skip ., .., the README, etc.
              * This is pretty hacky: we can switch to stat later if necessary.
 -            */
@@ -241,7 +245,7 @@ S2N_RESULT s2n_test_cert_chains_init(struct s2n_test_cert_chain_list *chains)
  * The meaning of the value depends on the structure of the test.
  */
 S2N_RESULT s2n_test_cert_chains_set_supported(struct s2n_test_cert_chain_list *chains,
-        s2n_pkey_type target_type, uint64_t supported)
+        s2n_pkey_type target_type, uint64_t supported) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     for (size_t i = 0; i < chains->count; i++) {
         struct s2n_test_cert_chain_entry *entry = &chains->chains[i];

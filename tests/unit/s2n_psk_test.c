@@ -17,7 +17,7 @@
 #include "testlib/s2n_testlib.h"
 
 /* Include source to test static intermediate functions */
-#include "tls/s2n_psk.c"
+#include "tls/s2n_psk.c" /* NOLINT(bugprone-suspicious-include) */
 
 #define TEST_VALUE_1 "test value"
 #define TEST_VALUE_2 "another"
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_psk *new_psk = s2n_external_psk_new(), s2n_psk_free);
         EXPECT_NOT_NULL(new_psk);
 
-        EXPECT_BYTEARRAY_EQUAL(new_psk, &inited_psk, sizeof(struct s2n_psk));
+        EXPECT_BYTEARRAY_EQUAL(new_psk, &inited_psk, sizeof(struct s2n_psk)); /* NOLINT(bugprone-suspicious-memory-comparison): large struct compared against an s2n_psk_init snapshot */
     };
 
     /* Test s2n_psk_set_identity */
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
          * The params should be back to their initial state. */
         struct s2n_psk_parameters expected_params = { 0 };
         EXPECT_OK(s2n_psk_parameters_init(&expected_params));
-        EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
+        EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters)); /* NOLINT(bugprone-suspicious-memory-comparison): compared against an s2n_psk_parameters_init snapshot */
     };
 
     /* Test s2n_psk_parameters_wipe_secrets */
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
         conn->psk_params.chosen_psk = first_psk;
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        EXPECT_BYTEARRAY_EQUAL(&empty_psk_params, &conn->psk_params, sizeof(struct s2n_psk_parameters));
+        EXPECT_BYTEARRAY_EQUAL(&empty_psk_params, &conn->psk_params, sizeof(struct s2n_psk_parameters)); /* NOLINT(bugprone-suspicious-memory-comparison): compared against an s2n_psk_parameters_init snapshot */
 
         struct s2n_psk *second_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &second_psk));
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
         conn->psk_params.chosen_psk = second_psk;
 
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        EXPECT_BYTEARRAY_EQUAL(&empty_psk_params, &conn->psk_params, sizeof(struct s2n_psk_parameters));
+        EXPECT_BYTEARRAY_EQUAL(&empty_psk_params, &conn->psk_params, sizeof(struct s2n_psk_parameters)); /* NOLINT(bugprone-suspicious-memory-comparison): compared against an s2n_psk_parameters_init snapshot */
 
         struct s2n_psk *third_psk = NULL;
         EXPECT_OK(s2n_array_pushback(&conn->psk_params.psk_list, (void **) &third_psk));

@@ -18,9 +18,9 @@
 #include "tls/extensions/s2n_client_psk.h"
 
 /* Include source to test static methods. */
-#include "tls/s2n_psk.c"
+#include "tls/s2n_psk.c" /* NOLINT(bugprone-suspicious-include) */
 
-#define MILLIS_TO_NANOS(millis) (millis * (uint64_t) ONE_MILLISEC_IN_NANOS)
+#define MILLIS_TO_NANOS(millis) ((millis) * (uint64_t) ONE_MILLISEC_IN_NANOS)
 
 static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
@@ -299,7 +299,12 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(new_psk);
 
         /* _new equivalent to a zero-inited structure */
-        EXPECT_BYTEARRAY_EQUAL(&zeroed_psk, new_psk, sizeof(struct s2n_offered_psk));
+        EXPECT_EQUAL(new_psk->identity.data, zeroed_psk.identity.data);
+        EXPECT_EQUAL(new_psk->identity.size, zeroed_psk.identity.size);
+        EXPECT_EQUAL(new_psk->identity.allocated, zeroed_psk.identity.allocated);
+        EXPECT_EQUAL(new_psk->identity.growable, zeroed_psk.identity.growable);
+        EXPECT_EQUAL(new_psk->wire_index, zeroed_psk.wire_index);
+        EXPECT_EQUAL(new_psk->obfuscated_ticket_age, zeroed_psk.obfuscated_ticket_age);
     };
 
     /* Test s2n_offered_psk_free */

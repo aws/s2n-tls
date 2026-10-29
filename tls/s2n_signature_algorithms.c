@@ -307,9 +307,7 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
          * preferred algorithm. In most cases a correctly implemented peer will reject
          * this fallback, but the only alternative is to kill the connection here.
          */
-        if (is_default) {
-            fallback_candidate = candidate;
-        } else if (fallback_candidate == NULL) {
+        if (is_default || fallback_candidate == NULL) {
             fallback_candidate = candidate;
         }
     }

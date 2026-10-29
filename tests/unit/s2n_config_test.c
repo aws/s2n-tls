@@ -878,7 +878,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(initial_contents_count, 1);
 
             /* Override the system cert file to guarantee that a system cert will be loaded */
-            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", S2N_SHA1_ROOT_SIGNATURE_CA_CERT, 1));
+            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", S2N_SHA1_ROOT_SIGNATURE_CA_CERT, 1)); /* NOLINT(concurrency-mt-unsafe) */
 
             /* Load the system cert into the store */
             EXPECT_SUCCESS(s2n_config_load_system_certs(config));
@@ -900,7 +900,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(additional_call_contents_count == system_certs_contents_count);
             }
 
-            EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE"));
+            EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE")); /* NOLINT(concurrency-mt-unsafe) */
         }
 #endif
 

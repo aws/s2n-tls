@@ -53,7 +53,8 @@ static int s2n_x509_validator_validate_cert_chain_test(struct s2n_connection *co
     uint32_t cert_chain_size = s2n_stuffer_data_available(stuffer);
 
     uint8_t *cert_chain_data = NULL;
-    POSIX_ENSURE_REF(cert_chain_data = s2n_stuffer_raw_read(stuffer, cert_chain_size));
+    cert_chain_data = s2n_stuffer_raw_read(stuffer, cert_chain_size);
+    POSIX_ENSURE_REF(cert_chain_data);
 
     POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn,
             cert_chain_data, cert_chain_size, &actual_cert_pkey_type, &public_key));
@@ -74,7 +75,8 @@ static int s2n_setup_connection_for_ocsp_validate_test(struct s2n_connection **c
 {
     struct s2n_connection *nconn = NULL;
 
-    POSIX_ENSURE_REF(nconn = s2n_connection_new(S2N_SERVER));
+    nconn = s2n_connection_new(S2N_SERVER);
+    POSIX_ENSURE_REF(nconn);
     nconn->actual_protocol_version = S2N_TLS13;
     nconn->handshake_params.our_chain_and_key = chain_and_key;
 

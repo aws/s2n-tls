@@ -19,7 +19,7 @@
 
 #define S2N_TEST_DATA_SIZE 100
 
-S2N_RESULT s2n_test_send_receive_data(struct s2n_connection *sender, struct s2n_connection *receiver)
+S2N_RESULT s2n_test_send_receive_data(struct s2n_connection *sender, struct s2n_connection *receiver) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     uint8_t test_data[S2N_TEST_DATA_SIZE] = { 0 };
     struct s2n_blob test_data_blob = { 0 };

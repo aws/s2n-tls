@@ -843,7 +843,7 @@ static const char *tls13_handshake_type_names[] = {
 #define EXPECTED_RECORD_TYPE(conn)  ACTIVE_STATE(conn).record_type
 #define EXPECTED_MESSAGE_TYPE(conn) ACTIVE_STATE(conn).message_type
 
-#define CONNECTION_WRITER(conn)    (conn->mode == S2N_CLIENT ? 'C' : 'S')
+#define CONNECTION_WRITER(conn)    ((conn)->mode == S2N_CLIENT ? 'C' : 'S')
 #define CONNECTION_IS_WRITER(conn) (ACTIVE_STATE(conn).writer == CONNECTION_WRITER(conn))
 
 /* Only used in our test cases. */
@@ -979,7 +979,7 @@ static S2N_RESULT s2n_conn_set_tls13_handshake_type(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
     if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED
-            && IS_FULL_HANDSHAKE(conn)) {
+            && IS_FULL_HANDSHAKE(conn)) { /* NOLINT(bugprone-branch-clone) */
         /* If we're a client, and Client Auth is REQUIRED, then the Client must expect the CLIENT_CERT_REQ Message */
         RESULT_GUARD(s2n_handshake_type_set_flag(conn, CLIENT_AUTH));
     } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE
@@ -1039,7 +1039,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     s2n_cert_auth_type client_cert_auth_type = 0;
     POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
-    if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) {
+    if (conn->mode == S2N_CLIENT && client_cert_auth_type == S2N_CERT_AUTH_REQUIRED) { /* NOLINT(bugprone-branch-clone) */
         /* If we're a client, and Client Auth is REQUIRED, then the Client must expect the CLIENT_CERT_REQ Message */
         POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, CLIENT_AUTH));
     } else if (conn->mode == S2N_SERVER && client_cert_auth_type != S2N_CERT_AUTH_NONE) {
@@ -1412,8 +1412,8 @@ static int s2n_handshake_message_process(struct s2n_connection *conn, uint8_t re
     while (s2n_stuffer_data_available(&conn->in)) {
         /* We're done with negotiating but we have trailing data in this record. Bail on the handshake. */
         S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
-        int r = 0;
-        POSIX_GUARD((r = s2n_read_full_handshake_message(conn, &message_type)));
+        int r = s2n_read_full_handshake_message(conn, &message_type);
+        POSIX_GUARD(r);
 
         /* Do we need more data? This happens for message fragmentation */
         if (r == 1) {

@@ -197,7 +197,7 @@ int s2n_cert_req_recv(struct s2n_connection *conn)
 
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    s2n_cert_type cert_type = 0;
+    s2n_cert_type cert_type = 0; /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): set by s2n_recv_client_cert_preferences before use */
     POSIX_GUARD(s2n_recv_client_cert_preferences(in, &cert_type));
 
     if (conn->actual_protocol_version == S2N_TLS12) {

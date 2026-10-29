@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE(s2n_extension_list_send(0, NULL, &stuffer));
         EXPECT_FAILURE(s2n_extension_list_send(0, &conn, NULL));
-        EXPECT_FAILURE(s2n_extension_list_send(-1, &conn, &stuffer));
+        EXPECT_FAILURE(s2n_extension_list_send(-1, &conn, &stuffer)); /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): deliberately invalid value */
     };
 
     /* Writes just size if extension type list empty */

@@ -18,9 +18,9 @@
 int s2n_example_send(struct s2n_connection *conn, uint8_t *data, size_t data_size)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int bytes_written = 0;
+    size_t bytes_written = 0;
     while (bytes_written < data_size) {
-        int w = s2n_send(conn, data + bytes_written, data_size - bytes_written, &blocked);
+        ssize_t w = s2n_send(conn, data + bytes_written, (ssize_t) (data_size - bytes_written), &blocked);
         if (w >= 0) {
             /* `w` bytes were successfully sent. Update `bytes_written` so the next call to
              * `s2n_send()` will send data from the correct offset in the buffer.
@@ -54,9 +54,9 @@ int s2n_example_sendv(struct s2n_connection *conn, uint8_t *data, size_t data_si
     iov[0].iov_len = data_size;
 
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int bytes_written = 0;
-    while (bytes_written < data_size) {
-        int w = s2n_sendv_with_offset(conn, iov, 1, bytes_written, &blocked);
+    ssize_t bytes_written = 0;
+    while (bytes_written < (ssize_t) data_size) {
+        ssize_t w = s2n_sendv_with_offset(conn, iov, 1, bytes_written, &blocked);
         if (w >= 0) {
             bytes_written += w;
         } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {

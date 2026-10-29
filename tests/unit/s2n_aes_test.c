@@ -71,7 +71,7 @@ int main(int argc, char **argv)
         s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_OK(result);
-            bytes_written = i;
+            bytes_written = (int) i;
         } else {
             EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
             bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
         if (i <= S2N_DEFAULT_FRAGMENT_LENGTH) {
             EXPECT_OK(result);
-            bytes_written = i;
+            bytes_written = (int) i;
         } else {
             EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
             bytes_written = S2N_DEFAULT_FRAGMENT_LENGTH;

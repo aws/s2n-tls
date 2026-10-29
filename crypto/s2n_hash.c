@@ -162,9 +162,11 @@ int s2n_hash_is_ready_for_input(struct s2n_hash_state *state)
 
 static int s2n_evp_hash_new(struct s2n_hash_state *state)
 {
-    POSIX_ENSURE_REF(state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW());
+    state->digest.high_level.evp.ctx = S2N_EVP_MD_CTX_NEW();
+    POSIX_ENSURE_REF(state->digest.high_level.evp.ctx);
     if (s2n_hash_use_custom_md5_sha1()) {
-        POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW());
+        state->digest.high_level.evp_md5_secondary.ctx = S2N_EVP_MD_CTX_NEW();
+        POSIX_ENSURE_REF(state->digest.high_level.evp_md5_secondary.ctx);
     }
     return S2N_SUCCESS;
 }

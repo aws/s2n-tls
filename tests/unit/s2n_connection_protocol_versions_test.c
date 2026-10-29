@@ -18,7 +18,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
 
-static S2N_RESULT s2n_write_test_supported_versions_extension(struct s2n_blob *supported_versions_blob, uint8_t version,
+static S2N_RESULT s2n_write_test_supported_versions_extension(struct s2n_blob *supported_versions_blob, uint8_t version, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint8_t extension_length)
 {
     RESULT_ENSURE_REF(supported_versions_blob);

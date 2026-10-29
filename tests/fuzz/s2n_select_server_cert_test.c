@@ -65,7 +65,7 @@ size_t find_strings(const uint8_t *buf, size_t len, const char **output_strings,
         }
 
         /* We found a null byte. Move the cursor beyond it. */
-        cursor = (((const uint8_t *) next_null - buf) + 1);
+        cursor = (int) (((const uint8_t *) next_null - buf) + 1);
         if (cursor >= len) {
             return num_strings;
         }
@@ -81,7 +81,7 @@ GENERAL_NAME *string_to_general_name(const char *str)
         return NULL;
     }
 
-    if (!ASN1_STRING_set(asn1_name_str, str, strlen(str))) {
+    if (!ASN1_STRING_set(asn1_name_str, str, (int) strlen(str))) {
         ASN1_IA5STRING_free(asn1_name_str);
         return NULL;
     }
@@ -129,7 +129,7 @@ static int set_x509_cns(X509 *x509_cert, const char **cns, size_t num_cns)
     }
 
     for (int i = 0; i < num_cns; i++) {
-        X509_NAME_add_entry_by_NID(x509_name, NID_commonName, MBSTRING_ASC, (unsigned char *)(uintptr_t) cns[i], -1, -1, 1);
+        X509_NAME_add_entry_by_NID(x509_name, NID_commonName, MBSTRING_ASC, (unsigned char *)(uintptr_t) cns[i], -1, -1, 1); /* NOLINT(performance-no-int-to-ptr) */
     }
 
     X509_set_subject_name(x509_cert, x509_name);
@@ -200,10 +200,10 @@ static size_t create_certs(const char **strings, unsigned int num_strings, struc
         return S2N_SUCCESS;
     }
 
-    const int num_names_per_cert = num_strings / num_certs;
+    const int num_names_per_cert = (int) (num_strings / num_certs);
     size_t num_certs_added = 0;
     for (int i = 0; i < num_certs; i++) {
-        struct s2n_cert_chain_and_key *cert = create_cert((&strings[i*num_names_per_cert]), num_names_per_cert);
+        struct s2n_cert_chain_and_key *cert = create_cert((&strings[(size_t) i * num_names_per_cert]), num_names_per_cert);
         if (!cert) {
             continue;
         }
@@ -245,7 +245,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     }
 
     const int max_certs_to_create = buf[0] % MAX_CERTIFICATES;
-    const int num_certs = create_certs(strings, num_strings, certs, max_certs_to_create);
+    const int num_certs = (int) create_certs(strings, num_strings, certs, max_certs_to_create);
     if (num_certs == 0) {
         goto cleanup;
     }

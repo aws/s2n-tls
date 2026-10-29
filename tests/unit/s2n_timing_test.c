@@ -67,7 +67,7 @@ static bool checkpoint_seen(const struct checkpoint_subscriber *sub, const char 
     return false;
 }
 
-static int setup_tls13_config(struct s2n_config **server_config_out,
+static int setup_tls13_config(struct s2n_config **server_config_out, /* NOLINT(bugprone-easily-swappable-parameters) */
         struct s2n_config **client_config_out,
         struct s2n_cert_chain_and_key **chain_out)
 {

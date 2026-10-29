@@ -147,7 +147,7 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_EARLY_DATA_STATE);
 
             conn->early_data_state = 0;
-            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_STATES_COUNT + 1),
+            EXPECT_ERROR_WITH_ERRNO(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_STATES_COUNT + 1), /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): deliberately invalid value */
                     S2N_ERR_INVALID_EARLY_DATA_STATE);
 
             conn->early_data_state = 0;

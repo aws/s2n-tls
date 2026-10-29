@@ -306,7 +306,7 @@ int main(int argc, char **argv)
 
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
             size_t hex_size = strlen(test_cases[i].hex);
-            EXPECT_EQUAL(test_cases[i].bytes_size * 2, hex_size);
+            EXPECT_EQUAL((size_t) test_cases[i].bytes_size * 2, hex_size);
 
             /* Test s2n_stuffer_write_hex */
             {

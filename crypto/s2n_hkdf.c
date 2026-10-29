@@ -102,7 +102,7 @@ static int s2n_custom_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorith
 }
 
 static int s2n_custom_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
-        const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output)
+        const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     uint8_t prk_pad[MAX_DIGEST_SIZE] = { 0 };
     struct s2n_blob pseudo_rand_key = { 0 };
@@ -217,7 +217,7 @@ static S2N_RESULT s2n_hkdf_kdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm a
          * Even the examples in the Openssl documentation cast const strings to
          * non-const void pointers when setting up OSSL_PARAMs.
          */
-        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_DIGEST, (void *) (uintptr_t) digest_name),
+        S2N_OSSL_PARAM_STR(OSSL_KDF_PARAM_DIGEST, (void *) (uintptr_t) digest_name), /* NOLINT(performance-no-int-to-ptr) */
         OSSL_PARAM_END,
     };
 
@@ -347,7 +347,7 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
     return S2N_SUCCESS;
 }
 
-int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label,
+int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label, /* NOLINT(bugprone-easily-swappable-parameters) */
         const struct s2n_blob *context, struct s2n_blob *output)
 {
     POSIX_ENSURE_REF(label);

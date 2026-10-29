@@ -34,7 +34,7 @@
  * Returns:
  *  Whether all bytes in arrays "a" and "b" are identical
  */
-bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t len)
+bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     S2N_PUBLIC_INPUT(a);
     S2N_PUBLIC_INPUT(b);
@@ -88,7 +88,7 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t
  * will affect the timing of this function).
  *
  */
-int s2n_constant_time_copy_or_dont(uint8_t *dest, const uint8_t *src, uint32_t len, uint8_t dont)
+int s2n_constant_time_copy_or_dont(uint8_t *dest, const uint8_t *src, uint32_t len, uint8_t dont) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     S2N_PUBLIC_INPUT(dest);
     S2N_PUBLIC_INPUT(src);
@@ -182,7 +182,7 @@ bool s2n_in_test()
     return s2n_in_unit_test_value || s2n_in_integ_test_value;
 }
 
-int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t *out)
+int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t *out) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_REF(out);
     POSIX_ENSURE(alignment != 0, S2N_ERR_SAFETY);

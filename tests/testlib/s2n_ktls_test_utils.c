@@ -84,7 +84,7 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
         POSIX_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
     }
 
-    return total_len;
+    return (ssize_t) total_len;
 }
 
 /* In userspace TLS, s2n first reads the header to determine the length of next record
@@ -129,10 +129,10 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         POSIX_ENSURE_GT(n_read, 0);
         POSIX_GUARD(s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + bytes_read, n_read));
 
-        bytes_read += n_read;
+        bytes_read += (ssize_t) n_read;
 
         /* handle partially read records */
-        ssize_t remaining_len = n_avail - n_read;
+        ssize_t remaining_len = (ssize_t) (n_avail - n_read);
         if (remaining_len) {
             POSIX_GUARD_RESULT(s2n_test_ktls_update_prev_header_len(io_ctx, remaining_len));
             break;
@@ -224,7 +224,7 @@ S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io,
 }
 
 S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
-        uint8_t expected_record_type, uint16_t expected_len)
+        uint8_t expected_record_type, uint16_t expected_len) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_REF(ktls_io);
 

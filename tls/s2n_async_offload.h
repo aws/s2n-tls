@@ -29,14 +29,14 @@
  * the handshake is still blocked. After the async operation is completed and the user retries s2n_negotiate(),
  * we reset the async_offload_op object and proceed with the remaining code in the current state.
  */
-#define S2N_ASYNC_OFFLOAD_POSIX_GUARD(conn, code)                         \
-    POSIX_ENSURE_REF(conn);                                               \
-    if (conn->async_offload_op.async_state == S2N_ASYNC_NOT_INVOKED) {    \
-        code;                                                             \
-    } else if (conn->async_offload_op.async_state == S2N_ASYNC_INVOKED) { \
-        POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);                                \
-    }                                                                     \
-    POSIX_GUARD_RESULT(s2n_async_offload_op_reset(&conn->async_offload_op));
+#define S2N_ASYNC_OFFLOAD_POSIX_GUARD(conn, code)                           \
+    POSIX_ENSURE_REF(conn);                                                 \
+    if ((conn)->async_offload_op.async_state == S2N_ASYNC_NOT_INVOKED) {    \
+        code;                                                               \
+    } else if ((conn)->async_offload_op.async_state == S2N_ASYNC_INVOKED) { \
+        POSIX_BAIL(S2N_ERR_ASYNC_BLOCKED);                                  \
+    }                                                                       \
+    POSIX_GUARD_RESULT(s2n_async_offload_op_reset(&(conn)->async_offload_op));
 
 typedef S2N_RESULT (*s2n_async_offload_perform_fn)(struct s2n_async_offload_op *op);
 

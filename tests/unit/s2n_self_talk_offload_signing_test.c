@@ -31,7 +31,7 @@ static int s2n_test_async_pkey_cb(struct s2n_connection *conn, struct s2n_async_
 }
 
 static S2N_RESULT s2n_test_pkey_sign(const struct s2n_pkey *pkey,
-        struct s2n_blob *input, struct s2n_blob *output,
+        struct s2n_blob *input, struct s2n_blob *output, /* NOLINT(bugprone-easily-swappable-parameters) */
         s2n_signature_algorithm sig_alg)
 {
     /* We're going to cheat a little here.
@@ -117,7 +117,7 @@ static S2N_RESULT s2n_async_pkey_sign_test(struct s2n_cert_chain_and_key *comple
 }
 
 static S2N_RESULT s2n_do_test_handshake(struct s2n_config *config, struct s2n_cert_chain_and_key *complete_chain,
-        uint8_t expected_protocol_version, uint32_t expected_handshake_type)
+        uint8_t expected_protocol_version, uint32_t expected_handshake_type) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
     RESULT_ENSURE_REF(client_conn);

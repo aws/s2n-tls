@@ -141,7 +141,9 @@ jobs:
           version: '18'
           thread-comments: false
           tidy-review: false
-          lines-changed-only: true
+          files-changed-only: false
+          # Build holds CMake's generated sources. Verification harnesses and feature probes aren't checked.
+          ignore-tidy: '.github|build|tests/cbmc|tests/sidetrail|tests/features|tests/ctverif'
       - name: Fail if clang-tidy found issues
         if: steps.linter.outputs.checks-failed > 0
         run: exit 1

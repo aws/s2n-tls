@@ -70,7 +70,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
 
-    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
+    EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0)); /* NOLINT(concurrency-mt-unsafe) */
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
         for (unsigned int i = 0; i < NUM_TIED_CERTS; i++) {
             EXPECT_NOT_NULL(tied_certs[i] = s2n_cert_chain_and_key_new());
             EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(tied_certs[i], alligator_cert, alligator_key));
-            tiebreak_priorites[i] = i;
+            tiebreak_priorites[i] = (int) i;
             EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ctx(tied_certs[i], (void *) &tiebreak_priorites[i]));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tied_certs[i]));
         }

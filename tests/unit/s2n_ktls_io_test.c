@@ -40,7 +40,7 @@ static ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr 
     struct s2n_test_ktls_io_fail_ctx *io_ctx = (struct s2n_test_ktls_io_fail_ctx *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->invoked_count++;
-    errno = io_ctx->errno_code;
+    errno = (int) io_ctx->errno_code;
     return -1;
 }
 
@@ -51,7 +51,7 @@ static ssize_t s2n_test_ktls_recvmsg_fail(void *io_context, struct msghdr *msg)
     struct s2n_test_ktls_io_fail_ctx *io_ctx = (struct s2n_test_ktls_io_fail_ctx *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->invoked_count++;
-    errno = io_ctx->errno_code;
+    errno = (int) io_ctx->errno_code;
     return -1;
 }
 
@@ -69,7 +69,7 @@ static ssize_t s2n_test_ktls_sendmsg_mark_all_sent(void *io_context, const struc
     for (size_t i = 0; i < msg->msg_iovlen; i++) {
         sent += msg->msg_iov[i].iov_len;
     }
-    return sent;
+    return (ssize_t) sent;
 }
 
 ssize_t s2n_test_ktls_recvmsg_io_stuffer_and_ctrunc(void *io_context, struct msghdr *msg)
@@ -685,7 +685,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t result = s2n_ktls_sendv_with_offset(conn,
-                    test_iovecs.iovecs, test_iovecs.iovecs_count, 0, &blocked);
+                    test_iovecs.iovecs, (ssize_t) test_iovecs.iovecs_count, 0, &blocked);
             EXPECT_EQUAL(result, sizeof(test_data));
 
             EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
@@ -722,7 +722,7 @@ int main(int argc, char **argv)
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
                 ssize_t result = s2n_ktls_sendv_with_offset(conn, large_test_iovecs.iovecs,
-                        large_test_iovecs.iovecs_count, bad_offset, &blocked);
+                        (ssize_t) large_test_iovecs.iovecs_count, (ssize_t) bad_offset, &blocked);
                 EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_INVALID_ARGUMENT);
 
                 EXPECT_EQUAL(out.sendmsg_invoked_count, 0);
@@ -743,8 +743,8 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-                int written = s2n_ktls_sendv_with_offset(conn, large_test_iovecs.iovecs,
-                        large_test_iovecs.iovecs_count, offset, &blocked);
+                ssize_t written = s2n_ktls_sendv_with_offset(conn, large_test_iovecs.iovecs,
+                        (ssize_t) large_test_iovecs.iovecs_count, (ssize_t) offset, &blocked);
                 EXPECT_EQUAL(written, 0);
 
                 EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
@@ -767,7 +767,7 @@ int main(int argc, char **argv)
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
                 ssize_t result = s2n_ktls_sendv_with_offset(conn,
-                        test_iovecs.iovecs, test_iovecs.iovecs_count, offset, &blocked);
+                        test_iovecs.iovecs, (ssize_t) test_iovecs.iovecs_count, (ssize_t) offset, &blocked);
                 EXPECT_EQUAL(result, expected_sent);
 
                 EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
@@ -791,7 +791,7 @@ int main(int argc, char **argv)
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
                 ssize_t result = s2n_ktls_sendv_with_offset(conn, large_test_iovecs.iovecs,
-                        large_test_iovecs.iovecs_count, offset, &blocked);
+                        (ssize_t) large_test_iovecs.iovecs_count, (ssize_t) offset, &blocked);
                 EXPECT_EQUAL(result, expected_sent);
 
                 EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
@@ -821,7 +821,7 @@ int main(int argc, char **argv)
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
                 ssize_t result = s2n_ktls_sendv_with_offset(conn,
-                        test_iovecs.iovecs, test_iovecs.iovecs_count, 0, &blocked);
+                        test_iovecs.iovecs, (ssize_t) test_iovecs.iovecs_count, 0, &blocked);
                 EXPECT_EQUAL(result, size);
                 EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -845,7 +845,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             ssize_t result = s2n_ktls_sendv_with_offset(conn,
-                    test_iovecs.iovecs, test_iovecs.iovecs_count, 0, &blocked);
+                    test_iovecs.iovecs, (ssize_t) test_iovecs.iovecs_count, 0, &blocked);
             EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(io_ctx.invoked_count, 1);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
@@ -960,8 +960,8 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_mem_test_init_callbacks(&scope));
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-                ssize_t result = s2n_ktls_sendv_with_offset(conn, iovecs, iovecs_count,
-                        offset, &blocked);
+                ssize_t result = s2n_ktls_sendv_with_offset(conn, iovecs, (ssize_t) iovecs_count,
+                        (ssize_t) offset, &blocked);
                 EXPECT_EQUAL(result, sizeof(test_data) - offset);
 
                 size_t malloc_count = test_cases[i].expected_malloc_count;

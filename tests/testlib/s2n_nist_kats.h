@@ -20,6 +20,7 @@
 #pragma once
 
 #include <ctype.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -32,7 +33,7 @@
 
 static inline int FindMarker(FILE *infile, const char *marker)
 {
-    int8_t line[MAX_MARKER_LEN];
+    int8_t line[MAX_MARKER_LEN] = { 0 };
     uint32_t i, len;
 
     len = (int) strlen(marker);
@@ -41,9 +42,11 @@ static inline int FindMarker(FILE *infile, const char *marker)
     }
 
     for (i = 0; i < len; i++) {
-        if ((line[i] = fgetc(infile)) == EOF) {
+        int c = fgetc(infile);
+        if (c == EOF) {
             return -1;
         }
+        line[i] = (int8_t) c;
     }
     line[len] = '\0';
 
@@ -55,9 +58,11 @@ static inline int FindMarker(FILE *infile, const char *marker)
         for (i = 0; i < len - 1; i++) {
             line[i] = line[i + 1];
         }
-        if ((line[len - 1] = fgetc(infile)) == EOF) {
+        int c = fgetc(infile);
+        if (c == EOF) {
             return -1;
         }
+        line[len - 1] = (int8_t) c;
         line[len] = '\0';
     }
 }

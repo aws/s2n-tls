@@ -47,7 +47,7 @@ struct s2n_fingerprint *s2n_fingerprint_new(s2n_fingerprint_type type)
     DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_fingerprint)));
     PTR_GUARD_POSIX(s2n_blob_zero(&mem));
-    struct s2n_fingerprint *fingerprint = (struct s2n_fingerprint *) (void *) mem.data;
+    struct s2n_fingerprint *fingerprint = (struct s2n_fingerprint *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
     PTR_ENSURE_REF(fingerprint);
     PTR_GUARD_RESULT(s2n_fingerprint_init(fingerprint, type));
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
@@ -266,8 +266,8 @@ bool s2n_fingerprint_hash_do_digest(struct s2n_fingerprint_hash *hash)
     return hash && hash->hash;
 }
 
-int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_fingerprint_type type,
-        uint32_t max_output_size, uint8_t *output, uint32_t *output_size, uint32_t *str_size)
+int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_fingerprint_type type, /* NOLINT(bugprone-easily-swappable-parameters) */
+        uint32_t max_output_size, uint8_t *output, uint32_t *output_size, uint32_t *str_size)     /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE(type == S2N_FINGERPRINT_JA3, S2N_ERR_INVALID_ARGUMENT);
     POSIX_ENSURE(max_output_size >= MD5_DIGEST_LENGTH, S2N_ERR_INSUFFICIENT_MEM_SIZE);
@@ -299,7 +299,7 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
     return S2N_SUCCESS;
 }
 
-int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch, s2n_fingerprint_type type,
+int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch, s2n_fingerprint_type type, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint32_t max_output_size, uint8_t *output, uint32_t *output_size)
 {
     POSIX_ENSURE(type == S2N_FINGERPRINT_JA3, S2N_ERR_INVALID_ARGUMENT);

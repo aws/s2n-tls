@@ -32,7 +32,7 @@ int s2n_expect_concurrent_error_recv_fn(void *io_context, uint8_t *buf, uint32_t
     s2n_blocked_status blocked = 0;
     ssize_t result = s2n_recv(conn, buf, len, &blocked);
     EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_REENTRANCY);
-    return result;
+    return (int) result;
 }
 
 #ifndef _WIN32
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_blob test_data = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&test_data, test_data_size));
 
-        const size_t recv_size = test_data_size * 2;
+        const size_t recv_size = (size_t) test_data_size * 2;
         DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&output, recv_size));
 
@@ -317,7 +317,7 @@ int main(int argc, char **argv)
                     size_t expected_recv_size = S2N_MIN(S2N_MIN(read_size, total_data_size - recv_bytes), max_recv_size);
 
                     /* Perform the actual recv call */
-                    ssize_t actual_recv_size = s2n_recv(server_conn, output.data, read_size, &blocked);
+                    ssize_t actual_recv_size = s2n_recv(server_conn, output.data, (ssize_t) read_size, &blocked);
 
                     if (multi_record) {
                         /* In multi-record mode we should always read the size we expect */
@@ -400,7 +400,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(written, sizeof(test_data));
 
             uint8_t output[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(conn, output, sizeof(output), &blocked);
+            ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
             EXPECT_EQUAL(read, written);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_BYTEARRAY_EQUAL(output, test_data, read);
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(written, partial_size);
 
             uint8_t output[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(conn, output, sizeof(output), &blocked);
+            ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
             EXPECT_EQUAL(read, written);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_BYTEARRAY_EQUAL(output, test_data, read);
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
 
             /* The first read doesn't read all the available data */
             uint8_t output[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(conn, output, partial_size, &blocked);
+            ssize_t read = s2n_recv(conn, output, (ssize_t) partial_size, &blocked);
             EXPECT_EQUAL(read, partial_size);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
             EXPECT_BYTEARRAY_EQUAL(output, test_data, partial_size);
@@ -463,7 +463,7 @@ int main(int argc, char **argv)
 
             /* The second read drains the remaining data */
             const size_t remaining = sizeof(test_data) - partial_size;
-            read = s2n_recv(conn, output + read, remaining, &blocked);
+            read = s2n_recv(conn, output + read, (ssize_t) remaining, &blocked);
             EXPECT_EQUAL(read, remaining);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_BYTEARRAY_EQUAL(output, test_data, sizeof(test_data));
@@ -482,7 +482,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
 
             uint8_t output[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(conn, output, sizeof(output), &blocked);
+            ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
             EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
         };
@@ -498,7 +498,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_ktls_set_recvmsg_cb(conn, s2n_test_ktls_recvmsg_cb, &ret_val));
 
             uint8_t output[10] = { 0 };
-            int read = s2n_recv(conn, output, sizeof(output), &blocked);
+            ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
             EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_CLOSED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
@@ -536,7 +536,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(written, sizeof(alert_data));
 
             uint8_t output[10] = { 0 };
-            int read = s2n_recv(conn, output, sizeof(output), &blocked);
+            ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
             EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_ALERT);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
@@ -587,7 +587,7 @@ int main(int argc, char **argv)
 
             /* Verify that we received the application data */
             uint8_t output[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(conn, output, sizeof(output), &blocked);
+            ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
             EXPECT_EQUAL(read, sizeof(test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_BYTEARRAY_EQUAL(output, test_data, read);
@@ -630,7 +630,7 @@ int main(int argc, char **argv)
 
                 /* Receive all the data from the many small records */
                 uint8_t output[sizeof(test_data)] = { 0 };
-                int read = s2n_recv(conn, output, sizeof(output), &blocked);
+                ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
                 EXPECT_EQUAL(read, sizeof(test_data));
                 EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
                 EXPECT_BYTEARRAY_EQUAL(output, test_data, sizeof(test_data));
@@ -665,7 +665,7 @@ int main(int argc, char **argv)
 
                 /* Receive the partial data */
                 uint8_t output[sizeof(test_data)] = { 0 };
-                int read = s2n_recv(conn, output, sizeof(output), &blocked);
+                ssize_t read = s2n_recv(conn, output, sizeof(output), &blocked);
                 EXPECT_EQUAL(read, partial_size);
                 EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
                 EXPECT_BYTEARRAY_EQUAL(output, test_data, partial_size);

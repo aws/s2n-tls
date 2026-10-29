@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_shutdown.c"
+#include "tls/s2n_shutdown.c" /* NOLINT(bugprone-suspicious-include) */
 
 #include "s2n_test.h"
 #ifndef _WIN32

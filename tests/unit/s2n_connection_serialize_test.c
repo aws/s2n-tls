@@ -75,7 +75,7 @@ static int s2n_test_reneg_cb(struct s2n_connection *conn, void *context,
  * own record (see s2n_send.c). A single s2n_recv call only consumes one record,
  * so we loop until the expected number of bytes have been read.
  */
-static S2N_RESULT s2n_test_send_and_recv_loop(struct s2n_connection *send_conn,
+static S2N_RESULT s2n_test_send_and_recv_loop(struct s2n_connection *send_conn, /* NOLINT(bugprone-easily-swappable-parameters) */
         struct s2n_connection *recv_conn)
 {
     RESULT_ENSURE_REF(send_conn);
@@ -91,7 +91,7 @@ static S2N_RESULT s2n_test_send_and_recv_loop(struct s2n_connection *send_conn,
     size_t bytes_recvd = 0;
     while (bytes_recvd < sizeof(send_data)) {
         ssize_t r = s2n_recv(recv_conn, recv_data + bytes_recvd,
-                sizeof(send_data) - bytes_recvd, &blocked);
+                (ssize_t) (sizeof(send_data) - bytes_recvd), &blocked);
         RESULT_GUARD_POSIX(r);
         RESULT_ENSURE_GT(r, 0);
         bytes_recvd += r;

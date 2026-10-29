@@ -25,11 +25,11 @@
 /* Include to get access to the handshake state machine
  * to verify we don't allow its messages post-handshake.
  */
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 
-#define KEY_UPDATE_MESSAGE_SIZE sizeof(uint8_t) + /* message id */  \
-        SIZEOF_UINT24 +                           /* message len */ \
-        sizeof(uint8_t)                           /* message */
+#define KEY_UPDATE_MESSAGE_SIZE (sizeof(uint8_t) + /* message id */  \
+        SIZEOF_UINT24 +                            /* message len */ \
+        sizeof(uint8_t))                           /* message */
 
 int s2n_key_update_write(struct s2n_blob *out);
 

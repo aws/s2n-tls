@@ -27,8 +27,8 @@
 /* clang-format off */
 #define CLOSED_SEND_RESULT { .result = -1, .error = EPIPE }
 #define BLOCK_SEND_RESULT { .result = -1, .error = EAGAIN }
-#define PARTIAL_SEND_RESULT(bytes) { .result = bytes, .error = EAGAIN }
-#define EXPECTED_SEND_RESULT(bytes) { .result = bytes, .assert_result = true }
+#define PARTIAL_SEND_RESULT(bytes) { .result = (bytes), .error = EAGAIN }
+#define EXPECTED_SEND_RESULT(bytes) { .result = (bytes), .assert_result = true }
 #define OK_SEND_RESULT { .result = INT_MAX }
 /* clang-format on */
 
@@ -361,12 +361,12 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(context.bytes_sent, partial_send);
 
         /* Write the buffer, which contains two records. */
-        ssize_t expected_sent = S2N_DEFAULT_FRAGMENT_LENGTH * 2;
+        ssize_t expected_sent = (ssize_t) S2N_DEFAULT_FRAGMENT_LENGTH * 2;
         EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), expected_sent);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
 
         size_t offset = expected_sent;
-        expected_sent = sizeof(large_test_data) - offset;
+        expected_sent = (ssize_t) (sizeof(large_test_data) - offset);
         EXPECT_EQUAL(s2n_send(conn, large_test_data + offset, sizeof(large_test_data) - offset, &blocked), expected_sent);
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
         EXPECT_EQUAL(context.bytes_sent, large_test_data_send_size);
@@ -555,7 +555,7 @@ int main(int argc, char **argv)
         /* Send until all data written */
         size_t total = 0;
         while (total < sizeof(large_test_data)) {
-            ssize_t sent = s2n_send(conn, large_test_data + total, sizeof(large_test_data) - total, &blocked);
+            ssize_t sent = s2n_send(conn, large_test_data + total, (ssize_t) (sizeof(large_test_data) - total), &blocked);
             if (sent >= S2N_SUCCESS) {
                 total += sent;
             } else {

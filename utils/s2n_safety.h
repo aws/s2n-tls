@@ -68,7 +68,7 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t* dst, const uint8_t* src, uint
  *
  * This pattern is not intuitive, so a named macro makes it more readable.
  */
-#define ZERO_TO_DISABLE_DEFER_CLEANUP(_thealloc) memset(&_thealloc, 0, sizeof(_thealloc))
+#define ZERO_TO_DISABLE_DEFER_CLEANUP(_thealloc) memset((void*) &(_thealloc), 0, sizeof(_thealloc)) /* NOLINT(bugprone-sizeof-expression): _thealloc is often a pointer */
 
 /* We want to apply blinding whenever `action` fails.
  * Unfortunately, because functions in S2N do not have a consistent return type, determining failure is difficult.
@@ -76,25 +76,25 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t* dst, const uint8_t* src, uint
  * and apply blinding if our tracking variable goes out of scope early.
  */
 S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection** conn);
-#define WITH_ERROR_BLINDING(conn, action)                                                                 \
-    do {                                                                                                  \
-        DEFER_CLEANUP(struct s2n_connection* _conn_to_blind = conn, s2n_connection_apply_error_blinding); \
-        action;                                                                                           \
-        /* The `if` here is to avoid a redundantInitialization warning from cppcheck */                   \
-        if (_conn_to_blind) {                                                                             \
-            _conn_to_blind = NULL;                                                                        \
-        }                                                                                                 \
+#define WITH_ERROR_BLINDING(conn, action)                                                                   \
+    do {                                                                                                    \
+        DEFER_CLEANUP(struct s2n_connection* _conn_to_blind = (conn), s2n_connection_apply_error_blinding); \
+        action;                                                                                             \
+        /* The `if` here is to avoid a redundantInitialization warning from cppcheck */                     \
+        if (_conn_to_blind) {                                                                               \
+            _conn_to_blind = NULL;                                                                          \
+        }                                                                                                   \
     } while (0)
 
 /* Creates cleanup function for pointers from function func which accepts a pointer.
  * This is useful for DEFER_CLEANUP as it passes &_thealloc into _thecleanup function,
  * so if _thealloc is a pointer _thecleanup will receive a pointer to a pointer.*/
-#define DEFINE_POINTER_CLEANUP_FUNC(type, func) \
-    static inline void func##_pointer(type* p)  \
-    {                                           \
-        if (p && *p)                            \
-            func(*p);                           \
-    }                                           \
+#define DEFINE_POINTER_CLEANUP_FUNC(type, func)                                                              \
+    static inline void func##_pointer(type* p) /* NOLINT(bugprone-macro-parentheses): type is a type name */ \
+    {                                                                                                        \
+        if (p && *p)                                                                                         \
+            func(*p);                                                                                        \
+    }                                                                                                        \
     struct __useless_struct_to_allow_trailing_semicolon__
 
 /* This method works for ARRAYS, not for POINTERS.
@@ -104,7 +104,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection** c
  * of the pointer address itself (so usually 8).
  * Newer compilers (gcc >= 8.1, clang >= 8.0) will warn if the argument is a pointer.
  */
-#define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
+#define s2n_array_len(array) (sizeof(array) / sizeof((array)[0]))
 
 int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 

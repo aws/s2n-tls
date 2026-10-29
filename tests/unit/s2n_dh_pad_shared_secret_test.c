@@ -16,7 +16,7 @@
 #include "s2n_test.h"
 
 /* Include the .c file directly to access the static helper */
-#include "crypto/s2n_dhe.c"
+#include "crypto/s2n_dhe.c" /* NOLINT(bugprone-suspicious-include) */
 
 int main(int argc, char **argv)
 {

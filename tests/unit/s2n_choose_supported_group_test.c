@@ -21,7 +21,7 @@
 #include "tls/s2n_tls13.h"
 
 /* Include the C file directly to allow testing of static functions */
-#include "tls/extensions/s2n_client_supported_groups.c"
+#include "tls/extensions/s2n_client_supported_groups.c" /* NOLINT(bugprone-suspicious-include) */
 
 /* This test checks the logic in the function s2n_choose_supported_group, which should select the highest
  * supported group or, if none are available, select NULL. */

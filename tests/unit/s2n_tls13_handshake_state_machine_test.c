@@ -27,7 +27,7 @@
 #include "tls/s2n_tls13.h"
 
 /* Just to get access to the static functions / variables we need to test */
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 
 static message_type_t invalid_handshake[S2N_MAX_HANDSHAKE_LENGTH] = { 0 };
 

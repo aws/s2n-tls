@@ -61,7 +61,7 @@ static int s2n_aead_chacha20_poly1305_encrypt(struct s2n_session_key *key, struc
     POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
     /* Adjust input length and buffer pointer to account for the Tag length */
-    int in_len = in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN;
+    int in_len = (int) (in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN);
     uint8_t *tag_data = out->data + out->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN;
 
     /* out_len is set by EVP_EncryptUpdate and checked post operation */
@@ -97,7 +97,7 @@ static int s2n_aead_chacha20_poly1305_decrypt(struct s2n_session_key *key, struc
     POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 
     /* Adjust input length and buffer pointer to account for the Tag length */
-    int in_len = in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN;
+    int in_len = (int) (in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN);
     uint8_t *tag_data = in->data + in->size - S2N_TLS_CHACHA20_POLY1305_TAG_LEN;
 
     /* Set the TAG */

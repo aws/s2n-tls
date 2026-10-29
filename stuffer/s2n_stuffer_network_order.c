@@ -164,7 +164,7 @@ int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
     return s2n_stuffer_write_network_order(stuffer, u, sizeof(u));
 }
 
-static int length_matches_value_check(uint32_t value, uint8_t length)
+static int length_matches_value_check(uint32_t value, uint8_t length) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     /* Value is represented as a uint32_t, so shouldn't be assumed larger */
     POSIX_ENSURE(length <= sizeof(uint32_t), S2N_ERR_SIZE_MISMATCH);

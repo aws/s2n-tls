@@ -187,7 +187,7 @@ int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
 }
 
 int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,
-        s2n_policy_format format, int fd, uint32_t *output_size)
+        s2n_policy_format format, int fd, uint32_t *output_size) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_REF(policy);
     POSIX_ENSURE_REF(output_size);

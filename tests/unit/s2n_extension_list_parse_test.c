@@ -47,24 +47,24 @@ const s2n_extension_type test_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-#define EXPECT_PARSED_EXTENSION_EQUAL(list, type, d, n)                          \
-    do {                                                                         \
-        s2n_extension_type_id id;                                                \
-        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));     \
-        EXPECT_NOT_NULL(list.parsed_extensions[id].extension.data);              \
-        EXPECT_EQUAL(list.parsed_extensions[id].extension.size, n);              \
-        EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions[id].extension.data, d, n); \
+#define EXPECT_PARSED_EXTENSION_EQUAL(list, type, d, n)                            \
+    do {                                                                           \
+        s2n_extension_type_id id;                                                  \
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id));       \
+        EXPECT_NOT_NULL((list).parsed_extensions[id].extension.data);              \
+        EXPECT_EQUAL((list).parsed_extensions[id].extension.size, n);              \
+        EXPECT_BYTEARRAY_EQUAL((list).parsed_extensions[id].extension.data, d, n); \
     } while (0)
 
-#define EXPECT_RAW_EQUAL(list, stuffer)                                \
-    EXPECT_EQUAL(list.raw.data, stuffer.blob.data + sizeof(uint16_t)); \
-    EXPECT_EQUAL(list.raw.size, stuffer.high_water_mark - sizeof(uint16_t))
+#define EXPECT_RAW_EQUAL(list, stuffer)                                    \
+    EXPECT_EQUAL((list).raw.data, (stuffer).blob.data + sizeof(uint16_t)); \
+    EXPECT_EQUAL((list).raw.size, (stuffer).high_water_mark - sizeof(uint16_t))
 
 #define CLEAR_PARSED_EXTENSION(list, type)                                   \
     do {                                                                     \
         s2n_extension_type_id id;                                            \
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(type, &id)); \
-        list.parsed_extensions[id] = EMPTY_PARSED_EXTENSIONS[0];             \
+        (list).parsed_extensions[id] = EMPTY_PARSED_EXTENSIONS[0];           \
     } while (0)
 
 int main()

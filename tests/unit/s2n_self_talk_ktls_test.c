@@ -96,8 +96,8 @@ int main(int argc, char **argv)
     /* ktls is complicated to enable. We should ensure that it's actually enabled
      * where we think we're testing it.
      */
-    const bool ktls_expected = (getenv("S2N_KTLS_TESTING_EXPECTED") != NULL);
-    const bool ktls_keyupdate_expected = (getenv("S2N_KTLS_KEYUPDATE_TESTING_EXPECTED") != NULL);
+    const bool ktls_expected = (getenv("S2N_KTLS_TESTING_EXPECTED") != NULL);                     /* NOLINT(concurrency-mt-unsafe) */
+    const bool ktls_keyupdate_expected = (getenv("S2N_KTLS_KEYUPDATE_TESTING_EXPECTED") != NULL); /* NOLINT(concurrency-mt-unsafe) */
 
     if (!s2n_ktls_is_supported_on_platform() && !ktls_expected) {
         END_TEST();
@@ -215,12 +215,12 @@ int main(int argc, char **argv)
 
         /* Test: s2n_send */
         for (size_t i = 0; i < 5; i++) {
-            int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+            ssize_t written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
             EXPECT_EQUAL(written, sizeof(test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             uint8_t buffer[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
             EXPECT_EQUAL(read, sizeof(test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -229,13 +229,13 @@ int main(int argc, char **argv)
 
         /* Test: s2n_sendv */
         for (size_t i = 0; i < 5; i++) {
-            int written = s2n_sendv(writer,
-                    test_iovecs.iovecs, test_iovecs.iovecs_count, &blocked);
+            ssize_t written = s2n_sendv(writer,
+                    test_iovecs.iovecs, (ssize_t) test_iovecs.iovecs_count, &blocked);
             EXPECT_EQUAL(written, sizeof(test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             uint8_t buffer[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
             EXPECT_EQUAL(read, sizeof(test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -247,13 +247,13 @@ int main(int argc, char **argv)
             const size_t offset = test_offsets[offset_i];
             const size_t expected_written = sizeof(test_data) - offset;
 
-            int written = s2n_sendv_with_offset(writer,
-                    test_iovecs.iovecs, test_iovecs.iovecs_count, offset, &blocked);
+            ssize_t written = s2n_sendv_with_offset(writer,
+                    test_iovecs.iovecs, (ssize_t) test_iovecs.iovecs_count, (ssize_t) offset, &blocked);
             EXPECT_EQUAL(written, expected_written);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             uint8_t buffer[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(reader, buffer, expected_written, &blocked);
+            ssize_t read = s2n_recv(reader, buffer, (ssize_t) expected_written, &blocked);
             EXPECT_EQUAL(read, expected_written);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
             uint8_t file_test_data[100] = { 0 };
             int file = open(argv[0], O_RDONLY);
             EXPECT_TRUE(file > 0);
-            int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
+            ssize_t file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
             EXPECT_EQUAL(file_read, sizeof(file_test_data));
 
             for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
                 uint8_t buffer[sizeof(file_test_data)] = { 0 };
-                int read = s2n_recv(reader, buffer, expected_written, &blocked);
+                ssize_t read = s2n_recv(reader, buffer, (ssize_t) expected_written, &blocked);
                 EXPECT_EQUAL(read, expected_written);
                 EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -336,11 +336,11 @@ int main(int argc, char **argv)
 
         /* Test: s2n_recv with only application data */
         for (size_t i = 0; i < 5; i++) {
-            int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+            ssize_t written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
             EXPECT_EQUAL(written, sizeof(test_data));
 
             uint8_t buffer[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
             EXPECT_EQUAL(read, sizeof(test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -362,11 +362,11 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_record_write(writer, test_record_type, &control_record));
                 EXPECT_SUCCESS(s2n_flush(writer, &blocked));
 
-                int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+                ssize_t written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
                 EXPECT_EQUAL(written, sizeof(test_data));
 
                 uint8_t buffer[sizeof(test_data)] = { 0 };
-                int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+                ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
                 EXPECT_EQUAL(read, sizeof(test_data));
                 EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_flush(writer, &blocked));
 
             uint8_t buffer[sizeof(test_data)] = { 0 };
-            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
             EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_IO);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
@@ -450,11 +450,11 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_record_write(writer, test_record_type, &control_record));
                 EXPECT_SUCCESS(s2n_flush(writer, &blocked));
 
-                int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+                ssize_t written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
                 EXPECT_EQUAL(written, sizeof(test_data));
 
                 uint8_t buffer[sizeof(test_data)] = { 0 };
-                int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+                ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
                 EXPECT_EQUAL(read, sizeof(test_data));
                 EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -511,7 +511,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_send(writer, &blocked));
 
             uint8_t buffer[10] = { 0 };
-            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
             EXPECT_EQUAL(read, 0);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_TRUE(s2n_atomic_flag_test(&reader->close_notify_received));
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, writer->mode));
 
             uint8_t buffer[10] = { 0 };
-            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            ssize_t read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
             EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_CLOSED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
@@ -659,9 +659,9 @@ int main(int argc, char **argv)
                  */
                 if (s2n_connection_ktls_enable_send(ktls_conn) == S2N_SUCCESS) {
                     uint8_t buffer[sizeof(test_data)] = { 0 };
-                    int written = s2n_send(ktls_conn, test_data, sizeof(test_data), &blocked);
+                    ssize_t written = s2n_send(ktls_conn, test_data, sizeof(test_data), &blocked);
                     EXPECT_EQUAL(written, sizeof(test_data));
-                    int read = s2n_recv(other_conn, buffer, sizeof(buffer), &blocked);
+                    ssize_t read = s2n_recv(other_conn, buffer, sizeof(buffer), &blocked);
                     EXPECT_EQUAL(read, sizeof(test_data));
                 } else {
                     EXPECT_FALSE(ktls_expected);
@@ -672,9 +672,9 @@ int main(int argc, char **argv)
                  */
                 if (s2n_connection_ktls_enable_recv(ktls_conn) == S2N_SUCCESS) {
                     uint8_t buffer[sizeof(test_data)] = { 0 };
-                    int written = s2n_send(other_conn, test_data, sizeof(test_data), &blocked);
+                    ssize_t written = s2n_send(other_conn, test_data, sizeof(test_data), &blocked);
                     EXPECT_EQUAL(written, sizeof(test_data));
-                    int read = s2n_recv(ktls_conn, buffer, sizeof(buffer), &blocked);
+                    ssize_t read = s2n_recv(ktls_conn, buffer, sizeof(buffer), &blocked);
                     EXPECT_EQUAL(read, sizeof(test_data));
                 } else {
                     EXPECT_FALSE(ktls_expected);
@@ -732,7 +732,7 @@ int main(int argc, char **argv)
                 uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { "Hello there" };
                 /* Each send call will include one key update */
                 for (int i = 0; i < 10; i++) {
-                    int written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
+                    ssize_t written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
                     EXPECT_EQUAL(written, sizeof(large_test_data));
                     EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
                 }
@@ -742,7 +742,7 @@ int main(int argc, char **argv)
                 /* We only get one record per s2n_recv call, so we call it ten times */
                 for (size_t i = 0; i < 10; i++) {
                     uint8_t buffer[sizeof(large_test_data)] = { 1 };
-                    int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
+                    ssize_t read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
                     EXPECT_EQUAL(read, sizeof(large_test_data));
                     EXPECT_BYTEARRAY_EQUAL(large_test_data, buffer, read);
                 }
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
 
             uint8_t large_test_data[S2N_DEFAULT_FRAGMENT_LENGTH * 10] = { "Hello there" };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            int written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
+            ssize_t written = s2n_send(server, large_test_data, sizeof(large_test_data), &blocked);
             EXPECT_EQUAL(written, sizeof(large_test_data));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -793,7 +793,7 @@ int main(int argc, char **argv)
             /* We only get one record per s2n_recv call, so we call it ten times */
             for (size_t i = 0; i < 10; i++) {
                 uint8_t buffer[sizeof(large_test_data) / 10] = { 1 };
-                int read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
+                ssize_t read = s2n_recv(client, buffer, sizeof(buffer), &blocked);
                 EXPECT_EQUAL(read, sizeof(large_test_data) / 10);
                 EXPECT_BYTEARRAY_EQUAL(buffer, large_test_data + (i * S2N_DEFAULT_FRAGMENT_LENGTH), read);
             }

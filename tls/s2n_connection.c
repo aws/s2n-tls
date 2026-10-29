@@ -58,8 +58,8 @@
 #endif
 #include "utils/s2n_timer.h"
 
-#define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
-#define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= (1 << (i + 1)))
+#define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) ((keyshares) |= 1)
+#define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) ((keyshares) |= (1 << ((i) + 1)))
 
 static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
         const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);
@@ -77,7 +77,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     /* Cast 'through' void to acknowledge that we are changing alignment,
      * which is ok, as blob.data is always aligned.
      */
-    struct s2n_connection *conn = (struct s2n_connection *) (void *) blob.data;
+    struct s2n_connection *conn = (struct s2n_connection *) (void *) blob.data; /* NOLINT(bugprone-casting-through-void) */
 
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
 
@@ -889,7 +889,7 @@ int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
     POSIX_GUARD(s2n_blob_zero(&ctx_mem));
 
-    peer_socket_ctx = (struct s2n_socket_read_io_context *) (void *) ctx_mem.data;
+    peer_socket_ctx = (struct s2n_socket_read_io_context *) (void *) ctx_mem.data; /* NOLINT(bugprone-casting-through-void) */
     peer_socket_ctx->fd = rfd;
 
     POSIX_GUARD(s2n_connection_set_recv_cb(conn, s2n_socket_read));
@@ -923,7 +923,7 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
 
-    peer_socket_ctx = (struct s2n_socket_write_io_context *) (void *) ctx_mem.data;
+    peer_socket_ctx = (struct s2n_socket_write_io_context *) (void *) ctx_mem.data; /* NOLINT(bugprone-casting-through-void) */
     peer_socket_ctx->fd = wfd;
 
     POSIX_GUARD(s2n_connection_set_send_cb(conn, s2n_socket_write));
@@ -1077,7 +1077,7 @@ int s2n_connection_get_key_exchange_group(struct s2n_connection *conn, const cha
         *group_name = s2n_connection_get_curve(conn);
     }
 
-    POSIX_ENSURE(*group_name != NULL && strcmp(*group_name, "NONE"), S2N_ERR_INVALID_STATE);
+    POSIX_ENSURE(*group_name != NULL && strcmp(*group_name, "NONE") != 0, S2N_ERR_INVALID_STATE);
 
     return S2N_SUCCESS;
 }
@@ -1198,7 +1198,7 @@ int s2n_set_server_name(struct s2n_connection *conn, const char *server_name)
 
     S2N_ERROR_IF(conn->mode != S2N_CLIENT, S2N_ERR_CLIENT_MODE);
 
-    int len = strlen(server_name);
+    size_t len = strlen(server_name);
     S2N_ERROR_IF(len > S2N_MAX_SERVER_NAME, S2N_ERR_SERVER_NAME_TOO_LONG);
 
     /* Clear the buffer first so that a shorter name fully replaces a longer one.
@@ -1367,7 +1367,7 @@ static S2N_RESULT s2n_connection_kill(struct s2n_connection *conn)
     RESULT_GUARD(s2n_timer_start(conn->config, &conn->write_timer));
 
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
-        struct timespec sleep_time = { .tv_sec = conn->delay / ONE_S, .tv_nsec = conn->delay % ONE_S };
+        struct timespec sleep_time = { .tv_sec = (time_t) (conn->delay / ONE_S), .tv_nsec = (long) (conn->delay % ONE_S) };
 
         int r = 0;
         do {
@@ -1389,7 +1389,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
     int error_type = s2n_error_get_type(error_code);
 
     switch (error_type) {
-        case S2N_ERR_T_OK:
+        case S2N_ERR_T_OK: /* NOLINT(bugprone-branch-clone) */
             /* Ignore no error */
             return S2N_RESULT_OK;
         case S2N_ERR_T_BLOCKED:
@@ -1492,7 +1492,7 @@ int s2n_connection_set_dynamic_buffers(struct s2n_connection *conn, bool enabled
     return S2N_SUCCESS;
 }
 
-int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)
+int s2n_connection_set_dynamic_record_threshold(struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_REF(conn);
     S2N_ERROR_IF(resize_threshold > S2N_TLS_MAX_RESIZE_THRESHOLD, S2N_ERR_INVALID_DYNAMIC_THRESHOLD);
@@ -1638,7 +1638,7 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
         POSIX_GUARD(s2n_blob_zero(&mem));
 
-        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data;
+        struct s2n_cert *new_node = (struct s2n_cert *) (void *) mem.data; /* NOLINT(bugprone-casting-through-void) */
         POSIX_ENSURE_REF(new_node);
 
         new_node->next = NULL;
@@ -1937,7 +1937,7 @@ S2N_RESULT s2n_connection_get_sequence_number(struct s2n_connection *conn,
 }
 
 int s2n_connection_get_key_update_counts(struct s2n_connection *conn,
-        uint8_t *send_key_updates, uint8_t *recv_key_updates)
+        uint8_t *send_key_updates, uint8_t *recv_key_updates) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(send_key_updates);

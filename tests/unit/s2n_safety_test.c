@@ -212,38 +212,38 @@ static int success_ct_pkcs1_negative()
     uint8_t expected[] = { 0x11, 0x22, 0x33, 0x44 };
 
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_too_long, sizeof(pkcs1_data_too_long), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
+    if (memcmp(outbuf, expected, sizeof(expected)) != 0) {
         return -1;
     }
 
     uint8_t pkcs1_data_too_short[] = { 0x00, 0x02, 0x80, 0x01, 0x02, 0x07, 0x00, 0xcd, 0xef, 0x00 };
 
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_too_short, sizeof(pkcs1_data_too_short), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
+    if (memcmp(outbuf, expected, sizeof(expected)) != 0) {
         return -1;
     }
 
     uint8_t pkcs1_data_zeroes_in_pad[] = { 0x00, 0x02, 0x80, 0x00, 0x0c, 0x00, 0xab, 0xcd, 0xef, 0x00 };
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_zeroes_in_pad, sizeof(pkcs1_data_zeroes_in_pad), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
+    if (memcmp(outbuf, expected, sizeof(expected)) != 0) {
         return -1;
     }
 
     uint8_t pkcs1_data_zeroes_in_pad2[] = { 0x00, 0x02, 0x80, 0x11, 0x00, 0x00, 0xab, 0xcd, 0xef, 0x00 };
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_zeroes_in_pad2, sizeof(pkcs1_data_zeroes_in_pad2), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
+    if (memcmp(outbuf, expected, sizeof(expected)) != 0) {
         return -1;
     }
 
     uint8_t pkcs1_data_bad_prefix1[] = { 0x01, 0x02, 0x80, 0x08, 0x0c, 0x00, 0xab, 0xcd, 0xef, 0x00 };
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_bad_prefix1, sizeof(pkcs1_data_bad_prefix1), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
+    if (memcmp(outbuf, expected, sizeof(expected)) != 0) {
         return -1;
     }
 
     uint8_t pkcs1_data_bad_prefix2[] = { 0x00, 0x12, 0x80, 0x08, 0x0c, 0x00, 0xab, 0xcd, 0xef, 0x00 };
     s2n_constant_time_pkcs1_unpad_or_dont(outbuf, pkcs1_data_bad_prefix2, sizeof(pkcs1_data_bad_prefix2), sizeof(outbuf));
-    if (memcmp(outbuf, expected, sizeof(expected))) {
+    if (memcmp(outbuf, expected, sizeof(expected)) != 0) {
         return -1;
     }
 

@@ -32,7 +32,7 @@
 #define RECORD_SIZE_HIGH_BYTE_ORDER 3
 #define RECORD_SIZE_LOW_BYTE_ORDER  4
 #define BYTE_SHIFT                  8
-#define RECORD_SIZE(data)           ((data[RECORD_SIZE_HIGH_BYTE_ORDER] << BYTE_SHIFT) | data[RECORD_SIZE_LOW_BYTE_ORDER])
+#define RECORD_SIZE(data)           (((data)[RECORD_SIZE_HIGH_BYTE_ORDER] << BYTE_SHIFT) | (data)[RECORD_SIZE_LOW_BYTE_ORDER])
 
 #define EXPECT_LESS_THAN_EQUAL(p1, p2) EXPECT_TRUE((p1) <= (p2))
 

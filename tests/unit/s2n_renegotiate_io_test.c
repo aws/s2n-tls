@@ -33,7 +33,7 @@ enum S2N_TEST_APP_DATA_CASES {
 };
 #define S2N_TEST_APP_DATA_LEN 10
 
-static S2N_RESULT s2n_renegotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn)
+static S2N_RESULT s2n_renegotiate_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     ssize_t app_data_read = 0;
     uint8_t recv_buffer[1] = { 0 };

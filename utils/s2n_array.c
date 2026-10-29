@@ -81,7 +81,7 @@ S2N_RESULT s2n_array_init(struct s2n_array *array, uint32_t element_size)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t element_size, uint32_t capacity)
+S2N_RESULT s2n_array_init_with_capacity(struct s2n_array *array, uint32_t element_size, uint32_t capacity) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     RESULT_ENSURE_REF(array);
 
@@ -104,7 +104,7 @@ S2N_RESULT s2n_array_get(struct s2n_array *array, uint32_t idx, void **element)
     RESULT_PRECONDITION(s2n_array_validate(array));
     RESULT_ENSURE_REF(element);
     RESULT_ENSURE(idx < array->len, S2N_ERR_ARRAY_INDEX_OOB);
-    *element = array->mem.data + (array->element_size * idx);
+    *element = array->mem.data + ((size_t) array->element_size * idx);
     return S2N_RESULT_OK;
 }
 
@@ -139,12 +139,12 @@ S2N_RESULT s2n_array_insert(struct s2n_array *array, uint32_t idx, void **elemen
     if (idx < array->len) {
         uint32_t size = 0;
         RESULT_GUARD_POSIX(s2n_mul_overflow(array->len - idx, array->element_size, &size));
-        memmove(array->mem.data + array->element_size * (idx + 1),
-                array->mem.data + array->element_size * idx,
+        memmove(array->mem.data + (size_t) array->element_size * (idx + 1),
+                array->mem.data + (size_t) array->element_size * idx,
                 size);
     }
 
-    *element = array->mem.data + array->element_size * idx;
+    *element = array->mem.data + (size_t) array->element_size * idx;
     array->len++;
 
     RESULT_POSTCONDITION(s2n_array_validate(array));
@@ -161,14 +161,14 @@ S2N_RESULT s2n_array_remove(struct s2n_array *array, uint32_t idx)
     if (idx != array->len - 1) {
         uint32_t size = 0;
         RESULT_GUARD_POSIX(s2n_mul_overflow(array->len - idx - 1, array->element_size, &size));
-        memmove(array->mem.data + array->element_size * idx,
-                array->mem.data + array->element_size * (idx + 1),
+        memmove(array->mem.data + (size_t) array->element_size * idx,
+                array->mem.data + (size_t) array->element_size * (idx + 1),
                 size);
     }
     array->len--;
 
     /* After shifting, zero the last element */
-    RESULT_CHECKED_MEMSET(array->mem.data + array->element_size * array->len,
+    RESULT_CHECKED_MEMSET(array->mem.data + (size_t) array->element_size * array->len,
             0,
             array->element_size);
 

@@ -34,7 +34,7 @@ static int s2n_test_mocked_interrupt(uint8_t n_times, uint8_t *counter)
     return S2N_TEST_SUCCESS;
 }
 
-static int s2n_test_real_interrupt(int fd, uint8_t n_times, uint8_t *counter)
+static int s2n_test_real_interrupt(int fd, uint8_t n_times, uint8_t *counter) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     if (*counter < n_times) {
         (*counter)++;
@@ -43,7 +43,7 @@ static int s2n_test_real_interrupt(int fd, uint8_t n_times, uint8_t *counter)
          * so this will block indefinitely unless interrupted.
          */
         uint8_t buffer = 0;
-        int r = read(fd, &buffer, 1);
+        int r = (int) read(fd, &buffer, 1);
         EXPECT_TRUE(r < 0);
         EXPECT_EQUAL(errno, EINTR);
         return r;
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(counter, n_times);
                 /* Child process exit doesn't close io_pair properly, so manually close it*/
                 EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-                exit(0);
+                exit(0); /* NOLINT(concurrency-mt-unsafe) */
             }
 
             /* Keep sending the signal until the process exits */

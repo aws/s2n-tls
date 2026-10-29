@@ -40,7 +40,7 @@ static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, st
 static S2N_RESULT s2n_setup_negotiated_pair(
         const char *cipher_pref,
         struct s2n_cert_chain_and_key *chain_and_key,
-        struct s2n_connection **out_client,
+        struct s2n_connection **out_client, /* NOLINT(bugprone-easily-swappable-parameters) */
         struct s2n_connection **out_server,
         struct s2n_config **out_config,
         struct s2n_test_io_pair *out_io_pair)

@@ -37,7 +37,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     s2n_blocked_status blocked;
 
     /* Give the server a chance to listen */
-    sleep(1);
+    sleep(1); /* NOLINT(concurrency-mt-unsafe) */
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
@@ -49,12 +49,12 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     int result = s2n_negotiate(conn, &blocked);
     if (result < 0) {
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     result = s2n_connection_free_handshake(conn);
     if (result < 0) {
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
 #if defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__)
@@ -65,27 +65,27 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_RD);
 #endif
     /* Give server a chance to send data on broken pipe */
-    sleep(2);
+    sleep(2); /* NOLINT(concurrency-mt-unsafe) */
 
     s2n_shutdown(conn, &blocked);
 
     result = s2n_connection_free(conn);
     if (result < 0) {
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     result = s2n_config_free(config);
     if (result < 0) {
-        exit(1);
+        exit(1); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     /* Give the server a chance to avoid a sigpipe */
-    sleep(1);
+    sleep(1); /* NOLINT(concurrency-mt-unsafe) */
 
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
-    exit(0);
+    exit(0); /* NOLINT(concurrency-mt-unsafe) */
 }
 
 int main(int argc, char **argv)
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* Give client a chance to close pipe at the receiving end */
-        sleep(1);
+        sleep(1); /* NOLINT(concurrency-mt-unsafe) */
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
         ssize_t w = s2n_send(conn, buffer, 1, &blocked);
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
-        if (getenv("S2N_VALGRIND") == NULL) {
+        if (getenv("S2N_VALGRIND") == NULL) { /* NOLINT(concurrency-mt-unsafe) */
             EXPECT_EQUAL(status, 0);
         }
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));

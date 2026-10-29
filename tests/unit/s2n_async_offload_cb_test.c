@@ -113,7 +113,7 @@ int main(int argc, char *argv[])
         EXPECT_TRUE(s2n_async_offload_op_is_in_allow_list(test_config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(NULL), S2N_ERR_NULL);
-        struct s2n_async_offload_op test_op = { 0 };
+        struct s2n_async_offload_op test_op = { 0 }; /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): zero-initialization */
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_offload_op_perform(&test_op), S2N_ERR_INVALID_STATE);
     }
 

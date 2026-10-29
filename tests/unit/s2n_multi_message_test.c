@@ -18,7 +18,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
 /* Just to get access to advance_message */
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 
 struct test_data {
     uint8_t message_type;

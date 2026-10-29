@@ -21,7 +21,7 @@
 
 /* For access to secret handlers.
  * We override them for mocking purposees. */
-#include "tls/s2n_tls13_secrets.c"
+#include "tls/s2n_tls13_secrets.c" /* NOLINT(bugprone-suspicious-include) */
 
 #define NO_TRIGGER_MSG       APPLICATION_DATA
 #define TRAFFIC_SECRET_COUNT 6
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
                 derive_methods[i][S2N_SERVER] = &s2n_mock_derive_method;
             }
             uint8_t saved_extract_methods[sizeof(extract_methods)] = { 0 };
-            EXPECT_MEMCPY_SUCCESS(saved_extract_methods, extract_methods, sizeof(extract_methods));
+            EXPECT_MEMCPY_SUCCESS(saved_extract_methods, (const void *) extract_methods, sizeof(extract_methods));
             for (size_t i = 0; i < s2n_array_len(extract_methods); i++) {
                 extract_methods[i] = &s2n_mock_extract_method;
             }
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
 
             /* Restore derive and extract methods */
             EXPECT_MEMCPY_SUCCESS(derive_methods, saved_derive_methods, sizeof(saved_derive_methods));
-            EXPECT_MEMCPY_SUCCESS(extract_methods, saved_extract_methods, sizeof(saved_extract_methods));
+            EXPECT_MEMCPY_SUCCESS((void *) extract_methods, saved_extract_methods, sizeof(saved_extract_methods));
         };
     };
 

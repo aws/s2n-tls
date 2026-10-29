@@ -121,8 +121,7 @@ int main(int argc, char **argv)
            2. certificate
         */
         EXPECT_NOT_NULL(tls13_cert_chain_hex = malloc(S2N_MAX_TEST_PEM_SIZE));
-        strcpy(tls13_cert_chain_hex, tls13_cert_chain_header_hex);
-        strcat(tls13_cert_chain_hex, tls13_cert_hex);
+        snprintf(tls13_cert_chain_hex, S2N_MAX_TEST_PEM_SIZE, "%s%s", tls13_cert_chain_header_hex, tls13_cert_hex);
 
         S2N_BLOB_FROM_HEX(tls13_cert, tls13_cert_chain_hex);
         S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);

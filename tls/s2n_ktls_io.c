@@ -99,7 +99,7 @@ static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *m
     return sendmsg(fd, msg, 0);
 }
 
-S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
+S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size, /* NOLINT(bugprone-easily-swappable-parameters) */
         int cmsg_type, uint8_t record_type)
 {
     RESULT_ENSURE_REF(msg);
@@ -209,7 +209,7 @@ S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct 
         /* msghdr requires a non-const iovec. This is safe because s2n-tls does
          * not modify msg_iov after this point.
          */
-        .msg_iov = (struct iovec *) (uintptr_t) msg_iov,
+        .msg_iov = (struct iovec *) (uintptr_t) msg_iov, /* NOLINT(performance-no-int-to-ptr) */
         .msg_iovlen = msg_iovlen,
     };
 
@@ -226,7 +226,7 @@ S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf,
+S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf, /* NOLINT(bugprone-easily-swappable-parameters) */
         size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read)
 {
     RESULT_ENSURE_REF(record_type);
@@ -332,7 +332,7 @@ static S2N_RESULT s2n_ktls_update_bufs_with_offset(const struct iovec **bufs, si
         RESULT_GUARD_POSIX(s2n_alloc(mem, size));
     }
 
-    struct iovec *new_bufs = (struct iovec *) (void *) mem->data;
+    struct iovec *new_bufs = (struct iovec *) (void *) mem->data; /* NOLINT(bugprone-casting-through-void) */
     RESULT_CHECKED_MEMCPY(new_bufs, *bufs, size);
     new_bufs[0].iov_base = (uint8_t *) new_bufs[0].iov_base + offs;
     new_bufs[0].iov_len = new_bufs[0].iov_len - offs;
@@ -367,7 +367,7 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
             bufs, count, blocked, &bytes_written));
 
     POSIX_GUARD_RESULT(s2n_ktls_set_estimated_sequence_number(conn, bytes_written));
-    return bytes_written;
+    return (ssize_t) bytes_written;
 }
 
 int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
@@ -381,7 +381,7 @@ int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
     const uint8_t record_type = TLS_ALERT;
 
     const struct iovec iov = {
-        .iov_base = (void *) (uintptr_t) buf,
+        .iov_base = (void *) (uintptr_t) buf, /* NOLINT(performance-no-int-to-ptr) */
         .iov_len = len,
     };
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -391,11 +391,11 @@ int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
             &blocked, &bytes_written));
 
     POSIX_ENSURE_LTE(bytes_written, len);
-    return bytes_written;
+    return (int) bytes_written;
 }
 
 int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
-        const struct iovec *in, int in_count, size_t offs, size_t to_write)
+        const struct iovec *in, int in_count, size_t offs, size_t to_write) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(in_count > 0, S2N_ERR_INVALID_ARGUMENT);
@@ -418,7 +418,7 @@ int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
     POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->out, to_write));
 
     POSIX_GUARD(s2n_stuffer_writev_bytes(&conn->out, in, count, offs, to_write));
-    return to_write;
+    return (int) to_write;
 }
 
 int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t count,

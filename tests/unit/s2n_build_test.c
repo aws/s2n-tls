@@ -37,16 +37,16 @@ int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
         return S2N_FAILURE;
     }
 
-    *name = strtok(s2n_libcrypto, "-");
+    *name = strtok(s2n_libcrypto, "-"); /* NOLINT(concurrency-mt-unsafe) */
     if (*name == NULL) {
         return S2N_FAILURE;
     }
 
-    char *remaining = strtok(NULL, "");
+    char *remaining = strtok(NULL, ""); /* NOLINT(concurrency-mt-unsafe) */
 
     *version = NULL;
     if (remaining != NULL && isdigit(remaining[0])) {
-        *version = strtok(remaining, "_-");
+        *version = strtok(remaining, "_-"); /* NOLINT(concurrency-mt-unsafe) */
     }
 
     return S2N_SUCCESS;
@@ -110,12 +110,12 @@ int main()
 {
     BEGIN_TEST();
 
-    const char *s2n_libcrypto = getenv("S2N_LIBCRYPTO");
+    const char *s2n_libcrypto = getenv("S2N_LIBCRYPTO"); /* NOLINT(concurrency-mt-unsafe) */
 
     /* S2N_LIBCRYPTO and S2N_BUILD_PRESET should be consistent, but only
        if S2N_BUILD_PRESET is set.  */
     {
-        const char *s2n_build_preset = getenv("S2N_BUILD_PRESET");
+        const char *s2n_build_preset = getenv("S2N_BUILD_PRESET"); /* NOLINT(concurrency-mt-unsafe) */
         if (s2n_build_preset != NULL) {
             EXPECT_NOT_NULL(s2n_libcrypto);
             EXPECT_NOT_NULL(strstr(s2n_build_preset, s2n_libcrypto));

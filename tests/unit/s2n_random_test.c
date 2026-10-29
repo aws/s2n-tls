@@ -67,7 +67,7 @@ struct random_communication {
     int *pipes;
 };
 
-static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status)
+static void s2n_verify_child_exit_status(pid_t proc_pid, int expected_status) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     int status = 0;
 #if S2N_CLONE_SUPPORTED
@@ -212,7 +212,7 @@ void *s2n_thread_test_cb(void *thread_comms)
  * different.
  */
 static S2N_RESULT s2n_thread_test(
-        S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
+        S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob), /* NOLINT(bugprone-easily-swappable-parameters) */
         S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
 {
     uint8_t data[RANDOM_GENERATE_DATA_SIZE];
@@ -260,7 +260,7 @@ static void s2n_fork_test_generate_randomness(int write_fd, S2N_RESULT (*s2n_get
 
     /* Close the pipe and exit */
     close(write_fd);
-    exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
 }
 
 static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
@@ -323,7 +323,7 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
      * process to exit with error status = 1. We call exit() directly to avoid
      * messages being printed on stderr, in turn, appearing in logs.
      */
-    exit(1);
+    exit(1); /* NOLINT(concurrency-mt-unsafe) */
 
     EXPECT_SUCCESS(s2n_cleanup());
 
@@ -508,7 +508,7 @@ int main(int argc, char **argv)
              * exit code != EXIT_SUCCESS. We verify this in the parent process.
              * Also prevents child from creating more children.
              */
-            exit(EXIT_SUCCESS);
+            exit(EXIT_SUCCESS); /* NOLINT(concurrency-mt-unsafe) */
         } else {
             s2n_verify_child_exit_status(proc_id, random_test_cases[i].expected_return_status);
         }

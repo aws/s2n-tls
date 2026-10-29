@@ -125,7 +125,7 @@ static bool s2n_composite_cipher_aes256_sha256_available(void)
     return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha256() ? true : false);
 }
 
-static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
+static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint16_t protocol_version, uint16_t payload_and_eiv_len, int *extra)
 {
     /* BoringSSL and AWS-LC(AWSLC_API_VERSION <= 17) do not support these composite ciphers with the existing EVP API, and they took out the

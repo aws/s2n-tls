@@ -17,14 +17,14 @@
 #include "testlib/s2n_testlib.h"
 
 /* Included to test static function */
-#include "tls/s2n_resume.c"
+#include "tls/s2n_resume.c" /* NOLINT(bugprone-suspicious-include) */
 
 #define ARE_FULL_HANDSHAKES(client, server) \
     (IS_FULL_HANDSHAKE(client) && IS_FULL_HANDSHAKE(server))
 
-#define IS_HELLO_RETRY(client, server)                          \
-    (((client->handshake.handshake_type) & HELLO_RETRY_REQUEST) \
-            && ((server->handshake.handshake_type) & HELLO_RETRY_REQUEST))
+#define IS_HELLO_RETRY(client, server)                            \
+    ((((client)->handshake.handshake_type) & HELLO_RETRY_REQUEST) \
+            && (((server)->handshake.handshake_type) & HELLO_RETRY_REQUEST))
 
 #define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
 
@@ -54,7 +54,7 @@ static S2N_RESULT s2n_wipe_connections(struct s2n_connection *client_conn, struc
     return S2N_RESULT_OK;
 }
 
-static int s2n_cache_retrieve_cb(struct s2n_connection *conn, void *ctx, const void *key,
+static int s2n_cache_retrieve_cb(struct s2n_connection *conn, void *ctx, const void *key, /* NOLINT(bugprone-easily-swappable-parameters) */
         uint64_t key_size, void *value, uint64_t *value_size)
 {
     return S2N_SUCCESS;
@@ -66,7 +66,7 @@ static int s2n_cache_store_cb(struct s2n_connection *conn, void *ctx, uint64_t t
     return S2N_SUCCESS;
 }
 
-static int s2n_cache_delete_cb(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size)
+static int s2n_cache_delete_cb(struct s2n_connection *conn, void *ctx, const void *key, uint64_t key_size) /* NOLINT(bugprone-easily-swappable-parameters) */
 {
     return S2N_SUCCESS;
 }
@@ -88,7 +88,7 @@ static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, st
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_test_issue_new_session_ticket(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
+static S2N_RESULT s2n_test_issue_new_session_ticket(struct s2n_connection *server_conn, struct s2n_connection *client_conn, /* NOLINT(bugprone-easily-swappable-parameters) */
         const struct s2n_early_data_test_case *early_data_case)
 {
     RESULT_ENSURE_REF(server_conn);
@@ -157,7 +157,7 @@ static int s2n_wipe_psk_ke_ext(struct s2n_connection *conn, void *ctx)
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
     POSIX_ENSURE_REF(client_hello);
     s2n_parsed_extension *parsed_extension = NULL;
-    POSIX_GUARD(s2n_client_hello_get_parsed_extension(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &client_hello->extensions, &parsed_extension));
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &client_hello->extensions, &parsed_extension)); /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): PSK key exchange modes has no public s2n_tls_extension_type constant */
     POSIX_ENSURE_REF(parsed_extension);
     POSIX_GUARD(s2n_blob_zero(&parsed_extension->extension));
 
@@ -169,7 +169,7 @@ static int s2n_alter_psk_ke_ext(struct s2n_connection *conn, void *ctx)
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
     POSIX_ENSURE_REF(client_hello);
     s2n_parsed_extension *parsed_extension = NULL;
-    POSIX_GUARD(s2n_client_hello_get_parsed_extension(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &client_hello->extensions, &parsed_extension));
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &client_hello->extensions, &parsed_extension)); /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): PSK key exchange modes has no public s2n_tls_extension_type constant */
     POSIX_ENSURE_REF(parsed_extension);
 
     /* Overwrite the extension so it only supports PSK_KE mode */

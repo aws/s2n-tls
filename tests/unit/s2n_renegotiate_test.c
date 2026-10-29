@@ -24,7 +24,7 @@
     #include "utils/s2n_socket.h"
 #endif
 
-struct s2n_reneg_test_case {
+struct s2n_reneg_test_case { /* NOLINT(clang-analyzer-optin.performance.Padding) */
     uint8_t protocol_version;
     struct s2n_cipher_suite *cipher_suite;
     uint8_t max_frag_code;

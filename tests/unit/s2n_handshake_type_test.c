@@ -51,7 +51,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_handshake_type_reset(conn));
         EXPECT_EQUAL(conn->handshake.handshake_type, 0);
 
-        EXPECT_OK(s2n_handshake_type_set_flag(conn, 0xFFFF));
+        EXPECT_OK(s2n_handshake_type_set_flag(conn, 0xFFFF)); /* NOLINT(clang-analyzer-optin.core.EnumCastOutOfRange): deliberately sets all flag bits */
         EXPECT_OK(s2n_handshake_type_reset(conn));
         EXPECT_EQUAL(conn->handshake.handshake_type, 0);
 

@@ -28,7 +28,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
 
@@ -56,7 +56,7 @@ static int amt_written = 0;
 
 int s2n_app_data_in_handshake_record_recv_fn(void *io_context, uint8_t *buf, uint32_t len)
 {
-    int amt_left = sizeof(record) - amt_written;
+    int amt_left = (int) (sizeof(record) - amt_written);
     int to_write = S2N_MIN(len, amt_left);
     POSIX_CHECKED_MEMCPY(buf, record + amt_written, to_write);
     amt_written += to_write;

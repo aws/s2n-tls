@@ -22,7 +22,7 @@
 #include "utils/s2n_mem.h"
 
 /* We need access to some io logic */
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 
 #define TEST_TICKET_AGE_ADD 0x01, 0x02, 0x03, 0x04
 #define TEST_LIFETIME       0x00, 0x01, 0x01, 0x01

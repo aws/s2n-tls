@@ -22,7 +22,7 @@
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 /* To gain access to handshake_read and handshake_write */
-#include "tls/s2n_handshake_io.c"
+#include "tls/s2n_handshake_io.c" /* NOLINT(bugprone-suspicious-include) */
 
 #define TEST_BLOB_SIZE 64
 

@@ -33,23 +33,23 @@
 
 #define hash_state_new(name, input)                                   \
     DEFER_CLEANUP(struct s2n_hash_state name = { 0 }, s2n_hash_free); \
-    EXPECT_SUCCESS(s2n_hash_new(&name));                              \
-    EXPECT_SUCCESS(s2n_hash_init(&name, HASH_ALG));                   \
-    EXPECT_SUCCESS(s2n_hash_update(&name, (input).data, (input).size));
+    EXPECT_SUCCESS(s2n_hash_new(&(name)));                            \
+    EXPECT_SUCCESS(s2n_hash_init(&(name), HASH_ALG));                 \
+    EXPECT_SUCCESS(s2n_hash_update(&(name), (input).data, (input).size));
 
 #define hash_state_for_alg_new(name, hash_alg, input)                 \
     DEFER_CLEANUP(struct s2n_hash_state name = { 0 }, s2n_hash_free); \
-    EXPECT_SUCCESS(s2n_hash_new(&name));                              \
-    EXPECT_SUCCESS(s2n_hash_init(&name, hash_alg));                   \
-    EXPECT_SUCCESS(s2n_hash_update(&name, (input).data, (input).size));
+    EXPECT_SUCCESS(s2n_hash_new(&(name)));                            \
+    EXPECT_SUCCESS(s2n_hash_init(&(name), hash_alg));                 \
+    EXPECT_SUCCESS(s2n_hash_update(&(name), (input).data, (input).size));
 
 struct s2n_rsa_pss_test_case {
-    s2n_hash_algorithm hash_alg;
     const char *key_param_n;
     const char *key_param_e;
     const char *key_param_d;
     const char *message;
     const char *signature;
+    s2n_hash_algorithm hash_alg;
     bool should_pass;
 };
 
