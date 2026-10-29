@@ -25,6 +25,7 @@ pub mod cert_chain;
 pub mod client_hello;
 pub mod config;
 pub mod connection;
+pub mod early_data;
 pub mod enums;
 #[cfg(feature = "unstable-events")]
 pub mod events;

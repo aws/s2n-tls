@@ -170,6 +170,11 @@ impl Connection {
         self.connection.as_ptr()
     }
 
+    /// A `&self` variant of [`Self::as_ptr`], for read-only FFI calls in sibling modules.
+    pub(crate) fn as_ptr_shared(&self) -> *mut s2n_connection {
+        self.connection.as_ptr()
+    }
+
     /// Returns the underlying `s2n_tls_sys::s2n_connection` pointer associated with the
     /// `Connection`.
     ///
