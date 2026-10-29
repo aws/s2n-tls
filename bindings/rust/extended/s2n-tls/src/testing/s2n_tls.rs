@@ -483,6 +483,37 @@ mod tests {
         })
     }
 
+    // See system_certs_loaded_by_default: the `temp_env` `SSL_CERT_FILE` var
+    // isn't visible to the C `getenv` that s2n uses on Windows.
+    #[cfg(not(target_os = "windows"))]
+    #[test]
+    fn wipe_trust_store_prevents_loading_system_certs() -> Result<(), Error> {
+        let keypair = CertKeyPair::default();
+        let other_ca = SniTestCerts::AlligatorRsa.get();
+
+        // Load the server certificate into the trust store by overriding the OpenSSL default
+        // certificate location.
+        temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
+            let mut builder = Builder::new();
+            builder
+                .load_pem(keypair.cert(), keypair.key())?
+                .set_security_policy(&security::DEFAULT_TLS13)?
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+
+            // Override the system certificates by pinning trust to a single CA,
+            // which does not issue the server certificate.
+            builder.wipe_trust_store()?;
+            builder.trust_pem(other_ca.ca_cert())?;
+
+            // The system certificates must not be reloaded by build(), so the server
+            // certificate remains untrusted despite being in the system trust store.
+            let config = builder.build()?;
+            let error = TestPair::handshake_with_config(&config).unwrap_err();
+            assert_eq!(error.name(), "S2N_ERR_CERT_UNTRUSTED");
+            Ok(())
+        })
+    }
+
     #[test]
     fn peer_chain() -> Result<(), Error> {
         use crate::enums::ClientAuthType;

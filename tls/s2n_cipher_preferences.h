@@ -92,6 +92,11 @@ extern const struct s2n_cipher_preferences cipher_preferences_test_ecdsa_priorit
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_rsa_kex;
 extern const struct s2n_cipher_preferences cipher_preferences_test_all_tls13;
 
+extern const struct s2n_cipher_preferences cipher_preferences_20261021_1;
+extern const struct s2n_cipher_preferences cipher_preferences_20261021_2;
+extern const struct s2n_cipher_preferences cipher_preferences_20261021_3;
+extern const struct s2n_cipher_preferences cipher_preferences_20261021_4;
+
 /* See https://docs.aws.amazon.com/elasticloadbalancing/latest/application/create-https-listener.html */
 extern const struct s2n_cipher_preferences elb_security_policy_2015_04;
 extern const struct s2n_cipher_preferences elb_security_policy_2016_08;

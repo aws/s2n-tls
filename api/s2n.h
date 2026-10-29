@@ -1264,6 +1264,30 @@ S2N_API extern int s2n_config_send_max_fragment_length(struct s2n_config *config
 S2N_API extern int s2n_config_accept_max_fragment_length(struct s2n_config *config);
 
 /**
+ * Sets the maximum size of outgoing record payloads (the "fragment length") for all
+ * connections using this configuration.
+ *
+ * This is the config-level equivalent of `s2n_connection_prefer_throughput` and
+ * `s2n_connection_prefer_low_latency`, but accepts any fragment length rather
+ * than a fixed preset.
+ *
+ * `max_fragment_length` must be greater than 0 and no larger than the TLS maximum
+ * fragment length of 16384 (2^14) bytes.
+ *
+ * @note A TLS negotiated maximum fragment length (see `s2n_config_send_max_fragment_length`
+ * and `s2n_config_accept_max_fragment_length`) overrides this preference: the
+ * smaller of the two values is used for a connection.
+ *
+ * @note This setting only affects outgoing records. It does not limit the size
+ * of records received from the peer.
+ *
+ * @param config The configuration object being updated
+ * @param max_fragment_length The maximum outgoing fragment length, in bytes
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_set_max_fragment_length(struct s2n_config *config, uint16_t max_fragment_length);
+
+/**
  * Sets the lifetime of the cached session state. The default value is 15 hours.
  *
  * @param config The configuration object being updated

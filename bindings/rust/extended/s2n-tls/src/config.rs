@@ -498,9 +498,12 @@ impl Builder {
         Ok(self)
     }
 
+    /// Clears the trust store of all certificates. This also prevents build from reloading the default system certificates.
+    ///
     /// Corresponds to [`s2n_config_wipe_trust_store`].
     pub fn wipe_trust_store(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_config_wipe_trust_store(self.as_mut_ptr()).into_result()? };
+        self.load_system_certs = false;
         Ok(self)
     }
 
@@ -620,6 +623,18 @@ impl Builder {
         Ok(self)
     }
 
+    /// Sets the maximum size of outgoing records (the "fragment length").
+    /// Corresponds to [`s2n_config_set_max_fragment_length`].
+    pub fn set_max_fragment_length(
+        &mut self,
+        max_fragment_length: u16,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_max_fragment_length(self.as_mut_ptr(), max_fragment_length).into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Corresponds to [`s2n_config_add_custom_x509_extension`].
     #[cfg(feature = "unstable-custom_x509_extensions")]
     pub fn add_custom_x509_extension(&mut self, extension_oid: &str) -> Result<&mut Self, Error> {
@@ -657,7 +672,7 @@ impl Builder {
             with_context(conn_ptr, |conn, context| {
                 let callback = context.cert_validation_callback_sync.as_ref();
                 callback.map(|callback| {
-                    let accepted = callback.handle_validation(conn, &mut info).unwrap();
+                    let accepted = callback.handle_validation(conn, &mut info);
                     // SAFETY: resolved from within the cert validation callback,
                     // where the owning connection is guaranteed to be alive.
                     match accepted {
