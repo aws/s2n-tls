@@ -1,0 +1,74 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-7.1.3"
+
+# 7.1.3.  DeriveKeyPair
+#
+# The keys that DeriveKeyPair() produces have only as much entropy as
+# the provided input keying material.  For a given KEM, the ikm
+# parameter given to DeriveKeyPair() SHOULD have length at least Nsk,
+# and SHOULD have at least Nsk bytes of entropy.
+# 
+# All invocations of KDF functions (such as LabeledExtract or
+# LabeledExpand) in any DHKEM's DeriveKeyPair() function use the
+# DHKEM's associated KDF (as opposed to the ciphersuite's KDF).
+# 
+# For P-256, P-384, and P-521, the DeriveKeyPair() function of the KEM
+# performs rejection sampling over field elements:
+# 
+# def DeriveKeyPair(ikm):
+#   dkp_prk = LabeledExtract("", "dkp_prk", ikm)
+#   sk = 0
+#   counter = 0
+#   while sk == 0 or sk >= order:
+#     if counter > 255:
+#       raise DeriveKeyPairError
+#     bytes = LabeledExpand(dkp_prk, "candidate",
+#                           I2OSP(counter, 1), Nsk)
+#     bytes[0] = bytes[0] & bitmask
+#     sk = OS2IP(bytes)
+#     counter = counter + 1
+#   return (sk, pk(sk))
+# 
+# order is the order of the curve being used (see Section D.1.2 of
+# [NISTCurves]), and is listed below for completeness.
+# 
+# P-256:
+# 0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551
+# 
+# P-384:
+# 0xffffffffffffffffffffffffffffffffffffffffffffffffc7634d81f4372ddf
+#   581a0db248b0a77aecec196accc52973
+# 
+# P-521:
+# 0x01ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+#   fa51868783bf2f966b7fcc0148f709a5d03bb5c9b8899c47aebb6fb71e91386409
+# 
+# bitmask is defined to be 0xFF for P-256 and P-384, and 0x01 for
+# P-521.  The precise likelihood of DeriveKeyPair() failing with
+# DeriveKeyPairError depends on the group being used, but it is
+# negligibly small in all cases.  See Section 8.2 for information about
+# dealing with such failures.
+# 
+# For X25519 and X448, the DeriveKeyPair() function applies a KDF to
+# the input:
+# 
+# def DeriveKeyPair(ikm):
+#   dkp_prk = LabeledExtract("", "dkp_prk", ikm)
+#   sk = LabeledExpand(dkp_prk, "sk", "", Nsk)
+#   return (sk, pk(sk))
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+For a given KEM, the ikm
+parameter given to DeriveKeyPair() SHOULD have length at least Nsk,
+and SHOULD have at least Nsk bytes of entropy.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+For a given KEM, the ikm
+parameter given to DeriveKeyPair() SHOULD have length at least Nsk,
+and SHOULD have at least Nsk bytes of entropy.
+'''
+

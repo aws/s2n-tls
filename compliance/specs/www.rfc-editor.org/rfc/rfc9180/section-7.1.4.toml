@@ -1,0 +1,85 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-7.1.4"
+
+# 7.1.4.  Validation of Inputs and Outputs
+#
+# The following public keys are subject to validation if the group
+# requires public key validation: the sender MUST validate the
+# recipient's public key pkR; the recipient MUST validate the ephemeral
+# public key pkE; in authenticated modes, the recipient MUST validate
+# the sender's static public key pkS.  Validation failure yields a
+# ValidationError.
+# 
+# For P-256, P-384, and P-521, senders and recipients MUST perform
+# partial public key validation on all public key inputs, as defined in
+# Section 5.6.2.3.4 of [keyagreement].  This includes checking that the
+# coordinates are in the correct range, that the point is on the curve,
+# and that the point is not the point at infinity.  Additionally,
+# senders and recipients MUST ensure the Diffie-Hellman shared secret
+# is not the point at infinity.
+# 
+# For X25519 and X448, public keys and Diffie-Hellman outputs MUST be
+# validated as described in [RFC7748].  In particular, recipients MUST
+# check whether the Diffie-Hellman shared secret is the all-zero value
+# and abort if so.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The following public keys are subject to validation if the group
+requires public key validation: the sender MUST validate the
+recipient's public key pkR; the recipient MUST validate the ephemeral
+public key pkE; in authenticated modes, the recipient MUST validate
+the sender's static public key pkS.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The following public keys are subject to validation if the group
+requires public key validation: the sender MUST validate the
+recipient's public key pkR; the recipient MUST validate the ephemeral
+public key pkE; in authenticated modes, the recipient MUST validate
+the sender's static public key pkS.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The following public keys are subject to validation if the group
+requires public key validation: the sender MUST validate the
+recipient's public key pkR; the recipient MUST validate the ephemeral
+public key pkE; in authenticated modes, the recipient MUST validate
+the sender's static public key pkS.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For P-256, P-384, and P-521, senders and recipients MUST perform
+partial public key validation on all public key inputs, as defined in
+Section 5.6.2.3.4 of [keyagreement].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Additionally,
+senders and recipients MUST ensure the Diffie-Hellman shared secret
+is not the point at infinity.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For X25519 and X448, public keys and Diffie-Hellman outputs MUST be
+validated as described in [RFC7748].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In particular, recipients MUST
+check whether the Diffie-Hellman shared secret is the all-zero value
+and abort if so.
+'''
+

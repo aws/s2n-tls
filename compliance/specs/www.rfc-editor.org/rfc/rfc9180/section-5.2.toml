@@ -1,0 +1,119 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-5.2"
+
+# 5.2.  Encryption and Decryption
+#
+# HPKE allows multiple encryption operations to be done based on a
+# given setup transaction.  Since the public key operations involved in
+# setup are typically more expensive than symmetric encryption or
+# decryption, this allows applications to amortize the cost of the
+# public key operations, reducing the overall overhead.
+# 
+# In order to avoid nonce reuse, however, this encryption must be
+# stateful.  Each of the setup procedures above produces a role-
+# specific context object that stores the AEAD and secret export
+# parameters.  The AEAD parameters consist of:
+# 
+# *  The AEAD algorithm in use
+# 
+# *  A secret key
+# 
+# *  A base nonce base_nonce
+# 
+# *  A sequence number (initially 0)
+# 
+# The secret export parameters consist of:
+# 
+# *  The HPKE ciphersuite in use and
+# 
+# *  An exporter_secret used for the secret export interface (see
+#    Section 5.3)
+# 
+# All these parameters except the AEAD sequence number are constant.
+# The sequence number provides nonce uniqueness: The nonce used for
+# each encryption or decryption operation is the result of XORing
+# base_nonce with the current sequence number, encoded as a big-endian
+# integer of the same length as base_nonce.  Implementations MAY use a
+# sequence number that is shorter than the nonce length (padding on the
+# left with zero), but MUST raise an error if the sequence number
+# overflows.  The AEAD algorithm produces ciphertext that is Nt bytes
+# longer than the plaintext.  Nt = 16 for AEAD algorithms defined in
+# this document.
+# 
+# Encryption is unidirectional from sender to recipient.  The sender's
+# context can encrypt a plaintext pt with associated data aad as
+# follows:
+# 
+# def ContextS.Seal(aad, pt):
+#   ct = Seal(self.key, self.ComputeNonce(self.seq), aad, pt)
+#   self.IncrementSeq()
+#   return ct
+# 
+# The recipient's context can decrypt a ciphertext ct with associated
+# data aad as follows:
+# 
+# def ContextR.Open(aad, ct):
+#   pt = Open(self.key, self.ComputeNonce(self.seq), aad, ct)
+#   if pt == OpenError:
+#     raise OpenError
+#   self.IncrementSeq()
+#   return pt
+# 
+# Each encryption or decryption operation increments the sequence
+# number for the context in use.  The per-message nonce and sequence
+# number increment details are as follows:
+# 
+# def Context<ROLE>.ComputeNonce(seq):
+#   seq_bytes = I2OSP(seq, Nn)
+#   return xor(self.base_nonce, seq_bytes)
+# 
+# def Context<ROLE>.IncrementSeq():
+#   if self.seq >= (1 << (8*Nn)) - 1:
+#     raise MessageLimitReachedError
+#   self.seq += 1
+# 
+# The sender's context MUST NOT be used for decryption.  Similarly, the
+# recipient's context MUST NOT be used for encryption.  Higher-level
+# protocols reusing the HPKE key exchange for more general purposes can
+# derive separate keying material as needed using use the secret export
+# interface; see Sections 5.3 and 9.8 for more details.
+# 
+# It is up to the application to ensure that encryptions and
+# decryptions are done in the proper sequence, so that encryption and
+# decryption nonces align.  If ContextS.Seal() or ContextR.Open() would
+# cause the seq field to overflow, then the implementation MUST fail
+# with an error.  (In the pseudocode below,
+# Context<ROLE>.IncrementSeq() fails with an error when seq overflows,
+# which causes ContextS.Seal() and ContextR.Open() to fail
+# accordingly.)  Note that the internal Seal() and Open() calls inside
+# correspond to the context's AEAD algorithm.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MAY use a
+sequence number that is shorter than the nonce length (padding on the
+left with zero), but MUST raise an error if the sequence number
+overflows.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The sender's context MUST NOT be used for decryption.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Similarly, the
+recipient's context MUST NOT be used for encryption.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If ContextS.Seal() or ContextR.Open() would
+cause the seq field to overflow, then the implementation MUST fail
+with an error.
+'''
+

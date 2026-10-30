@@ -1,0 +1,31 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-9.2.3"
+
+# 9.2.3.  KEM Key Reuse
+#
+# An ikm input to DeriveKeyPair() (Section 7.1.3) MUST NOT be reused
+# elsewhere, in particular not with DeriveKeyPair() of a different KEM.
+# 
+# The randomness used in Encap() and AuthEncap() to generate the KEM
+# shared secret or its encapsulation MUST NOT be reused elsewhere.
+# 
+# Since a KEM key pair belonging to a sender or recipient works with
+# all modes, it can be used with multiple modes in parallel.  HPKE is
+# constructed to be secure in such settings due to domain separation
+# using the suite_id variable.  However, there is no formal proof of
+# security at the time of writing for using multiple modes in parallel;
+# [HPKEAnalysis] and [ABHKLR20] only analyze isolated modes.
+
+[[spec]]
+level = "MUST"
+quote = '''
+An ikm input to DeriveKeyPair() (Section 7.1.3) MUST NOT be reused
+elsewhere, in particular not with DeriveKeyPair() of a different KEM.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The randomness used in Encap() and AuthEncap() to generate the KEM
+shared secret or its encapsulation MUST NOT be reused elsewhere.
+'''
+

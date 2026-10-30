@@ -1,0 +1,127 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-5.1"
+
+# 5.1.  Creating the Encryption Context
+#
+# The variants of HPKE defined in this document share a common key
+# schedule that translates the protocol inputs into an encryption
+# context.  The key schedule inputs are as follows:
+# 
+# *  mode: A one-byte value indicating the HPKE mode, defined in
+#    Table 1.
+# 
+# *  shared_secret: A KEM shared secret generated for this transaction.
+# 
+# *  info: Application-supplied information (optional; default value
+#    "").
+# 
+# *  psk A pre-shared key (PSK) held by both the sender and the
+#    recipient (optional; default value "").
+# 
+# *  psk_id: An identifier for the PSK (optional; default value "").
+# 
+# Senders and recipients MUST validate KEM inputs and outputs as
+# described in Section 7.1.
+# 
+# The psk and psk_id fields MUST appear together or not at all.  That
+# is, if a non-default value is provided for one of them, then the
+# other MUST be set to a non-default value.  This requirement is
+# encoded in VerifyPSKInputs() below.
+# 
+# The psk, psk_id, and info fields have maximum lengths that depend on
+# the KDF itself, on the definition of LabeledExtract(), and on the
+# constant labels used together with them.  See Section 7.2.1 for
+# precise limits on these lengths.
+# 
+# The key, base_nonce, and exporter_secret computed by the key schedule
+# have the property that they are only known to the holder of the
+# recipient private key, and the entity that used the KEM to generate
+# shared_secret and enc.
+# 
+# In the Auth and AuthPSK modes, the recipient is assured that the
+# sender held the private key skS.  This assurance is limited for the
+# DHKEM variants defined in this document because of key-compromise
+# impersonation, as described in Sections 4.1 and 9.1.  If in the PSK
+# and AuthPSK modes, the psk and psk_id arguments are provided as
+# required, then the recipient is assured that the sender held the
+# corresponding pre-shared key.  See Section 9.1 for more details.
+# 
+# The HPKE algorithm identifiers, i.e., the KEM kem_id, KDF kdf_id, and
+# AEAD aead_id 2-byte code points, as defined in Tables 2, 3, and 5,
+# respectively, are assumed implicit from the implementation and not
+# passed as parameters.  The implicit suite_id value used within
+# LabeledExtract and LabeledExpand is defined based on them as follows:
+# 
+# suite_id = concat(
+#   "HPKE",
+#   I2OSP(kem_id, 2),
+#   I2OSP(kdf_id, 2),
+#   I2OSP(aead_id, 2)
+# )
+# 
+# default_psk = ""
+# default_psk_id = ""
+# 
+# def VerifyPSKInputs(mode, psk, psk_id):
+#   got_psk = (psk != default_psk)
+#   got_psk_id = (psk_id != default_psk_id)
+#   if got_psk != got_psk_id:
+#     raise Exception("Inconsistent PSK inputs")
+# 
+#   if got_psk and (mode in [mode_base, mode_auth]):
+#     raise Exception("PSK input provided when not needed")
+#   if (not got_psk) and (mode in [mode_psk, mode_auth_psk]):
+#     raise Exception("Missing required PSK input")
+# 
+# def KeySchedule<ROLE>(mode, shared_secret, info, psk, psk_id):
+#   VerifyPSKInputs(mode, psk, psk_id)
+# 
+#   psk_id_hash = LabeledExtract("", "psk_id_hash", psk_id)
+#   info_hash = LabeledExtract("", "info_hash", info)
+#   key_schedule_context = concat(mode, psk_id_hash, info_hash)
+# 
+#   secret = LabeledExtract(shared_secret, "secret", psk)
+# 
+#   key = LabeledExpand(secret, "key", key_schedule_context, Nk)
+#   base_nonce = LabeledExpand(secret, "base_nonce",
+#                              key_schedule_context, Nn)
+#   exporter_secret = LabeledExpand(secret, "exp",
+#                                   key_schedule_context, Nh)
+# 
+#   return Context<ROLE>(key, base_nonce, 0, exporter_secret)
+# 
+# The ROLE template parameter is either S or R, depending on the role
+# of sender or recipient, respectively.  See Section 5.2 for a
+# discussion of the key schedule output, including the role-specific
+# Context structure and its API.
+# 
+# Note that the key_schedule_context construction in KeySchedule() is
+# equivalent to serializing a structure of the following form in the
+# TLS presentation syntax:
+# 
+# struct {
+#     uint8 mode;
+#     opaque psk_id_hash[Nh];
+#     opaque info_hash[Nh];
+# } KeyScheduleContext;
+
+[[spec]]
+level = "MUST"
+quote = '''
+Senders and recipients MUST validate KEM inputs and outputs as
+described in Section 7.1.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The psk and psk_id fields MUST appear together or not at all.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+That
+is, if a non-default value is provided for one of them, then the
+other MUST be set to a non-default value.
+'''
+

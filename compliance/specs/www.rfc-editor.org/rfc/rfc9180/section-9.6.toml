@@ -1,0 +1,52 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-9.6"
+
+# 9.6.  Domain Separation
+#
+# HPKE allows combining a DHKEM variant DHKEM(Group, KDF') and a KDF
+# such that both KDFs are instantiated by the same KDF.  By design, the
+# calls to Extract() and Expand() inside DHKEM and the remainder of
+# HPKE use separate input domains.  This justifies modeling them as
+# independent functions even if instantiated by the same KDF.  This
+# domain separation between DHKEM and the remainder of HPKE is achieved
+# by using prefix-free sets of suite_id values in LabeledExtract() and
+# LabeledExpand() (KEM... in DHKEM and HPKE... in the remainder of
+# HPKE).  Recall that a set is prefix-free if no element is a prefix of
+# another within the set.
+# 
+# Future KEM instantiations MUST ensure, should Extract() and Expand()
+# be used internally, that they can be modeled as functions independent
+# from the invocations of Extract() and Expand() in the remainder of
+# HPKE.  One way to ensure this is by using LabeledExtract() and
+# LabeledExpand() with a suite_id as defined in Section 4, which will
+# ensure input domain separation, as outlined above.  Particular
+# attention needs to be paid if the KEM directly invokes functions that
+# are used internally in HPKE's Extract() or Expand(), such as Hash()
+# and HMAC() in the case of HKDF.  It MUST be ensured that inputs to
+# these invocations cannot collide with inputs to the internal
+# invocations of these functions inside Extract() or Expand().  In
+# HPKE's KeySchedule() this is avoided by using Extract() instead of
+# Hash() on the arbitrary-length inputs info and psk_id.
+# 
+# The string literal "HPKE-v1" used in LabeledExtract() and
+# LabeledExpand() ensures that any secrets derived in HPKE are bound to
+# the scheme's name and version, even when possibly derived from the
+# same Diffie-Hellman or KEM shared secret as in another scheme or
+# version.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Future KEM instantiations MUST ensure, should Extract() and Expand()
+be used internally, that they can be modeled as functions independent
+from the invocations of Extract() and Expand() in the remainder of
+HPKE.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST be ensured that inputs to
+these invocations cannot collide with inputs to the internal
+invocations of these functions inside Extract() or Expand().
+'''
+
