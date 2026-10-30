@@ -1,0 +1,66 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-7"
+
+# 7.  Server Behavior
+#
+# As described in Section 3.1, servers can play two roles, either as
+# the client-facing server or as the backend server.  Depending on the
+# server role, the ECHClientHello will be different:
+# 
+# *  A client-facing server expects an ECHClientHello.type of outer,
+#    and proceeds as described in Section 7.1 to extract a
+#    ClientHelloInner, if available.
+# 
+# *  A backend server expects an ECHClientHello.type of inner, and
+#    proceeds as described in Section 7.2.
+# 
+# If ECHClientHello.type is not a valid ECHClientHelloType, then the
+# server MUST abort with an "illegal_parameter" alert.
+# 
+# In split mode, a client-facing server which receives a ClientHello
+# with ECHClientHello.type of inner MUST abort with an
+# "illegal_parameter" alert.  Similarly, in split mode, a backend
+# server which receives a ClientHello with ECHClientHello.type of outer
+# MUST abort with an "illegal_parameter" alert.
+# 
+# In shared mode, a server plays both roles, first decrypting the
+# ClientHelloOuter and then using the contents of the ClientHelloInner.
+# A shared mode server which receives a ClientHello with
+# ECHClientHello.type of inner MUST abort with an "illegal_parameter"
+# alert, because such a ClientHello should never be received directly
+# from the network.
+# 
+# If the "encrypted_client_hello" is not present, then the server
+# completes the handshake normally, as described in [RFC8446].
+
+[[spec]]
+level = "MUST"
+quote = '''
+If ECHClientHello.type is not a valid ECHClientHelloType, then the
+server MUST abort with an "illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In split mode, a client-facing server which receives a ClientHello
+with ECHClientHello.type of inner MUST abort with an
+"illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Similarly, in split mode, a backend
+server which receives a ClientHello with ECHClientHello.type of outer
+MUST abort with an "illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A shared mode server which receives a ClientHello with
+ECHClientHello.type of inner MUST abort with an "illegal_parameter"
+alert, because such a ClientHello should never be received directly
+from the network.
+'''
+

@@ -1,0 +1,77 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.1.5"
+
+# 6.1.5.  Handshaking with ClientHelloInner
+#
+# If the server accepts ECH, the client proceeds with the connection as
+# in [RFC8446], with the following modifications:
+# 
+# The client behaves as if it had sent ClientHelloInner as the
+# ClientHello.  That is, it evaluates the handshake using the
+# ClientHelloInner's preferences, and, when computing the transcript
+# hash (Section 4.4.1 of [RFC8446]), it uses ClientHelloInner as the
+# first ClientHello.
+# 
+# If the server responds with a HelloRetryRequest, the client computes
+# the updated ClientHello message as follows:
+# 
+# 1.  It computes a second ClientHelloInner based on the first
+#     ClientHelloInner, as in Section 4.1.4 of [RFC8446].  The
+#     ClientHelloInner's "encrypted_client_hello" extension is left
+#     unmodified.
+# 
+# 2.  It constructs EncodedClientHelloInner as described in
+#     Section 5.1.
+# 
+# 3.  It constructs a second partial ClientHelloOuterAAD message.  This
+#     message MUST be syntactically valid.  The extensions MAY be
+#     copied from the original ClientHelloOuter unmodified or omitted.
+#     If not sensitive, the client MAY copy updated extensions from the
+#     second ClientHelloInner for compression.
+# 
+# 4.  It encrypts EncodedClientHelloInner as described in
+#     Section 6.1.1, using the second partial ClientHelloOuterAAD, to
+#     obtain a second ClientHelloOuter.  It reuses the original HPKE
+#     encryption context computed in Section 6.1 and uses the empty
+#     string for enc.
+# 
+#     The HPKE context maintains a sequence number, so this operation
+#     internally uses a fresh nonce for each AEAD operation.  Reusing
+#     the HPKE context avoids an attack described in Section 10.12.2.
+# 
+# The client then sends the second ClientHelloOuter to the server.
+# However, as above, it uses the second ClientHelloInner for
+# preferences, and both the ClientHelloInner messages for the
+# transcript hash.  Additionally, it checks the resulting ServerHello
+# for ECH acceptance as in Section 6.1.4.  If the ServerHello does not
+# also indicate ECH acceptance, the client MUST terminate the
+# connection with an "illegal_parameter" alert.
+
+[[spec]]
+level = "MUST"
+quote = '''
+This
+message MUST be syntactically valid.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+The extensions MAY be
+copied from the original ClientHelloOuter unmodified or omitted.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If not sensitive, the client MAY copy updated extensions from the
+second ClientHelloInner for compression.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the ServerHello does not
+also indicate ECH acceptance, the client MUST terminate the
+connection with an "illegal_parameter" alert.
+'''
+

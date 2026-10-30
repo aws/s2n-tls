@@ -1,0 +1,28 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-10.4"
+
+# 10.4.  Ignored Configuration Identifiers and Trial Decryption
+#
+# Ignoring configuration identifiers may be useful in scenarios where
+# clients and client-facing servers do not want to reveal information
+# about the client-facing server in the "encrypted_client_hello"
+# extension.  In such settings, clients send a randomly generated
+# config_id in the ECHClientHello.  Servers in these settings must
+# perform trial decryption since they cannot identify the client's
+# chosen ECH key using the config_id value.  As a result, ignoring
+# configuration identifiers may exacerbate DoS attacks.  Specifically,
+# an adversary may send malicious ClientHello messages, i.e., those
+# which will not decrypt with any known ECH key, in order to force
+# wasteful decryption.  Servers that support this feature should, for
+# example, implement some form of rate limiting mechanism to limit the
+# potential damage caused by such attacks.
+# 
+# Unless specified by the application using (D)TLS or externally
+# configured, client implementations MUST NOT use this mode.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Unless specified by the application using (D)TLS or externally
+configured, client implementations MUST NOT use this mode.
+'''
+

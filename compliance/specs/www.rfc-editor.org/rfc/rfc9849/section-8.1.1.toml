@@ -1,0 +1,60 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-8.1.1"
+
+# 8.1.1.  Misconfiguration and Deployment Concerns
+#
+# It is possible for ECH advertisements and servers to become
+# inconsistent.  This may occur, for instance, from DNS
+# misconfiguration, caching issues, or an incomplete rollout in a
+# multi-server deployment.  This may also occur if a server loses its
+# ECH keys, or if a deployment of ECH must be rolled back on the
+# server.
+# 
+# The retry mechanism repairs inconsistencies, provided the TLS server
+# has a certificate for the public name.  If server and advertised keys
+# mismatch, the server will reject ECH and respond with
+# "retry_configs".  If the server does not understand the
+# "encrypted_client_hello" extension at all, it will ignore it as
+# required by Section 4.1.2 of [RFC8446].  Provided the server can
+# present a certificate valid for the public name, the client can
+# safely retry with updated settings, as described in Section 6.1.6.
+# 
+# Unless ECH is disabled as a result of successfully establishing a
+# connection to the public name, the client MUST NOT fall back to using
+# unencrypted ClientHellos, as this allows a network attacker to
+# disclose the contents of this ClientHello, including the SNI.  It MAY
+# attempt to use another server from the DNS results, if one is
+# provided.
+# 
+# In order to ensure that the retry mechanism works successfully,
+# servers SHOULD ensure that every endpoint which might receive a TLS
+# connection is provisioned with an appropriate certificate for the
+# public name.  This is especially important during periods of server
+# reconfiguration when different endpoints might have different
+# configurations.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Unless ECH is disabled as a result of successfully establishing a
+connection to the public name, the client MUST NOT fall back to using
+unencrypted ClientHellos, as this allows a network attacker to
+disclose the contents of this ClientHello, including the SNI.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+It MAY
+attempt to use another server from the DNS results, if one is
+provided.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+In order to ensure that the retry mechanism works successfully,
+servers SHOULD ensure that every endpoint which might receive a TLS
+connection is provisioned with an appropriate certificate for the
+public name.
+'''
+

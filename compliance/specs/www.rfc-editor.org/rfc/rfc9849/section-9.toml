@@ -1,0 +1,22 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-9"
+
+# 9.  Compliance Requirements
+#
+# In the absence of an application profile standard specifying
+# otherwise, a compliant ECH application MUST implement the following
+# HPKE cipher suite:
+# 
+# *  KEM: DHKEM(X25519, HKDF-SHA256) (see Section 7.1 of [HPKE])
+# 
+# *  KDF: HKDF-SHA256 (see Section 7.2 of [HPKE])
+# 
+# *  AEAD: AES-128-GCM (see Section 7.3 of [HPKE])
+
+[[spec]]
+level = "MUST"
+quote = '''
+In the absence of an application profile standard specifying
+otherwise, a compliant ECH application MUST implement the following
+HPKE cipher suite:
+'''
+
