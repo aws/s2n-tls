@@ -235,7 +235,7 @@ const struct s2n_security_policy security_policy_TLS12_20261021_1 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20261021_1,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20261021,
+    .signature_preferences = &s2n_signature_preferences_20250813,
     .ecc_preferences = &s2n_ecc_preferences_20261021,
 };
 
@@ -243,7 +243,7 @@ const struct s2n_security_policy security_policy_TLS10_20261021_1 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20261021_2,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20261021,
+    .signature_preferences = &s2n_signature_preferences_20250813,
     .ecc_preferences = &s2n_ecc_preferences_20261021,
 };
 
@@ -252,7 +252,7 @@ const struct s2n_security_policy security_policy_TLS10_20261021_2 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20261021_1,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20261021,
+    .signature_preferences = &s2n_signature_preferences_20250813,
     .ecc_preferences = &s2n_ecc_preferences_20261021,
 };
 
@@ -260,7 +260,7 @@ const struct s2n_security_policy security_policy_TLS10_20261021_3 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20261021_3,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20261021,
+    .signature_preferences = &s2n_signature_preferences_20250813,
     .ecc_preferences = &s2n_ecc_preferences_20261021,
 };
 
@@ -268,7 +268,7 @@ const struct s2n_security_policy security_policy_TLS10_20261021_4 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20261021_4,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20261021,
+    .signature_preferences = &s2n_signature_preferences_20250813,
     .ecc_preferences = &s2n_ecc_preferences_20261021,
 };
 
