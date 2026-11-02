@@ -13,6 +13,7 @@ use std::{
     fmt,
     future::Future,
     io,
+    mem::MaybeUninit,
     os::raw::{c_int, c_void},
     pin::Pin,
     task::{
@@ -297,7 +298,12 @@ where
     unsafe extern "C" fn recv_io_cb(ctx: *mut c_void, buf: *mut u8, len: u32) -> c_int {
         Self::poll_io(ctx, |stream, async_context| {
             let len: usize = len.try_into().unwrap();
-            let mut dest = ReadBuf::new(std::slice::from_raw_parts_mut(buf, len));
+            // SAFETY: s2n invokes this callback only after reserving `len > 0`
+            // contiguous bytes in one input-stuffer allocation. The callback has
+            // exclusive access to that non-null, writable range for this call, and
+            // MaybeUninit<u8> permits the bytes to have any initialization state.
+            let buf = unsafe { std::slice::from_raw_parts_mut(buf.cast::<MaybeUninit<u8>>(), len) };
+            let mut dest = ReadBuf::uninit(buf);
             stream
                 .poll_read(async_context, &mut dest)
                 .map_ok(|_| dest.filled().len())
