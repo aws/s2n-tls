@@ -294,7 +294,7 @@ static S2N_RESULT s2n_resumption_state_tls13_init(struct s2n_resumption_state_tl
     struct s2n_ticket_fields *ticket_fields = &conn->tls13_ticket_fields;
 
     state->version = S2N_SERIALIZED_FORMAT_TLS13_V2;
-    state->protocol_version = conn->actual_protocol_version;
+    state->condensed_protocol_version = conn->actual_protocol_version;
     RESULT_CHECKED_MEMCPY(state->cipher_id, conn->secure->cipher_suite->iana_value, sizeof(state->cipher_id));
     state->ticket_issue_unix_ns = current_time;
     state->ticket_age_add = ticket_fields->ticket_age_add;
@@ -319,7 +319,7 @@ static S2N_RESULT s2n_resumption_state_tls13_encode(struct s2n_resumption_state_
     RESULT_ENSURE_REF(to);
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->version));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->protocol_version));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->condensed_protocol_version));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(to, state->cipher_id, sizeof(state->cipher_id)));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(to, state->ticket_issue_unix_ns));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(to, state->ticket_age_add));
@@ -459,8 +459,8 @@ static S2N_RESULT s2n_resumption_state_tls13_decode(struct s2n_resumption_state_
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &state->version));
     RESULT_ENSURE(state->version == S2N_SERIALIZED_FORMAT_TLS13_V2, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &state->protocol_version));
-    RESULT_ENSURE_GTE(state->protocol_version, S2N_TLS13);
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &state->condensed_protocol_version));
+    RESULT_ENSURE_GTE(state->condensed_protocol_version, S2N_TLS13);
 
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, state->cipher_id, sizeof(state->cipher_id)));
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &state->ticket_issue_unix_ns));
@@ -509,7 +509,7 @@ static S2N_RESULT s2n_resumption_state_tls13_apply(struct s2n_resumption_state_t
 
     /* Clients don't know which protocol version will be negotiated at this stage */
     if (conn->mode == S2N_SERVER) {
-        RESULT_ENSURE(state->protocol_version == conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+        RESULT_ENSURE(state->condensed_protocol_version == conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
 
     struct s2n_cipher_suite *cipher_suite = NULL;
