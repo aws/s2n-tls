@@ -53,22 +53,27 @@ static void process_synchronizer_close(struct process_synchronizer *sync)
     }
 }
 
-static void send_signal(int fd)
+static void send_client_signal(struct process_synchronizer *sync)
 {
-    EXPECT_EQUAL(write(fd, &SIGNAL_BYTE, 1), 1);
+    EXPECT_EQUAL(write(sync->client_tx_fd[1], &SIGNAL_BYTE, 1), 1);
 }
 
-static void wait_signal(int fd)
+static void wait_client_signal(struct process_synchronizer *sync)
 {
     uint8_t received = 0;
-    EXPECT_EQUAL(read(fd, &received, 1), 1);
-    EXPECT_EQUAL(received, SIGNAL_BYTE);
+    EXPECT_EQUAL(read(sync->client_tx_fd[0], &received, 1), 1);
 }
 
-static void send_client_signal(struct process_synchronizer *sync) { send_signal(sync->client_tx_fd[1]); }
-static void wait_client_signal(struct process_synchronizer *sync) { wait_signal(sync->client_tx_fd[0]); }
-static void send_server_signal(struct process_synchronizer *sync) { send_signal(sync->server_tx_fd[1]); }
-static void wait_server_signal(struct process_synchronizer *sync) { wait_signal(sync->server_tx_fd[0]); }
+static void send_server_signal(struct process_synchronizer *sync)
+{
+    EXPECT_EQUAL(write(sync->server_tx_fd[1], &SIGNAL_BYTE, 1), 1);
+}
+
+static void wait_server_signal(struct process_synchronizer *sync)
+{
+    uint8_t received = 0;
+    EXPECT_EQUAL(read(sync->server_tx_fd[0], &received, 1), 1);
+}
 
 void mock_client(struct s2n_test_io_pair *io_pair, struct process_synchronizer *sync)
 {
