@@ -59,8 +59,8 @@ static uint8_t s2n_resume_protocol_version(struct s2n_connection *conn)
 }
 
 /**
- * The plaintext header framing a server session ticket. On the wire, the encrypted
- * session state follows this header.
+ * The header framing a server session ticket. On the wire, the encrypted
+ * session state follows this header. The header itself will always be plaintext.
  */
 struct s2n_ticket_header {
     uint8_t ticket_version;
@@ -126,9 +126,9 @@ struct s2n_resumption_state_tls12 {
     uint8_t version;
     /* s2n-internal protocol version representation. NOT the format used in TLS messages */
     uint8_t condensed_protocol_version;
-    uint8_t cipher_id[2];
-    uint64_t session_issue_unix_ns;
-    uint8_t master_secret[48];
+    uint8_t cipher_id[S2N_TLS_CIPHER_SUITE_LEN];
+    uint64_t ticket_issue_unix_ns;
+    uint8_t master_secret[S2N_TLS_SECRET_LEN];
     uint8_t ems_negotiated;
 };
 
@@ -143,7 +143,7 @@ static S2N_RESULT s2n_resumption_state_tls12_init(struct s2n_resumption_state_tl
     state->version = S2N_SERIALIZED_FORMAT_TLS12_V3;
     state->condensed_protocol_version = s2n_resume_protocol_version(conn);
     RESULT_CHECKED_MEMCPY(state->cipher_id, conn->secure->cipher_suite->iana_value, sizeof(state->cipher_id));
-    state->session_issue_unix_ns = now;
+    state->ticket_issue_unix_ns = now;
     RESULT_CHECKED_MEMCPY(state->master_secret, conn->secrets.version.tls12.master_secret, sizeof(state->master_secret));
     state->ems_negotiated = conn->ems_negotiated;
     return S2N_RESULT_OK;
@@ -157,7 +157,7 @@ static S2N_RESULT s2n_resumption_state_tls12_encode(struct s2n_resumption_state_
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->version));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->condensed_protocol_version));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(to, state->cipher_id, sizeof(state->cipher_id)));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(to, state->session_issue_unix_ns));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(to, state->ticket_issue_unix_ns));
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(to, state->master_secret, sizeof(state->master_secret)));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->ems_negotiated));
 
@@ -173,7 +173,7 @@ static S2N_RESULT s2n_resumption_state_tls12_decode(struct s2n_resumption_state_
     RESULT_ENSURE(state->version == S2N_SERIALIZED_FORMAT_TLS12_V3, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &state->condensed_protocol_version));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, state->cipher_id, sizeof(state->cipher_id)));
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &state->session_issue_unix_ns));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &state->ticket_issue_unix_ns));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, state->master_secret, sizeof(state->master_secret)));
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &state->ems_negotiated));
 
@@ -202,8 +202,8 @@ static S2N_RESULT s2n_resumption_state_tls12_apply_server(struct s2n_resumption_
 
     uint64_t now = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &now));
-    RESULT_ENSURE(state->session_issue_unix_ns <= now, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
-    RESULT_ENSURE(now - state->session_issue_unix_ns <= conn->config->session_state_lifetime_in_nanos,
+    RESULT_ENSURE(state->ticket_issue_unix_ns <= now, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+    RESULT_ENSURE(now - state->ticket_issue_unix_ns <= conn->config->session_state_lifetime_in_nanos,
             S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     RESULT_CHECKED_MEMCPY(conn->secrets.version.tls12.master_secret, state->master_secret,
@@ -267,12 +267,14 @@ static S2N_RESULT s2n_tls13_keying_material_expiration(struct s2n_connection *co
  * All blobs are borrowed, not owned.
  */
 struct s2n_resumption_state_tls13 {
+    /* the serialization version of the resumption state */
     uint8_t version;
-    uint8_t protocol_version;
+    /* s2n-internal protocol version representation. NOT the format used in TLS messages */
+    uint8_t condensed_protocol_version;
     uint8_t cipher_id[S2N_TLS_CIPHER_SUITE_LEN];
     uint64_t ticket_issue_unix_ns;
     uint32_t ticket_age_add;
-    struct s2n_blob secret;
+    struct s2n_blob resumption_secret;
     uint64_t keying_material_expiration;
     uint32_t max_early_data_size;
     struct s2n_blob app_protocol;
@@ -296,7 +298,7 @@ static S2N_RESULT s2n_resumption_state_tls13_init(struct s2n_resumption_state_tl
     RESULT_CHECKED_MEMCPY(state->cipher_id, conn->secure->cipher_suite->iana_value, sizeof(state->cipher_id));
     state->ticket_issue_unix_ns = current_time;
     state->ticket_age_add = ticket_fields->ticket_age_add;
-    state->secret = ticket_fields->session_secret;
+    state->resumption_secret = ticket_fields->session_secret;
     RESULT_GUARD(s2n_tls13_keying_material_expiration(conn, current_time, &state->keying_material_expiration));
 
     uint32_t server_max_early_data = 0;
@@ -321,9 +323,9 @@ static S2N_RESULT s2n_resumption_state_tls13_encode(struct s2n_resumption_state_
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(to, state->cipher_id, sizeof(state->cipher_id)));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(to, state->ticket_issue_unix_ns));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(to, state->ticket_age_add));
-    RESULT_ENSURE_INCLUSIVE_RANGE(1, state->secret.size, UINT8_MAX);
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->secret.size));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(to, state->secret.data, state->secret.size));
+    RESULT_ENSURE_INCLUSIVE_RANGE(1, state->resumption_secret.size, UINT8_MAX);
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(to, state->resumption_secret.size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(to, state->resumption_secret.data, state->resumption_secret.size));
     /* Always serialized, regardless of mode: see s2n_tls13_keying_material_expiration. */
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint64(to, state->keying_material_expiration));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint32(to, state->max_early_data_size));
@@ -469,7 +471,7 @@ static S2N_RESULT s2n_resumption_state_tls13_decode(struct s2n_resumption_state_
     RESULT_ENSURE_LTE(secret_len, S2N_TLS_SECRET_LEN);
     uint8_t *secret_data = s2n_stuffer_raw_read(from, secret_len);
     RESULT_ENSURE_REF(secret_data);
-    RESULT_GUARD_POSIX(s2n_blob_init(&state->secret, secret_data, secret_len));
+    RESULT_GUARD_POSIX(s2n_blob_init(&state->resumption_secret, secret_data, secret_len));
 
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &state->keying_material_expiration));
 
@@ -530,7 +532,7 @@ static S2N_RESULT s2n_resumption_state_tls13_apply(struct s2n_resumption_state_t
     psk.hmac_alg = cipher_suite->prf_alg;
     psk.ticket_issue_time = state->ticket_issue_unix_ns;
     psk.ticket_age_add = state->ticket_age_add;
-    RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, state->secret.data, state->secret.size));
+    RESULT_GUARD_POSIX(s2n_psk_set_secret(&psk, state->resumption_secret.data, state->resumption_secret.size));
 
     psk.keying_material_expiration = state->keying_material_expiration;
     if (conn->mode == S2N_SERVER) {
