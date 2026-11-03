@@ -30,22 +30,51 @@
 static const char *certificate_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS8_CERT_CHAIN };
 static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_KEY, S2N_RSA_2048_PKCS8_KEY };
 
-/* Coordinate the broken-pipe sequence between the forked client and the parent
- * server using explicit signals instead of sleep()-based timing. This makes the
- * test both deterministic and fast.
- *
- * - to_server_fd:   client writes a byte here once it has half-closed its read
- *                   end, so the server knows it can write into the broken pipe.
- * - from_server_fd: client reads a byte here once the server has finished its
- *                   broken-pipe write test, so the client won't tear down the
- *                   socket too early.
- */
-void mock_client(struct s2n_test_io_pair *io_pair, int from_client_fd, int from_server_fd)
+/* Signals between the forked client and the server, in place of sleep().
+ * Each array is a pipe: [0] is the read end, [1] is the write end. */
+struct process_synchronizer {
+    int client_tx_fd[2];
+    int server_tx_fd[2];
+};
+
+static const uint8_t SIGNAL_BYTE = 1;
+
+static void process_synchronizer_init(struct process_synchronizer *sync)
+{
+    EXPECT_EQUAL(pipe(sync->client_tx_fd), 0);
+    EXPECT_EQUAL(pipe(sync->server_tx_fd), 0);
+}
+
+static void process_synchronizer_close(struct process_synchronizer *sync)
+{
+    for (int i = 0; i < 2; i++) {
+        close(sync->client_tx_fd[i]);
+        close(sync->server_tx_fd[i]);
+    }
+}
+
+static void send_signal(int fd)
+{
+    EXPECT_EQUAL(write(fd, &SIGNAL_BYTE, 1), 1);
+}
+
+static void wait_signal(int fd)
+{
+    uint8_t received = 0;
+    EXPECT_EQUAL(read(fd, &received, 1), 1);
+    EXPECT_EQUAL(received, SIGNAL_BYTE);
+}
+
+static void send_client_signal(struct process_synchronizer *sync) { send_signal(sync->client_tx_fd[1]); }
+static void wait_client_signal(struct process_synchronizer *sync) { wait_signal(sync->client_tx_fd[0]); }
+static void send_server_signal(struct process_synchronizer *sync) { send_signal(sync->server_tx_fd[1]); }
+static void wait_server_signal(struct process_synchronizer *sync) { wait_signal(sync->server_tx_fd[0]); }
+
+void mock_client(struct s2n_test_io_pair *io_pair, struct process_synchronizer *sync)
 {
     struct s2n_connection *conn = NULL;
     struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    char sync_byte = 0;
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
@@ -73,15 +102,11 @@ void mock_client(struct s2n_test_io_pair *io_pair, int from_client_fd, int from_
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_RD);
 #endif
 
-    /* signal: client's read closed, server should attempt write now */
-    if (write(from_client_fd, &sync_byte, 1) != 1) {
-        exit(1);
-    }
+    /* client read is closed, server should attempt write now */
+    send_client_signal(sync);
 
-    /* wait: server must finished writing */
-    if (read(from_server_fd, &sync_byte, 1) != 1) {
-        exit(1);
-    }
+    /* server must finish writing */
+    wait_server_signal(sync);
 
     s2n_shutdown(conn, &blocked);
 
@@ -97,6 +122,7 @@ void mock_client(struct s2n_test_io_pair *io_pair, int from_client_fd, int from_
 
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
+    process_synchronizer_close(sync);
 
     exit(0);
 }
@@ -122,12 +148,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
-        /* Synchronization pipes between the server (parent) and client (child).
-         * signal_from_client: client -> server, signal_from_server: server -> client. */
-        int signal_from_client[2] = { 0 };
-        int signal_from_server[2] = { 0 };
-        EXPECT_EQUAL(pipe(signal_from_client), 0);
-        EXPECT_EQUAL(pipe(signal_from_server), 0);
+        DEFER_CLEANUP(struct process_synchronizer sync = { 0 }, process_synchronizer_close);
+        process_synchronizer_init(&sync);
 
         /* Create a child process */
         pid_t pid = fork();
@@ -135,20 +157,12 @@ int main(int argc, char **argv)
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-            /* Close the unused ends of the sync pipes */
-            EXPECT_EQUAL(close(signal_from_client[0]), 0);
-            EXPECT_EQUAL(close(signal_from_server[1]), 0);
-
             /* Write the fragmented hello message */
-            mock_client(&io_pair, signal_from_client[1], signal_from_server[0]);
+            mock_client(&io_pair, &sync);
         }
 
         /* This is the server process, close the client end of the pipe */
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
-
-        /* Close the unused ends of the sync pipes */
-        EXPECT_EQUAL(close(signal_from_client[1]), 0);
-        EXPECT_EQUAL(close(signal_from_server[0]), 0);
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
@@ -172,8 +186,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
         /* wait: client should close its read pipe */
-        char sync_byte = 0;
-        EXPECT_EQUAL(read(signal_from_client[0], &sync_byte, 1), 1);
+        wait_client_signal(&sync);
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
         ssize_t w = s2n_send(conn, buffer, 1, &blocked);
@@ -188,7 +201,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(errno, 0);
 
         /* signal: server write finished, client can teardown */
-        EXPECT_EQUAL(write(signal_from_server[1], &sync_byte, 1), 1);
+        send_server_signal(&sync);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
@@ -202,9 +215,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(status, 0);
         }
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
-
-        EXPECT_EQUAL(close(signal_from_client[0]), 0);
-        EXPECT_EQUAL(close(signal_from_server[1]), 0);
     }
 
     END_TEST();
