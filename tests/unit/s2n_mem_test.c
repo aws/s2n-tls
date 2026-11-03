@@ -141,5 +141,43 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
     };
 
+    /* Test: s2n_alloc rejects blobs with existing allocations */
+    {
+        /* Test: s2n_alloc rejects blob with allocated data */
+        {
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_alloc(&blob, 10));
+            EXPECT_NOT_NULL(blob.data);
+            EXPECT_EQUAL(blob.size, 10);
+            EXPECT_TRUE(blob.allocated > 0);
+
+            /* Attempting to call s2n_alloc again should fail */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_alloc(&blob, 20), S2N_ERR_ALLOC);
+
+            /* Clean up */
+            EXPECT_SUCCESS(s2n_free(&blob));
+        };
+
+        /* Test: s2n_alloc rejects blob with non-zero size but NULL data */
+        {
+            struct s2n_blob blob = { .data = NULL, .size = 10, .allocated = 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_alloc(&blob, 20), S2N_ERR_ALLOC);
+        };
+
+        /* Test: s2n_alloc rejects blob with non-zero allocated but NULL data */
+        {
+            struct s2n_blob blob = { .data = NULL, .size = 0, .allocated = 10 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_alloc(&blob, 20), S2N_ERR_ALLOC);
+        };
+
+        /* Test: s2n_alloc accepts properly zero-initialized blob */
+        {
+            struct s2n_blob blob = { 0 };
+            EXPECT_SUCCESS(s2n_alloc(&blob, 10));
+            EXPECT_NOT_NULL(blob.data);
+            EXPECT_SUCCESS(s2n_free(&blob));
+        };
+    };
+
     END_TEST();
 }
