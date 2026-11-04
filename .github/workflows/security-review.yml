@@ -1,6 +1,14 @@
 name: Security review
 
 on:
+  # TEMPORARY pre-merge test (do not merge): pull_request runs this branch's
+  # version of the workflow, so it triggers without being on the default
+  # branch. Remove this trigger and the matching authorize guard after
+  # validation; production uses only the pull_request_target trigger below.
+  pull_request:
+    branches: [WesleyRosenblum/securityreview]
+    types: [opened, synchronize, reopened]
+
   # This event uses the trusted base-branch workflow and reviewer runner.
   # Do not check out or execute PR-controlled code before authorization.
   pull_request_target:
@@ -13,7 +21,18 @@ permissions:
 jobs:
   # Decide whether an open PR can run immediately or needs approval.
   authorize:
-    if: github.event.action != 'closed'
+    # TEMPORARY pre-merge test guard (do not merge): the pull_request path
+    # only runs for this specific same-repo test branch. Restore this to
+    # `if: github.event.action != 'closed'` after validation.
+    if: |
+      github.event.action != 'closed' &&
+      (
+        github.event_name == 'pull_request_target' ||
+        (
+          github.event.pull_request.head.repo.full_name == github.repository &&
+          github.event.pull_request.head.ref == 'WesleyRosenblum/securityreview-test'
+        )
+      )
     runs-on: ubuntu-latest
     outputs:
       eligible: ${{ steps.authorization.outputs.eligible }}
