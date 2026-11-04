@@ -1,0 +1,197 @@
+name: Security review
+
+on:
+  # This event uses the trusted base-branch workflow and reviewer runner.
+  # Do not check out or execute PR-controlled code before authorization.
+  pull_request_target:
+    branches: [main]
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+
+jobs:
+  # Decide whether an open PR can run immediately or needs approval.
+  authorize:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    outputs:
+      eligible: ${{ steps.authorization.outputs.eligible }}
+      source_version: ${{ steps.authorization.outputs.source_version }}
+    steps:
+      - name: Get permissions
+        id: get_permission
+        uses: octokit/request-action@v2.x
+        with:
+          route: GET /repos/{repo}/collaborators/{author}/permission
+          repo: ${{ github.repository }}
+          author: ${{ github.event.pull_request.user.login }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check authorization
+        id: authorization
+        env:
+          PERMISSION_DATA: ${{ steps.get_permission.outputs.data }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          permission="$(jq -er '.permission | strings' <<< "$PERMISSION_DATA")"
+          if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ || ! "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "The pull request number or head SHA is invalid."
+            exit 1
+          fi
+
+          source_version="refs/pull/$PR_NUMBER/head^{$PR_HEAD_SHA}"
+          echo "$PR_AUTHOR has permission '$permission'."
+          case "$permission" in
+            admin|write)
+              eligible="true"
+              ;;
+            *)
+              eligible="false"
+              echo "$PR_AUTHOR requires maintainer approval."
+              echo "The approval will review PR #$PR_NUMBER pinned to $PR_HEAD_SHA."
+              ;;
+          esac
+
+          echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
+          echo "source_version=$source_version" >> "$GITHUB_OUTPUT"
+
+  # External contributors require one-click maintainer approval.
+  approval:
+    needs: authorize
+    if: needs.authorize.outputs.eligible == 'false'
+    runs-on: ubuntu-latest
+    environment: security-review-approval
+    permissions: {}
+    steps:
+      - name: Record approved review
+        env:
+          SOURCE_VERSION: ${{ needs.authorize.outputs.source_version }}
+        run: echo "Approved security review for $SOURCE_VERSION."
+
+  # Run only trusted base-branch scripts; CodeBuild fetches the PR source.
+  review:
+    needs: [authorize, approval]
+    if: |
+      always() &&
+      needs.authorize.result == 'success' &&
+      (needs.authorize.outputs.eligible == 'true' || needs.approval.result == 'success')
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      id-token: write
+      contents: read
+      statuses: write
+      pull-requests: write
+    env:
+      SOURCE_VERSION: ${{ needs.authorize.outputs.source_version }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Verify review is current
+        id: preflight
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          review="$(./.github/scripts/security-review-workflow.sh preflight "$SOURCE_VERSION" "$PR_NUMBER" "$REPOSITORY")"
+          echo "review=$review" >> "$GITHUB_OUTPUT"
+
+      - name: Get credentials
+        if: steps.preflight.outputs.review == 'true'
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: ${{ github.run_id }}-${{ github.run_attempt }}
+          aws-region: us-west-2
+
+      - name: Run security reviewer
+        id: security_review
+        if: steps.preflight.outputs.review == 'true'
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_STATE: open
+        run: |
+          result="$(./.github/scripts/security-review-workflow.sh run-review "$SOURCE_VERSION" "$PR_NUMBER")"
+          printf 'result=%s\n' "$result" >> "$GITHUB_OUTPUT"
+          if [[ "$(jq -r '.outcome' <<< "$result")" == "error" ]]; then
+            jq -r '.error' <<< "$result" >&2
+            exit 1
+          fi
+
+      # A review can outlive its PR; restore closed/merged metadata before publishing.
+      - name: Reconcile pull request state
+        id: reconcile
+        if: always() && steps.security_review.outputs.result != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          publish="$(./.github/scripts/security-review-workflow.sh reconcile "$PR_NUMBER" "$REPOSITORY")"
+          echo "publish=$publish" >> "$GITHUB_OUTPUT"
+
+      # REVIEW_STATUS and REVIEW_FINDINGS_COUNT distinguish blocking,
+      # non-blocking-only, and clean reviews from CodeBuild's success status.
+      - name: Publish security review status
+        if: always() && steps.security_review.outputs.result != '' && steps.reconcile.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          RESULT_JSON: ${{ steps.security_review.outputs.result }}
+        run: |
+          ./.github/scripts/security-review-workflow.sh publish-status \
+            "$RESULT_JSON" "$REPOSITORY" "$PR_NUMBER"
+
+      - name: Update security review report history
+        continue-on-error: true
+        if: always() && steps.security_review.outputs.result != '' && steps.reconcile.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
+          RESULT_JSON: ${{ steps.security_review.outputs.result }}
+        run: |
+          ./.github/scripts/security-review-comment.sh \
+            "$RESULT_JSON" "$REPOSITORY" "$PR_NUMBER" "$GITHUB_SERVER_URL"
+
+  # Closed PRs update the centralized findings index without running a new review.
+  track-closure:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Get credentials
+        uses: aws-actions/configure-aws-credentials@v6.3.0
+        with:
+          role-to-assume: arn:aws:iam::024603541914:role/GitHubOIDCRole
+          role-session-name: ${{ github.run_id }}-${{ github.run_attempt }}
+          aws-region: us-west-2
+
+      - name: Track pull request closure
+        env:
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_STATE: ${{ github.event.pull_request.merged && 'merged' || 'closed' }}
+          PR_TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          source_version="refs/pull/$PR_NUMBER/head^{$PR_HEAD_SHA}"
+          ./.github/scripts/security-review-workflow.sh track-closure \
+            "$source_version" "$PR_NUMBER"
+          echo "Recorded PR #$PR_NUMBER as $PR_STATE at $PR_HEAD_SHA."
