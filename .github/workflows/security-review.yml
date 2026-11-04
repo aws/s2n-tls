@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Get permissions
         id: get_permission
-        uses: octokit/request-action@v2.x
+        uses: octokit/request-action@v3.0.0
         with:
           route: GET /repos/{repo}/collaborators/{author}/permission
           repo: ${{ github.repository }}
