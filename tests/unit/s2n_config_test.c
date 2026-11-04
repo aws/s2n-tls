@@ -1476,9 +1476,12 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config_old));
+            /* config_old has no callback, so the connection holds s2n_default_verify_host
+             * with conn as its data. That function is static, so capture it rather than name it.
+             */
             s2n_verify_host_fn old_verify_host_fn = conn->verify_host_fn;
-            void *old_data_for_verify_host = conn->data_for_verify_host;
             EXPECT_NOT_NULL(old_verify_host_fn);
+            EXPECT_EQUAL(conn->data_for_verify_host, conn);
 
             DEFER_CLEANUP(struct s2n_config *config_bad = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config_bad);
@@ -1492,7 +1495,7 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(conn->config, config_old);
             EXPECT_EQUAL(conn->verify_host_fn, old_verify_host_fn);
-            EXPECT_EQUAL(conn->data_for_verify_host, old_data_for_verify_host);
+            EXPECT_EQUAL(conn->data_for_verify_host, conn);
             EXPECT_NOT_EQUAL(conn->verify_host_fn, s2n_test_reject_verify_host_fn);
             EXPECT_NOT_EQUAL(conn->data_for_verify_host, &bad_data);
 
