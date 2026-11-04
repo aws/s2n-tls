@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::config::Config;
+use s2n_tls::{config::Config, error::ErrorType};
 use s2n_tls_tokio::TlsAcceptor;
 use std::{
     io,
@@ -59,11 +59,8 @@ async fn recv_io_cb_does_not_assume_buffer_initialized() -> Result<(), Box<dyn s
     config.with_system_certs(false)?;
     let acceptor = TlsAcceptor::new(config.build()?);
 
-    let result = acceptor.accept(stream).await;
-    assert!(
-        result.is_err(),
-        "the EOF transport should fail the handshake"
-    );
+    let error = acceptor.accept(stream).await.unwrap_err();
+    assert_eq!(error.kind(), ErrorType::ConnectionClosed);
     assert!(read_called.load(Ordering::Relaxed));
 
     Ok(())
