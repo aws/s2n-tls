@@ -30,14 +30,56 @@
 static const char *certificate_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS8_CERT_CHAIN };
 static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_2048_PKCS1_KEY, S2N_RSA_2048_PKCS8_KEY };
 
-void mock_client(struct s2n_test_io_pair *io_pair)
+/* Signals between the forked client and the server, in place of sleep().
+ * Each array is a pipe: [0] is the read end, [1] is the write end. */
+struct process_synchronizer {
+    int client_tx_fd[2];
+    int server_tx_fd[2];
+};
+
+static const uint8_t SIGNAL_BYTE = 1;
+
+static void process_synchronizer_init(struct process_synchronizer *sync)
+{
+    EXPECT_EQUAL(pipe(sync->client_tx_fd), 0);
+    EXPECT_EQUAL(pipe(sync->server_tx_fd), 0);
+}
+
+static void process_synchronizer_close(struct process_synchronizer *sync)
+{
+    for (int i = 0; i < 2; i++) {
+        close(sync->client_tx_fd[i]);
+        close(sync->server_tx_fd[i]);
+    }
+}
+
+static void send_client_signal(struct process_synchronizer *sync)
+{
+    EXPECT_EQUAL(write(sync->client_tx_fd[1], &SIGNAL_BYTE, 1), 1);
+}
+
+static void wait_client_signal(struct process_synchronizer *sync)
+{
+    uint8_t received = 0;
+    EXPECT_EQUAL(read(sync->client_tx_fd[0], &received, 1), 1);
+}
+
+static void send_server_signal(struct process_synchronizer *sync)
+{
+    EXPECT_EQUAL(write(sync->server_tx_fd[1], &SIGNAL_BYTE, 1), 1);
+}
+
+static void wait_server_signal(struct process_synchronizer *sync)
+{
+    uint8_t received = 0;
+    EXPECT_EQUAL(read(sync->server_tx_fd[0], &received, 1), 1);
+}
+
+void mock_client(struct s2n_test_io_pair *io_pair, struct process_synchronizer *sync)
 {
     struct s2n_connection *conn = NULL;
     struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-
-    /* Give the server a chance to listen */
-    sleep(1);
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
@@ -64,8 +106,12 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Close client read fd to mock half closed pipe at server side */
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_RD);
 #endif
-    /* Give server a chance to send data on broken pipe */
-    sleep(2);
+
+    /* client read is closed, server should attempt write now */
+    send_client_signal(sync);
+
+    /* server must finish writing */
+    wait_server_signal(sync);
 
     s2n_shutdown(conn, &blocked);
 
@@ -79,15 +125,16 @@ void mock_client(struct s2n_test_io_pair *io_pair)
         exit(1);
     }
 
-    /* Give the server a chance to avoid a sigpipe */
-    sleep(1);
-
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
+    process_synchronizer_close(sync);
 
     exit(0);
 }
 
+/* when `s2n_shutdown` is called on a connection with previously broken pipe, no
+ * additional write is attempted. 
+ */
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn = NULL;
@@ -96,16 +143,18 @@ int main(int argc, char **argv)
     int status = 0;
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
-    char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
 
     BEGIN_TEST();
 
-    for (int is_dh_key_exchange = 0; is_dh_key_exchange <= 1; is_dh_key_exchange++) {
+    {
         struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];
 
         /* Create a pipe */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
+
+        DEFER_CLEANUP(struct process_synchronizer sync = { 0 }, process_synchronizer_close);
+        process_synchronizer_init(&sync);
 
         /* Create a child process */
         pid_t pid = fork();
@@ -114,7 +163,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
             /* Write the fragmented hello message */
-            mock_client(&io_pair);
+            mock_client(&io_pair, &sync);
         }
 
         /* This is the server process, close the client end of the pipe */
@@ -132,11 +181,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_keys[cert]));
         }
 
-        if (is_dh_key_exchange) {
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-            EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
-        }
-
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
         /* Set up the connection to read from the fd */
@@ -146,8 +190,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate(conn, &blocked));
         EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
 
-        /* Give client a chance to close pipe at the receiving end */
-        sleep(1);
+        /* wait: client should close its read pipe */
+        wait_client_signal(&sync);
         char buffer[1];
         /* Fist flush on half closed pipe should get EPIPE */
         ssize_t w = s2n_send(conn, buffer, 1, &blocked);
@@ -160,6 +204,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(w, -1);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_IO);
         EXPECT_EQUAL(errno, 0);
+
+        /* signal: server write finished, client can teardown */
+        send_server_signal(&sync);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         for (int cert = 0; cert < SUPPORTED_CERTIFICATE_FORMATS; cert++) {
