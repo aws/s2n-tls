@@ -86,7 +86,7 @@ run_security_review() {
         finish_error "source version and PR number do not match"
     fi
 
-    if [[ "${PR_TITLE+x}" != "x" || "${PR_AUTHOR+x}" != "x" || "${PR_STATE+x}" != "x" ]]; then
+    if [[ -z "${PR_TITLE:-}" || -z "${PR_AUTHOR:-}" || -z "${PR_STATE:-}" ]]; then
         finish_error "required PR metadata is not set"
     fi
 
