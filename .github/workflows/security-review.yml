@@ -4,7 +4,10 @@ on:
   # This event uses the trusted base-branch workflow and reviewer runner.
   # Do not check out or execute PR-controlled code before authorization.
   pull_request_target:
-    branches: [main]
+    # TEMPORARY (do not merge): widens the trigger to the disposable
+    # test-base branch so a pre-merge test PR into it exercises the
+    # reviewer. Revert / delete this branch before merging #6159.
+    branches: [main, WesleyRosenblum/securityreview-testbase]
     types: [opened, synchronize, reopened, closed]
 
 permissions:
