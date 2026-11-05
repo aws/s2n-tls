@@ -27,3 +27,4 @@ jobs:
       - name: Build
         run: |
           .github/s2n_osx.sh
+
