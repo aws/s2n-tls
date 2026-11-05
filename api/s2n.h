@@ -243,7 +243,7 @@ S2N_API extern int s2n_init(void);
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_cleanup(void);
+S2N_API extern __attribute__((deprecated)) int s2n_cleanup(void);
 
 /**
  * Performs a complete deinitialization and cleanup of the s2n-tls library.
@@ -332,9 +332,12 @@ S2N_API extern int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
 /**
  * Callback function type used to get the system time.
  *
+ * @param context A pointer to arbitrary data for use within the callback
+ * @param time_in_ns A pointer that the callback will set to the time in nanoseconds
+ *
  * The function should return 0 on success and -1 on failure.
  */
-typedef int (*s2n_clock_time_nanoseconds)(void *, uint64_t *);
+typedef int (*s2n_clock_time_nanoseconds)(void *context, uint64_t *time_in_ns);
 
 /**
  * Cache callback function that allows the caller to retrieve SSL session data
@@ -575,23 +578,26 @@ S2N_API extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_init_callback)(void);
+typedef int (*s2n_rand_init_callback)(void) __attribute__((deprecated));
 
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_cleanup_callback)(void);
+typedef int (*s2n_rand_cleanup_callback)(void) __attribute__((deprecated));
 
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
+typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size) __attribute__((deprecated));
 
 /**
  * @deprecated No longer used. See `s2n_rand_set_callbacks`.
  */
-typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
+typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size) __attribute__((deprecated));
 
+/* The callback typedefs above are deprecated, and this declaration uses them. */
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
 /**
  * Allows the caller to override s2n-tls's entropy functions.
  * 
@@ -605,8 +611,9 @@ typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
  * @param rand_mix_callback The s2n_rand_mix_callback
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback, s2n_rand_cleanup_callback rand_cleanup_callback,
+S2N_API extern __attribute__((deprecated)) int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback, s2n_rand_cleanup_callback rand_cleanup_callback,
         s2n_rand_seed_callback rand_seed_callback, s2n_rand_mix_callback rand_mix_callback);
+#pragma GCC diagnostic pop
 
 /**
  * TLS extensions supported by s2n-tls
@@ -807,7 +814,7 @@ S2N_API extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *conf
  * @param private_key_pem A byte array of a PEM encoded key.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
+S2N_API extern __attribute__((deprecated)) int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cert_chain_pem, const char *private_key_pem);
 
 /**
  * The preferred method of associating a certificate chain and private key pair with an `s2n_config` object.
@@ -1234,7 +1241,7 @@ S2N_API extern int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_
  * @param data Data for the extension
  * @param length Length of the `data` buffer
  */
-S2N_API extern int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
+S2N_API extern __attribute__((deprecated)) int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_type type, const uint8_t *data, uint32_t length);
 
 /**
  * Allows the caller to set a TLS Maximum Fragment Length extension that will be used
@@ -2539,7 +2546,7 @@ S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *co
  * prepended by a 3 byte network-endian length value. Note that this format is used regardless of the connection's
  * protocol version.
  *
- * @warning The buffer pointed to by `cert_chain_out` shares its lifetime with the s2n_connection object.
+ * @warning The buffer pointed to by `der_cert_chain_out` shares its lifetime with the s2n_connection object.
  *
  * @param conn A pointer to the s2n_connection object
  * @param der_cert_chain_out A pointer that's set to the client certificate chain.
@@ -3452,7 +3459,7 @@ S2N_API extern int s2n_connection_is_valid_for_cipher_preferences(struct s2n_con
  * @param conn A pointer to the s2n connection
  * @returns A string indicating the elliptic curve used during ECDHE key exchange. The string "NONE" is returned if no curve was used.
  */
-S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn);
+S2N_API extern __attribute__((deprecated)) const char *s2n_connection_get_curve(struct s2n_connection *conn);
 
 /**
  * Function to get the human readable KEM name for the connection.
@@ -3464,7 +3471,7 @@ S2N_API extern const char *s2n_connection_get_curve(struct s2n_connection *conn)
  * @param conn A pointer to the s2n connection
  * @returns A human readable string for the KEM group. If there is no KEM configured returns "NONE"
  */
-S2N_API extern const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
+S2N_API extern __attribute__((deprecated)) const char *s2n_connection_get_kem_name(struct s2n_connection *conn);
 
 /**
  * Function to get the human readable KEM group name for the connection.

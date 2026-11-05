@@ -146,7 +146,10 @@ int s2n_cert_chain_and_key_set_private_key(struct s2n_cert_chain_and_key *cert_a
 
     /* Put the private key pem in a stuffer */
     POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
+    /* strlen() is size_t. A private key PEM cannot exceed UINT32_MAX. */
+    const size_t private_key_pem_len = strlen(private_key_pem);
+    POSIX_ENSURE(private_key_pem_len <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, (uint32_t) private_key_pem_len));
 
     POSIX_GUARD(s2n_cert_chain_and_key_set_private_key_from_stuffer(cert_and_key, &key_in_stuffer, &key_out_stuffer));
 
@@ -224,7 +227,10 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
         return 0;
     }
 
-    const int num_san_names = sk_GENERAL_NAME_num(san_names);
+    /* sk_GENERAL_NAME_num() is int on OpenSSL and size_t on AWS-LC. */
+    const size_t san_name_count = (size_t) sk_GENERAL_NAME_num(san_names);
+    POSIX_ENSURE(san_name_count <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    const int num_san_names = (int) san_name_count;
     for (int i = 0; i < num_san_names; i++) {
         GENERAL_NAME *san_name = sk_GENERAL_NAME_value(san_names, i);
         if (!san_name) {
@@ -241,12 +247,14 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
                 POSIX_BAIL(S2N_ERR_NULL_SANS);
             }
 
-            if (s2n_alloc(san_blob, san_str_len)) {
+            /* DNS SAN lengths fit in uint32_t. Reject anything that does not. */
+            POSIX_ENSURE(san_str_len <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+            if (s2n_alloc(san_blob, (uint32_t) san_str_len)) {
                 S2N_ERROR_PRESERVE_ERRNO();
             }
 
             POSIX_CHECKED_MEMCPY(san_blob->data, san_str, san_str_len);
-            san_blob->size = san_str_len;
+            san_blob->size = (uint32_t) san_str_len;
             /* normalize san_blob to lowercase */
             POSIX_GUARD(s2n_blob_char_to_lower(san_blob));
         }
@@ -782,9 +790,8 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
      * X509_get_ext_count returns the number of extensions in the x509 certificate.
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext_count.html.
      */
-    int ext_count_value = X509_get_ext_count(x509_cert);
-    POSIX_ENSURE_GT(ext_count_value, 0);
-    size_t ext_count = (size_t) ext_count_value;
+    int ext_count = X509_get_ext_count(x509_cert);
+    POSIX_ENSURE_GT(ext_count, 0);
 
     /* OBJ_txt2obj() converts the input text string into an ASN1_OBJECT structure.
      * If no_name is 0 then long names and short names will be interpreted as well as numerical forms.
@@ -794,7 +801,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
     DEFER_CLEANUP(ASN1_OBJECT *asn1_obj_in = OBJ_txt2obj((const char *) oid, 0), s2n_asn1_obj_free);
     POSIX_ENSURE_REF(asn1_obj_in);
 
-    for (size_t loc = 0; loc < ext_count; loc++) {
+    for (int loc = 0; loc < ext_count; loc++) {
         S2N_X509_CONST ASN1_OCTET_STRING *asn1_str = NULL;
         bool match_found = false;
 
@@ -930,7 +937,9 @@ S2N_RESULT s2n_cert_info_format_public_key_string(const struct s2n_cert_info *ce
         for (size_t i = 0; i < s2n_array_len(static_mappings); i++) {
             if (public_key_nid != NID_undef && public_key_nid == static_mappings[i].nid) {
                 result_str = static_mappings[i].str;
-                result_size = strlen(result_str) + 1;
+                const size_t result_len = strlen(result_str) + 1;
+                RESULT_ENSURE(result_len <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
+                result_size = (uint32_t) result_len;
                 break;
             }
         }
