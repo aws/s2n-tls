@@ -528,5 +528,37 @@ int main(int argc, char **argv)
         }
     };
 
+    /* A TLS1.2 client that requires client auth rejects server-driven resumption
+     * (which would otherwise yield the undefined NEGOTIATED|CLIENT_AUTH row). */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, S2N_CERT_AUTH_REQUIRED));
+
+        /* State reached after a resumed TLS1.2 ServerHello. */
+        client->actual_protocol_version = S2N_TLS12;
+        client->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+        client->client_session_resumed = 1;
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_conn_set_handshake_type(client),
+                S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_SESSION_RESUMPTION_MODE);
+    };
+
+    /* A client without required client auth resumes normally (defined row). */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+
+        client->actual_protocol_version = S2N_TLS12;
+        client->secure->cipher_suite = &s2n_rsa_with_aes_128_gcm_sha256;
+        client->client_session_resumed = 1;
+
+        EXPECT_SUCCESS(s2n_conn_set_handshake_type(client));
+        EXPECT_FALSE(IS_FULL_HANDSHAKE(client));
+        EXPECT_EQUAL(client->handshake.handshake_type, NEGOTIATED);
+    };
+
     END_TEST();
 }
