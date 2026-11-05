@@ -117,6 +117,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
          */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
         struct s2n_ecc_evp_params *hybrid_ecc = &conn->kex_params.client_kem_group_params.ecc_params;
+        POSIX_ENSURE_REF(hybrid_ecc);
         const struct s2n_ecc_named_curve *hybrid_curve = hybrid_ecc->negotiated_curve;
 
         if (hybrid_curve && hybrid_ecc->evp_pkey != NULL
