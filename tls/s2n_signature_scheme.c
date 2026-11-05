@@ -388,31 +388,6 @@ const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20200207[] = {
     &s2n_ecdsa_sha1,
 };
 
-/* Same as 20200207, but without sha224 */
-const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20261021[] = {
-    /* RSA PSS */
-    &s2n_rsa_pss_pss_sha256,
-    &s2n_rsa_pss_pss_sha384,
-    &s2n_rsa_pss_pss_sha512,
-    &s2n_rsa_pss_rsae_sha256,
-    &s2n_rsa_pss_rsae_sha384,
-    &s2n_rsa_pss_rsae_sha512,
-
-    /* RSA PKCS1 */
-    &s2n_rsa_pkcs1_sha256,
-    &s2n_rsa_pkcs1_sha384,
-    &s2n_rsa_pkcs1_sha512,
-
-    /* ECDSA */
-    &s2n_ecdsa_sha256,
-    &s2n_ecdsa_sha384,
-    &s2n_ecdsa_sha512,
-
-    /* SHA-1 Legacy */
-    &s2n_rsa_pkcs1_sha1,
-    &s2n_ecdsa_sha1,
-};
-
 /* Same as above, but without sha1 */
 const struct s2n_signature_scheme *const s2n_sig_scheme_pref_list_20200207_no_sha1[] = {
     /* RSA PSS */
@@ -543,11 +518,6 @@ const struct s2n_signature_preferences s2n_signature_preferences_20140601 = {
 const struct s2n_signature_preferences s2n_signature_preferences_20200207 = {
     .count = s2n_array_len(s2n_sig_scheme_pref_list_20200207),
     .signature_schemes = s2n_sig_scheme_pref_list_20200207,
-};
-
-const struct s2n_signature_preferences s2n_signature_preferences_20261021 = {
-    .count = s2n_array_len(s2n_sig_scheme_pref_list_20261021),
-    .signature_schemes = s2n_sig_scheme_pref_list_20261021,
 };
 
 const struct s2n_signature_preferences s2n_signature_preferences_20200207_no_sha1 = {
