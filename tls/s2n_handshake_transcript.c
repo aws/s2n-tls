@@ -46,6 +46,39 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
     struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
     POSIX_ENSURE_REF(hashes);
 
+    /* Lazily narrow the required transcript hashes to only those the security
+     * policy could need, so that unnecessary hashes are not updated for the rest
+     * of the handshake. This is done at the first transcript update, when the
+     * effective security policy is final, rather than in the policy setters:
+     * tests (and potentially applications) write conn->security_policy_override
+     * directly, bypassing any setter hooks.
+     *
+     * The effective policy is resolved like s2n_connection_get_security_policy
+     * (override first, then config), but inline: a missing config or policy is
+     * not an error here and just keeps the safe default of requiring all hashes.
+     *
+     * Note that s2n_conn_update_required_handshake_hashes later overwrites this
+     * bitmap once negotiation results are known. For TLS1.2 client auth it may
+     * re-enable ALL hashes, including some not in the policy's narrowed set,
+     * whose states will then be missing these earlier messages. That is still
+     * correct: the TLS1.2 CertificateVerify transcript hash is defined by the
+     * negotiated signature scheme, which is always chosen from the policy's
+     * signature preferences (see s2n_signature_algorithm_recv), and all hashes
+     * of TLS1.2-eligible schemes in those preferences are in the narrowed set
+     * and therefore have the full transcript. The extra re-enabled hash states
+     * are updated wastefully from that point on, but never read. */
+    if (!conn->handshake.required_hash_algs_narrowed) {
+        conn->handshake.required_hash_algs_narrowed = 1;
+        const struct s2n_security_policy *policy = conn->security_policy_override;
+        if (policy == NULL && conn->config != NULL) {
+            policy = conn->config->security_policy;
+        }
+        if (policy != NULL) {
+            POSIX_GUARD_RESULT(s2n_security_policy_get_required_hash_algs(policy,
+                    conn->handshake.required_hash_algs));
+        }
+    }
+
     /* MD5 and SHA1 are not permitted in FIPS mode, but an exception is made in
      * order to continue to support TLS1.0 and TLS1.1. NIST SP 800-52r1 approves
      * their continued use for the signature check in the CertificateVerify message
