@@ -15,6 +15,7 @@
 
 #include "tls/extensions/s2n_client_key_share.h"
 
+#include "crypto/s2n_openssl.h"
 #include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
@@ -98,7 +99,38 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
          **/
         client_params->negotiated_curve = server_curve;
     } else {
+        /* The standalone share always uses the most preferred curve.
+         * The optimization below never changes which curve is
+         * offered, only whether a key has to be generated for it.
+         */
         client_params->negotiated_curve = ecc_pref->ecc_curves[0];
+
+        /* The PQ hybrid share is generated first and contains a classical ECDHE key.
+         * If that key is already on the curve we want, reuse it instead of generating
+         * a second key on the same curve.
+         */
+
+        /* EVP_PKEY_up_ref was added in OpenSSL 1.1.0 and is absent from OpenSSL 1.0.2,
+         * which s2n still supports. s2n normalizes LibreSSL's OPENSSL_VERSION_NUMBER in
+         * s2n_openssl.h, so this check is also correct for LibreSSL, and BoringSSL and
+         * AWS-LC both provide EVP_PKEY_up_ref.
+         */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+        struct s2n_ecc_evp_params *hybrid_ecc = &conn->kex_params.client_kem_group_params.ecc_params;
+        POSIX_ENSURE_REF(hybrid_ecc);
+        const struct s2n_ecc_named_curve *hybrid_curve = hybrid_ecc->negotiated_curve;
+
+        if (hybrid_curve && hybrid_ecc->evp_pkey != NULL
+                && hybrid_curve == ecc_pref->ecc_curves[0]) {
+            /*
+             * Assigning evp_pkey is what skips the keygen: s2n_ecdhe_parameters_send
+             * below only generates a key when evp_pkey is NULL, so it now just
+             * serializes this key into the standalone KeyShareEntry.
+             */
+            POSIX_GUARD_OSSL(EVP_PKEY_up_ref(hybrid_ecc->evp_pkey), S2N_ERR_ECDHE_GEN_KEY);
+            client_params->evp_pkey = hybrid_ecc->evp_pkey;
+        }
+#endif
     }
     POSIX_GUARD(s2n_ecdhe_parameters_send(client_params, out));
 
