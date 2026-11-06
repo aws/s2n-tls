@@ -83,6 +83,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         server_conn->actual_protocol_version = S2N_TLS13;
         client_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_skip_handshake(server_conn));
+        EXPECT_OK(s2n_skip_handshake(client_conn));
 
         uint8_t zero_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
 
