@@ -64,6 +64,32 @@ pub struct FrozenHandshakeRecord {
     #[serde(default)]
     pub handshake_failure_count: u64,
 
+    /// Number of connection objects associated with this subscriber's configs at
+    /// export time, including connections whose handshakes have not started.
+    /// A connection remains counted until it is dropped or changes configs;
+    /// completing a handshake or shutting down does not remove it.
+    /// Synthetic traffic is included.
+    #[serde(default)]
+    pub connection_concurrency: u64,
+
+    /// Maximum `connection_concurrency` since the previous sample (or subscriber
+    /// creation for the first sample). Each export resets the peak to the current
+    /// count, so connections still associated at the boundary count in both intervals.
+    #[serde(default)]
+    pub p100_connection_concurrency: u64,
+
+    /// Number of handshakes in progress at export time. Counted from the first
+    /// negotiation poll until it returns success or failure, or the connection is
+    /// dropped or reset. Includes handshakes waiting for I/O or async callbacks
+    /// and synthetic traffic. Changing configs transfers the count between subscribers.
+    #[serde(default)]
+    pub handshake_concurrency: u64,
+
+    /// Maximum `handshake_concurrency` since the previous sample (or subscriber
+    /// creation for the first sample). Each export resets the peak to the current count.
+    #[serde(default)]
+    pub p100_handshake_concurrency: u64,
+
     #[serde(default)]
     pub alerts: FrozenCounter<DEFINED_ALERTS_COUNT, Alert>,
 
@@ -155,6 +181,10 @@ impl Default for FrozenHandshakeRecord {
             freeze_time: SystemTime::UNIX_EPOCH,
             handshake_success_count: 0,
             handshake_failure_count: 0,
+            connection_concurrency: 0,
+            p100_connection_concurrency: 0,
+            handshake_concurrency: 0,
+            p100_handshake_concurrency: 0,
             alerts: FrozenCounter::default(),
             negotiated_protocols: FrozenCounter::default(),
             negotiated_ciphers: FrozenCounter::default(),
@@ -321,6 +351,16 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             names::HANDSHAKE_FAILURE_COUNT,
             &self.handshake_failure_count,
         );
+        writer.value(names::CONNECTION_CONCURRENCY, &self.connection_concurrency);
+        writer.value(
+            names::P100_CONNECTION_CONCURRENCY,
+            &self.p100_connection_concurrency,
+        );
+        writer.value(names::HANDSHAKE_CONCURRENCY, &self.handshake_concurrency);
+        writer.value(
+            names::P100_HANDSHAKE_CONCURRENCY,
+            &self.p100_handshake_concurrency,
+        );
         write_counter(&self.alerts, &names::ALERTS, writer);
         // The latency metrics only accumulate for successful handshakes --
         // failures are recorded and skipped before any timing is added -- so
@@ -360,6 +400,10 @@ mod tests {
         let record: FrozenHandshakeRecord = serde_json::from_str(json).unwrap();
 
         assert_eq!(record.handshake_success_count, 10);
+        assert_eq!(record.connection_concurrency, 0);
+        assert_eq!(record.p100_connection_concurrency, 0);
+        assert_eq!(record.handshake_concurrency, 0);
+        assert_eq!(record.p100_handshake_concurrency, 0);
         assert_eq!(record.freeze_time, SystemTime::UNIX_EPOCH);
 
         assert_eq!(record.negotiated_protocols, FrozenCounter::default());
