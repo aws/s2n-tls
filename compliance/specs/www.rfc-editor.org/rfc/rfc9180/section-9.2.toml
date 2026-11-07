@@ -1,0 +1,27 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-9.2"
+
+# 9.2.  Security Requirements on a KEM Used within HPKE
+#
+# A KEM used within HPKE MUST allow HPKE to satisfy its desired
+# security properties described in Section 9.1.  Section 9.6 lists
+# requirements concerning domain separation.
+# 
+# In particular, the KEM shared secret MUST be a uniformly random byte
+# string of length Nsecret.  This means, for instance, that it would
+# not be sufficient if the KEM shared secret is only uniformly random
+# as an element of some set prior to its encoding as a byte string.
+
+[[spec]]
+level = "MUST"
+quote = '''
+A KEM used within HPKE MUST allow HPKE to satisfy its desired
+security properties described in Section 9.1.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In particular, the KEM shared secret MUST be a uniformly random byte
+string of length Nsecret.
+'''
+

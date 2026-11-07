@@ -1,0 +1,35 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-5.1.2"
+
+# 5.1.2.  Authentication Using a Pre-Shared Key
+#
+# This variant extends the base mechanism by allowing the recipient to
+# authenticate that the sender possessed a given PSK.  The PSK also
+# improves confidentiality guarantees in certain adversary models, as
+# described in more detail in Section 9.1.  We assume that both parties
+# have been provisioned with both the PSK value psk and another byte
+# string psk_id that is used to identify which PSK should be used.
+# 
+# The primary difference from the base case is that the psk and psk_id
+# values are used as ikm inputs to the KDF (instead of using the empty
+# string).
+# 
+# The PSK MUST have at least 32 bytes of entropy and SHOULD be of
+# length Nh bytes or longer.  See Section 9.5 for a more detailed
+# discussion.
+# 
+# def SetupPSKS(pkR, info, psk, psk_id):
+#   shared_secret, enc = Encap(pkR)
+#   return enc, KeyScheduleS(mode_psk, shared_secret, info,
+#                            psk, psk_id)
+# 
+# def SetupPSKR(enc, skR, info, psk, psk_id):
+#   shared_secret = Decap(enc, skR)
+#   return KeyScheduleR(mode_psk, shared_secret, info, psk, psk_id)
+
+[[spec]]
+level = "MUST"
+quote = '''
+The PSK MUST have at least 32 bytes of entropy and SHOULD be of
+length Nh bytes or longer.
+'''
+

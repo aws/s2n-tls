@@ -1,0 +1,78 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-5"
+
+# 5.  Hybrid Public Key Encryption
+#
+# In this section, we define a few HPKE variants.  All variants take a
+# recipient public key and a sequence of plaintexts pt and produce an
+# encapsulated key enc and a sequence of ciphertexts ct.  These outputs
+# are constructed so that only the holder of skR can decapsulate the
+# key from enc and decrypt the ciphertexts.  All the algorithms also
+# take an info parameter that can be used to influence the generation
+# of keys (e.g., to fold in identity information) and an aad parameter
+# that provides additional authenticated data to the AEAD algorithm in
+# use.
+# 
+# In addition to the base case of encrypting to a public key, we
+# include three authenticated variants: one that authenticates
+# possession of a pre-shared key, one that authenticates possession of
+# a KEM private key, and one that authenticates possession of both a
+# pre-shared key and a KEM private key.  All authenticated variants
+# contribute additional keying material to the encryption operation.
+# The following one-byte values will be used to distinguish between
+# modes:
+# 
+#                       +===============+=======+
+#                       | Mode          | Value |
+#                       +===============+=======+
+#                       | mode_base     | 0x00  |
+#                       +---------------+-------+
+#                       | mode_psk      | 0x01  |
+#                       +---------------+-------+
+#                       | mode_auth     | 0x02  |
+#                       +---------------+-------+
+#                       | mode_auth_psk | 0x03  |
+#                       +---------------+-------+
+# 
+#                          Table 1: HPKE Modes
+# 
+# All these cases follow the same basic two-step pattern:
+# 
+# 1.  Set up an encryption context that is shared between the sender
+#     and the recipient.
+# 
+# 2.  Use that context to encrypt or decrypt content.
+# 
+# A _context_ is an implementation-specific structure that encodes the
+# AEAD algorithm and key in use, and manages the nonces used so that
+# the same nonce is not used with multiple plaintexts.  It also has an
+# interface for exporting secret values, as described in Section 5.3.
+# See Section 5.2 for a description of this structure and its
+# interfaces.  HPKE decryption fails when the underlying AEAD
+# decryption fails.
+# 
+# The constructions described here presume that the relevant non-
+# private parameters (enc, psk_id, etc.) are transported between the
+# sender and the recipient by some application making use of HPKE.
+# Moreover, a recipient with more than one public key needs some way of
+# determining which of its public keys was used for the encapsulation
+# operation.  As an example, applications may send this information
+# alongside a ciphertext from the sender to the recipient.
+# Specification of such a mechanism is left to the application.  See
+# Section 10 for more details.
+# 
+# Note that some KEMs may not support AuthEncap() or AuthDecap().  For
+# such KEMs, only mode_base or mode_psk are supported.  Future
+# specifications which define new KEMs MUST indicate whether these
+# modes are supported.  See Section 7.1.5 for more details.
+# 
+# The procedures described in this section are laid out in a Python-
+# like pseudocode.  The algorithms in use are left implicit.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Future
+specifications which define new KEMs MUST indicate whether these
+modes are supported.
+'''
+
