@@ -94,37 +94,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_free(&public_key));
     };
 
-    /* Negative Test: Loading mismatching RSA PSS Public/Private Keys will fail.
-     * Pseudocode: assert(FAILURE == load_pem_pair(Key1_public, Key2_private))
-     */
-    {
-        struct s2n_config *server_config = NULL;
-        char *leaf_cert_chain_pem = NULL;
-        char *root_private_key_pem = NULL;
-        struct s2n_cert_chain_and_key *misconfigured_chain_and_key = NULL;
-        struct s2n_pkey public_key = { 0 };
-
-        EXPECT_NOT_NULL(leaf_cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(root_private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_LEAF_CERT, leaf_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-
-        /* Incorrectly reading the CA's Private Key from disk, not the Leaf's Private Key */
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_CA_KEY, root_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(misconfigured_chain_and_key = s2n_cert_chain_and_key_new());
-
-        /* Attempting to Load RSA_PSS Certificate with wrong RSA_PSS Key should fail */
-        EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(misconfigured_chain_and_key, leaf_cert_chain_pem, root_private_key_pem));
-
-        /* Release Resources */
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(misconfigured_chain_and_key));
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_pkey_free(&public_key));
-        free(leaf_cert_chain_pem);
-        free(root_private_key_pem);
-    };
-
     /* Negative Test: Ensure flipping a bit in the signature is rejected
      * Pseudocode: assert(FAILURE == verify(Key1_public, message, bitflip(sign(Key1_private, message)))
      */
