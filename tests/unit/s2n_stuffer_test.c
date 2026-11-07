@@ -342,5 +342,114 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_stuffer_wipe_n wipes from the high water mark down and resets it */
+    {
+        struct s2n_stuffer test = { 0 };
+        EXPECT_FAILURE(s2n_stuffer_wipe_n(NULL, 1));
+
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&test, 32));
+
+        /* Partial wipe while high_water_mark == write_cursor. */
+        {
+            for (uint32_t i = 0; i < test.blob.size; i++) {
+                test.blob.data[i] = 0x5A;
+            }
+            uint8_t data[] = { 1, 2, 3, 4, 5, 6, 7, 8 };
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, data, sizeof(data)));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&test, 6));
+            EXPECT_EQUAL(test.high_water_mark, sizeof(data));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, 3));
+            EXPECT_EQUAL(test.write_cursor, 5);
+            EXPECT_EQUAL(test.read_cursor, 5);
+            EXPECT_EQUAL(test.high_water_mark, 5);
+            EXPECT_BYTEARRAY_EQUAL(test.blob.data, data, 5);
+            for (uint32_t i = 5; i < sizeof(data); i++) {
+                EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+            }
+            for (uint32_t i = sizeof(data); i < test.blob.size; i++) {
+                EXPECT_EQUAL(test.blob.data[i], 0x5A);
+            }
+        };
+
+        /* Stale bytes above the write cursor are wiped, including a partial rewind. */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&test));
+            for (uint32_t i = 0; i < test.blob.size; i++) {
+                test.blob.data[i] = 0x5A;
+            }
+            uint8_t first[] = { 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77, 0x88, 0x99, 0xAA };
+            uint8_t second[] = { 0xAB, 0xCD, 0xEF, 0x12 };
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, first, sizeof(first)));
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, second, sizeof(second)));
+            EXPECT_EQUAL(test.write_cursor, sizeof(second));
+            EXPECT_EQUAL(test.high_water_mark, sizeof(first));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, 1));
+            EXPECT_EQUAL(test.write_cursor, sizeof(second) - 1);
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.high_water_mark, sizeof(second) - 1);
+            EXPECT_BYTEARRAY_EQUAL(test.blob.data, second, sizeof(second) - 1);
+            for (uint32_t i = sizeof(second) - 1; i < sizeof(first); i++) {
+                EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+            }
+            for (uint32_t i = sizeof(first); i < test.blob.size; i++) {
+                EXPECT_EQUAL(test.blob.data[i], 0x5A);
+            }
+        };
+
+        /* wipe_n(0) still clears bytes left behind after the write cursor is rewound. */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&test));
+            for (uint32_t i = 0; i < test.blob.size; i++) {
+                test.blob.data[i] = 0x5A;
+            }
+            uint8_t data[] = { 9, 8, 7, 6, 5, 4 };
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, data, sizeof(data)));
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
+            EXPECT_EQUAL(test.write_cursor, 0);
+            EXPECT_EQUAL(test.high_water_mark, sizeof(data));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, 0));
+            EXPECT_EQUAL(test.write_cursor, 0);
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.high_water_mark, 0);
+            EXPECT_TRUE(s2n_stuffer_is_wiped(&test));
+            for (uint32_t i = 0; i < sizeof(data); i++) {
+                EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+            }
+            for (uint32_t i = sizeof(data); i < test.blob.size; i++) {
+                EXPECT_EQUAL(test.blob.data[i], 0x5A);
+            }
+        };
+
+        /* A request larger than the write cursor wipes back to zero, including stale bytes. */
+        {
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&test));
+            for (uint32_t i = 0; i < test.blob.size; i++) {
+                test.blob.data[i] = 0x5A;
+            }
+            uint8_t data[] = { 1, 2, 3, 4, 5 };
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, data, sizeof(data)));
+            EXPECT_SUCCESS(s2n_stuffer_rewrite(&test));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&test, data, 2));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&test, 2));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&test, 100));
+            EXPECT_EQUAL(test.write_cursor, 0);
+            EXPECT_EQUAL(test.read_cursor, 0);
+            EXPECT_EQUAL(test.high_water_mark, 0);
+            for (uint32_t i = 0; i < sizeof(data); i++) {
+                EXPECT_EQUAL(test.blob.data[i], S2N_WIPE_PATTERN);
+            }
+            for (uint32_t i = sizeof(data); i < test.blob.size; i++) {
+                EXPECT_EQUAL(test.blob.data[i], 0x5A);
+            }
+        };
+
+        EXPECT_SUCCESS(s2n_stuffer_free(&test));
+    }
+
     END_TEST();
 }
