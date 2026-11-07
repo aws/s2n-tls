@@ -1,0 +1,88 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.2.1"
+
+# 6.2.1.  Client Greasing
+#
+# If the client attempts to connect to a server and does not have an
+# ECHConfig structure available for the server, it SHOULD send a GREASE
+# [RFC8701] "encrypted_client_hello" extension in the first ClientHello
+# as follows:
+# 
+# *  Set the config_id field to a random byte.
+# 
+# *  Set the cipher_suite field to a supported
+#    HpkeSymmetricCipherSuite.  The selection SHOULD vary, so that all
+#    plausible configurations are exercised, but MAY be held constant
+#    for successive connections to the same server in the same session.
+#    Note: A "plausible" configuration is one that an observer might
+#    expect to see.  A client that fully supports ECH will have a set
+#    of supported HPKE cipher suites to select from.  A client that
+#    only supports GREASE ECH has no such list, so it should select
+#    from a set of values that are in common usage.
+# 
+# *  Set the enc field to a randomly generated valid encapsulated
+#    public key output by the HPKE KEM.
+# 
+# *  Set the payload field to a randomly generated string of L+C bytes,
+#    where C is the ciphertext expansion of the selected AEAD scheme
+#    and L is the size of the EncodedClientHelloInner the client would
+#    compute when offering ECH, padded according to Section 6.1.3.
+# 
+# If sending a second ClientHello in response to a HelloRetryRequest,
+# the client copies the entire "encrypted_client_hello" extension from
+# the first ClientHello.  The identical value will reveal to an
+# observer that the value of "encrypted_client_hello" was fake, but
+# this only occurs if there is a HelloRetryRequest.
+# 
+# If the server sends an "encrypted_client_hello" extension in either
+# HelloRetryRequest or EncryptedExtensions, the client MUST check the
+# extension syntactically and abort the connection with a
+# "decode_error" alert if it is invalid.  It otherwise ignores the
+# extension.  It MUST NOT save the "retry_configs" value in
+# EncryptedExtensions.
+# 
+# Offering a GREASE extension is not considered offering an encrypted
+# ClientHello for purposes of requirements in Section 6.1.  In
+# particular, the client MAY offer to resume sessions established
+# without ECH.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If the client attempts to connect to a server and does not have an
+ECHConfig structure available for the server, it SHOULD send a GREASE
+[RFC8701] "encrypted_client_hello" extension in the first ClientHello
+as follows:
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The selection SHOULD vary, so that all
+plausible configurations are exercised, but MAY be held constant
+for successive connections to the same server in the same session.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server sends an "encrypted_client_hello" extension in either
+HelloRetryRequest or EncryptedExtensions, the client MUST check the
+extension syntactically and abort the connection with a
+"decode_error" alert if it is invalid.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST NOT save the "retry_configs" value in
+EncryptedExtensions.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+In
+particular, the client MAY offer to resume sessions established
+without ECH.
+'''
+

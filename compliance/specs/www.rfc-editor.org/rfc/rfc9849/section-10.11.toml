@@ -1,0 +1,17 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-10.11"
+
+# 10.11.  Padding Policy
+#
+# Variations in the length of the ClientHelloInner ciphertext could
+# leak information about the corresponding plaintext.  Section 6.1.3
+# describes a RECOMMENDED padding mechanism for clients aimed at
+# reducing potential information leakage.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Section 6.1.3
+describes a RECOMMENDED padding mechanism for clients aimed at
+reducing potential information leakage.
+'''
+

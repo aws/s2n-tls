@@ -1,0 +1,75 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.1.3"
+
+# 6.1.3.  Recommended Padding Scheme
+#
+# If the ClientHelloInner is encrypted without padding, then the length
+# of the ClientHelloOuter.payload can leak information about
+# ClientHelloInner.  In order to prevent this, the
+# EncodedClientHelloInner structure has a padding field.  This section
+# describes a deterministic mechanism for computing the required amount
+# of padding based on the following observation: individual extensions
+# can reveal sensitive information through their length.  Thus, each
+# extension in the inner ClientHello may require different amounts of
+# padding.  This padding may be fully determined by the client's
+# configuration or may require server input.
+# 
+# By way of example, clients typically support a small number of
+# application profiles.  For instance, a browser might support HTTP
+# with ALPN values ["http/1.1", "h2"] and WebRTC media with ALPNs
+# ["webrtc", "c-webrtc"].  Clients SHOULD pad this extension by
+# rounding up to the total size of the longest ALPN extension across
+# all application profiles.  The target padding length of most
+# ClientHello extensions can be computed in this way.
+# 
+# In contrast, clients do not know the longest SNI value in the client-
+# facing server's anonymity set without server input.  Clients SHOULD
+# use the ECHConfig's maximum_name_length field as follows, where M is
+# the maximum_name_length value.
+# 
+# 1.  If the ClientHelloInner contained a "server_name" extension with
+#     a name of length D, add max(0, M - D) bytes of padding.
+# 
+# 2.  If the ClientHelloInner did not contain a "server_name" extension
+#     (e.g., if the client is connecting to an IP address), add M + 9
+#     bytes of padding.  This is the length of a "server_name"
+#     extension with an M-byte name.
+# 
+# Finally, the client SHOULD pad the entire message as follows:
+# 
+# 1.  Let L be the length of the EncodedClientHelloInner with all the
+#     padding computed so far.
+# 
+# 2.  Let N = 31 - ((L - 1) % 32) and add N bytes of padding.
+# 
+# This rounds the length of EncodedClientHelloInner up to a multiple of
+# 32 bytes, reducing the set of possible lengths across all clients.
+# 
+# In addition to padding ClientHelloInner, clients and servers will
+# also need to pad all other handshake messages that have sensitive-
+# length fields.  For example, if a client proposes ALPN values in
+# ClientHelloInner, the server-selected value will be returned in an
+# EncryptedExtension, so that handshake message also needs to be padded
+# using TLS record layer padding.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients SHOULD pad this extension by
+rounding up to the total size of the longest ALPN extension across
+all application profiles.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients SHOULD
+use the ECHConfig's maximum_name_length field as follows, where M is
+the maximum_name_length value.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Finally, the client SHOULD pad the entire message as follows:
+'''
+

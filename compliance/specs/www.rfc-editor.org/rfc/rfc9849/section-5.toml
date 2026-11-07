@@ -1,0 +1,130 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-5"
+
+# 5.  The "encrypted_client_hello" Extension
+#
+# To offer ECH, the client sends an "encrypted_client_hello" extension
+# in the ClientHelloOuter.  When it does, it MUST also send the
+# extension in ClientHelloInner.
+# 
+#     enum {
+#        encrypted_client_hello(0xfe0d), (65535)
+#     } ExtensionType;
+# 
+# The payload of the extension has the following structure:
+# 
+#     enum { outer(0), inner(1) } ECHClientHelloType;
+# 
+#     struct {
+#        ECHClientHelloType type;
+#        select (ECHClientHello.type) {
+#            case outer:
+#                HpkeSymmetricCipherSuite cipher_suite;
+#                uint8 config_id;
+#                opaque enc<0..2^16-1>;
+#                opaque payload<1..2^16-1>;
+#            case inner:
+#                Empty;
+#        };
+#     } ECHClientHello;
+# 
+# The outer extension uses the outer variant and the inner extension
+# uses the inner variant.  The inner extension has an empty payload,
+# which is included because TLS servers are not allowed to provide
+# extensions in ServerHello which were not included in ClientHello.
+# The outer extension has the following fields:
+# 
+# config_id:  The ECHConfigContents.key_config.config_id for the chosen
+#    ECHConfig.
+# 
+# cipher_suite:  The cipher suite used to encrypt ClientHelloInner.
+#    This MUST match a value provided in the corresponding
+#    ECHConfigContents.key_config.cipher_suites list.
+# 
+# enc:  The HPKE encapsulated key used by servers to decrypt the
+#    corresponding payload field.  This field is empty in a
+#    ClientHelloOuter sent in response to HelloRetryRequest.
+# 
+# payload:  The serialized and encrypted EncodedClientHelloInner
+#    structure, encrypted using HPKE as described in Section 6.1.
+# 
+# When a client offers the outer version of an "encrypted_client_hello"
+# extension, the server MAY include an "encrypted_client_hello"
+# extension in its EncryptedExtensions message, as described in
+# Section 7.1, with the following payload:
+# 
+#     struct {
+#        ECHConfigList retry_configs;
+#     } ECHEncryptedExtensions;
+# 
+# The response is valid only when the server used the ClientHelloOuter.
+# If the server sent this extension in response to the inner variant,
+# then the client MUST abort with an "unsupported_extension" alert.
+# 
+# retry_configs:  An ECHConfigList structure containing one or more
+#    ECHConfig structures, in decreasing order of preference, to be
+#    used by the client as described in Section 6.1.6.  These are known
+#    as the server's "retry configurations".
+# 
+# Finally, when the client offers the "encrypted_client_hello", if the
+# payload is the inner variant and the server responds with
+# HelloRetryRequest, it MUST include an "encrypted_client_hello"
+# extension with the following payload:
+# 
+#     struct {
+#        opaque confirmation[8];
+#     } ECHHelloRetryRequest;
+# 
+# The value of ECHHelloRetryRequest.confirmation is set to
+# hrr_accept_confirmation as described in Section 7.2.1.
+# 
+# This document also defines the "ech_required" alert, which the client
+# MUST send when it offered an "encrypted_client_hello" extension that
+# was not accepted by the server.  (See Section 11.2.)
+
+[[spec]]
+level = "MUST"
+quote = '''
+When it does, it MUST also send the
+extension in ClientHelloInner.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This MUST match a value provided in the corresponding
+ECHConfigContents.key_config.cipher_suites list.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+When a client offers the outer version of an "encrypted_client_hello"
+extension, the server MAY include an "encrypted_client_hello"
+extension in its EncryptedExtensions message, as described in
+Section 7.1, with the following payload:
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server sent this extension in response to the inner variant,
+then the client MUST abort with an "unsupported_extension" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Finally, when the client offers the "encrypted_client_hello", if the
+payload is the inner variant and the server responds with
+HelloRetryRequest, it MUST include an "encrypted_client_hello"
+extension with the following payload:
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This document also defines the "ech_required" alert, which the client
+MUST send when it offered an "encrypted_client_hello" extension that
+was not accepted by the server.
+'''
+

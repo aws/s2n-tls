@@ -1,0 +1,86 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-10.1"
+
+# 10.1.  Security and Privacy Goals
+#
+# ECH considers two types of attackers: passive and active.  Passive
+# attackers can read packets from the network, but they cannot perform
+# any sort of active behavior such as probing servers or querying DNS.
+# A middlebox that filters based on plaintext packet contents is one
+# example of a passive attacker.  In contrast, active attackers can
+# also write packets into the network for malicious purposes, such as
+# interfering with existing connections, probing servers, and querying
+# DNS.  In short, an active attacker corresponds to the conventional
+# threat model [RFC3552] for TLS 1.3 [RFC8446].
+# 
+# Passive and active attackers can exist anywhere in the network,
+# including between the client and client-facing server, as well as
+# between the client-facing and backend servers when running ECH in
+# split mode.  However, for split mode in particular, ECH makes two
+# additional assumptions:
+# 
+# 1.  The channel between each client-facing and each backend server is
+#     authenticated such that the backend server only accepts messages
+#     from trusted client-facing servers.  The exact mechanism for
+#     establishing this authenticated channel is out of scope for this
+#     document.
+# 
+# 2.  The attacker cannot correlate messages between a client and
+#     client-facing server with messages between client-facing and
+#     backend server.  Such correlation could allow an attacker to link
+#     information unique to a backend server, such as their server name
+#     or IP address, with a client's encrypted ClientHelloInner.
+#     Correlation could occur through timing analysis of messages
+#     across the client-facing server, or via examining the contents of
+#     messages sent between client-facing and backend servers.  The
+#     exact mechanism for preventing this sort of correlation is out of
+#     scope for this document.
+# 
+# Given this threat model, the primary goals of ECH are as follows.
+# 
+# 1.  Security preservation.  Use of ECH does not weaken the security
+#     properties of TLS without ECH.
+# 
+# 2.  Handshake privacy.  TLS connection establishment to a server name
+#     within an anonymity set is indistinguishable from a connection to
+#     any other server name within the anonymity set.  (The anonymity
+#     set is defined in Section 1.)
+# 
+# 3.  Downgrade resistance.  An attacker cannot downgrade a connection
+#     that attempts to use ECH to one that does not use ECH.
+# 
+# These properties were formally proven in [ECH-Analysis].
+# 
+# With regards to handshake privacy, client-facing server configuration
+# determines the size of the anonymity set.  For example, if a client-
+# facing server uses distinct ECHConfig values for each server name,
+# then each anonymity set has size k = 1.  Client-facing servers SHOULD
+# deploy ECH in such a way so as to maximize the size of the anonymity
+# set where possible.  This means client-facing servers should use the
+# same ECHConfig for as many server names as possible.  An attacker can
+# distinguish two server names that have different ECHConfig values
+# based on the ECHClientHello.config_id value.
+# 
+# This also means public information in a TLS handshake should be
+# consistent across server names.  For example, if a client-facing
+# server services many backend origin server names, only one of which
+# supports some cipher suite, it may be possible to identify that
+# server name based on the contents of the unencrypted handshake
+# message.  Similarly, if a backend origin reuses KeyShare values, then
+# that provides a unique identifier for that server.
+# 
+# Beyond these primary security and privacy goals, ECH also aims to
+# hide, to some extent, the fact that it is being used at all.
+# Specifically, the GREASE ECH extension described in Section 6.2 does
+# not change the security properties of the TLS handshake at all.  Its
+# goal is to provide "cover" for the real ECH protocol (Section 6.1),
+# as a means of addressing the "do not stick out" requirements of
+# [RFC8744].  See Section 10.10.4 for details.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Client-facing servers SHOULD
+deploy ECH in such a way so as to maximize the size of the anonymity
+set where possible.
+'''
+
