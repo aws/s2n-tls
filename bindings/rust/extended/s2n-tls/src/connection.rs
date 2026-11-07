@@ -752,7 +752,7 @@ impl Connection {
     /// Corresponds to [`s2n_recv`].
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let buf_ptr = buf.as_mut_ptr() as *mut ::libc::c_void;
         self.poll_recv_raw(buf_ptr, buf_len)
     }
 
@@ -764,7 +764,7 @@ impl Connection {
     /// that only the read half is able to call this API.
     unsafe fn immutable_poll_recv(&self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let buf_ptr = buf.as_mut_ptr() as *mut ::libc::c_void;
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll()
     }
@@ -787,7 +787,7 @@ impl Connection {
         buf: &mut [MaybeUninit<u8>],
     ) -> Poll<Result<usize, Error>> {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let buf_ptr = buf.as_mut_ptr() as *mut ::libc::c_void;
 
         // Safety:
         // 1. s2n_recv never writes uninitialized garbage to `buf`.
@@ -802,7 +802,7 @@ impl Connection {
         buf: &mut [MaybeUninit<u8>],
     ) -> Poll<Result<usize, Error>> {
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let buf_ptr = buf.as_mut_ptr() as *mut ::libc::c_void;
 
         // Safety:
         // 1. s2n_recv never writes uninitialized garbage to `buf`.
