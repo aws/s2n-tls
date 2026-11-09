@@ -1833,6 +1833,7 @@ mod tests {
         },
     };
     use std::{
+        collections::VecDeque,
         net::{IpAddr, Ipv4Addr, SocketAddr},
         time::SystemTime,
     };
@@ -2157,9 +2158,8 @@ mod tests {
     #[test]
     #[allow(deprecated)]
     fn max_record_size_configuration() -> Result<(), Box<dyn std::error::Error>> {
-        /// https://www.rfc-editor.org/info/rfc8446/#section-5.1
-        /// > The length MUST NOT exceed 2^14 bytes.
-        const MAX_PAYLOAD_LEN: u16 = 1 << 14;
+        /// Default max payload len
+        const MAX_PAYLOAD_LEN: u16 = 8087;
         /// inner content type + GCM auth tag
         const PAYLOAD_OVERHEAD: u16 = 1 + 16;
         const MAX_TLS_RECORD_LEN: u16 = MAX_PAYLOAD_LEN + PAYLOAD_OVERHEAD;
