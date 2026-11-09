@@ -510,17 +510,97 @@ int main()
                             &hybrid_classical_key));
                     EXPECT_EQUAL(s2n_stuffer_data_available(&hybrid_classical_key), s2n_ecc_curve_x25519.share_size);
 
-                    /* The two key shares carry different public keys. The curves
-                     * differ, so the sizes already differ.
+                    /* The standalone share is a separate key from the hybrid's classical key. */
+                    EXPECT_NOT_EQUAL(conn->kex_params.client_ecc_evp_params.evp_pkey,
+                            conn->kex_params.client_kem_group_params.ecc_params.evp_pkey);
+                }
+
+                /* When the key is reused, client_ecc_evp_params and
+                 * client_kem_group_params.ecc_params hold two references to one EVP_PKEY.
+                 * A HelloRetryRequest releases exactly one of them, depending on which group
+                 * the server asks for. The surviving reference must still own the key, and
+                 * s2n_connection_wipe_all_keyshares must be the one to release it.
+                 */
+                {
+                    /* The server retries for a classical curve, so no PQ group is selected.
+                     * s2n_generate_default_ecc_key_share releases the standalone reference and
+                     * generates a new key, while the hybrid keeps the original key.
                      */
-                    EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&hybrid_classical_key),
-                            s2n_stuffer_data_available(&standalone_key));
-                    uint32_t shared_prefix = s2n_stuffer_data_available(&hybrid_classical_key);
-                    if (s2n_stuffer_data_available(&standalone_key) < shared_prefix) {
-                        shared_prefix = s2n_stuffer_data_available(&standalone_key);
+                    {
+                        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                                s2n_connection_ptr_free);
+                        EXPECT_NOT_NULL(conn);
+                        conn->security_policy_override = &policy_curves_match;
+
+                        DEFER_CLEANUP(struct s2n_stuffer first_hello = { 0 }, s2n_stuffer_free);
+                        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&first_hello, MEM_FOR_EXTENSION));
+                        EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &first_hello));
+
+                        /* Precondition: the key was reused, so one EVP_PKEY has two references. */
+                        EVP_PKEY *shared_key = conn->kex_params.client_kem_group_params.ecc_params.evp_pkey;
+                        EXPECT_NOT_NULL(shared_key);
+                        EXPECT_EQUAL(conn->kex_params.client_ecc_evp_params.evp_pkey, shared_key);
+
+                        /* Mirrors s2n_server_key_share_recv_ecc, which records the server's curve
+                         * and clears the client's PQ group.
+                         */
+                        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+                        conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+                        conn->kex_params.server_kem_group_params.kem_group = NULL;
+                        conn->kex_params.client_kem_group_params.kem_group = NULL;
+
+                        DEFER_CLEANUP(struct s2n_stuffer retry_hello = { 0 }, s2n_stuffer_free);
+                        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&retry_hello, MEM_FOR_EXTENSION));
+                        EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &retry_hello));
+
+                        /* The standalone slot released its reference and holds a new secp256r1 key. */
+                        EXPECT_NOT_EQUAL(conn->kex_params.client_ecc_evp_params.evp_pkey, shared_key);
+                        EXPECT_EQUAL(conn->kex_params.client_ecc_evp_params.negotiated_curve,
+                                &s2n_ecc_curve_secp256r1);
+
+                        /* The hybrid still holds the original key. */
+                        EXPECT_EQUAL(conn->kex_params.client_kem_group_params.ecc_params.evp_pkey, shared_key);
                     }
-                    EXPECT_BYTEARRAY_NOT_EQUAL(hybrid_classical_key.blob.data, standalone_key.blob.data,
-                            shared_prefix);
+
+                    /* The server retries for a different hybrid group.
+                     * s2n_generate_default_pq_key_share releases the hybrid reference and
+                     * generates a new key, while the standalone share keeps the original key.
+                     */
+                    if (s2n_kem_group_is_available(&s2n_secp256r1_mlkem_768)) {
+                        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                                s2n_connection_ptr_free);
+                        EXPECT_NOT_NULL(conn);
+                        conn->security_policy_override = &policy_curves_match;
+
+                        DEFER_CLEANUP(struct s2n_stuffer first_hello = { 0 }, s2n_stuffer_free);
+                        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&first_hello, MEM_FOR_EXTENSION));
+                        EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &first_hello));
+
+                        /* Precondition: the key was reused, so one EVP_PKEY has two references. */
+                        EVP_PKEY *shared_key = conn->kex_params.client_ecc_evp_params.evp_pkey;
+                        EXPECT_NOT_NULL(shared_key);
+                        EXPECT_EQUAL(conn->kex_params.client_kem_group_params.ecc_params.evp_pkey, shared_key);
+
+                        /* Mirrors s2n_server_key_share_recv_pq, which records the server's PQ
+                         * group and leaves no classical curve selected.
+                         */
+                        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+                        conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_mlkem_768;
+                        conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
+
+                        DEFER_CLEANUP(struct s2n_stuffer retry_hello = { 0 }, s2n_stuffer_free);
+                        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&retry_hello, MEM_FOR_EXTENSION));
+                        EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &retry_hello));
+
+                        /* The hybrid released its reference and holds a new secp256r1 key. */
+                        EXPECT_EQUAL(conn->kex_params.client_kem_group_params.kem_group,
+                                &s2n_secp256r1_mlkem_768);
+                        EXPECT_NOT_EQUAL(conn->kex_params.client_kem_group_params.ecc_params.evp_pkey,
+                                shared_key);
+
+                        /* The standalone slot still holds the original key. */
+                        EXPECT_EQUAL(conn->kex_params.client_ecc_evp_params.evp_pkey, shared_key);
+                    }
                 }
             }
         }

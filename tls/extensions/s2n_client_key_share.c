@@ -107,7 +107,9 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
 
         /* The PQ hybrid share is generated first and contains a classical ECDHE key.
          * If that key is already on the curve we want, reuse it instead of generating
-         * a second key on the same curve.
+         * a second key on the same curve. RFC 9954 Section 3.2 permits reusing the
+         * key_exchange value of one algorithm across KeyShareEntries in a ClientHello:
+         * https://www.rfc-editor.org/rfc/rfc9954#section-3.2
          */
 
         /* EVP_PKEY_up_ref was added in OpenSSL 1.1.0 and is absent from OpenSSL 1.0.2,
@@ -120,7 +122,7 @@ static int s2n_generate_default_ecc_key_share(struct s2n_connection *conn, struc
         POSIX_ENSURE_REF(hybrid_ecc);
         const struct s2n_ecc_named_curve *hybrid_curve = hybrid_ecc->negotiated_curve;
 
-        if (hybrid_curve && hybrid_ecc->evp_pkey != NULL
+        if (client_params->evp_pkey == NULL && hybrid_curve && hybrid_ecc->evp_pkey != NULL
                 && hybrid_curve == ecc_pref->ecc_curves[0]) {
             /*
              * Assigning evp_pkey is what skips the keygen: s2n_ecdhe_parameters_send
