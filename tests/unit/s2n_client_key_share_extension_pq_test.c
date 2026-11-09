@@ -567,10 +567,24 @@ int main()
                      * generates a new key, while the standalone share keeps the original key.
                      */
                     if (s2n_kem_group_is_available(&s2n_secp256r1_mlkem_768)) {
+                        /* A server can only retry for a group the client supports. */
+                        const struct s2n_kem_group *hrr_kem_groups[] = {
+                            &s2n_x25519_mlkem_768,
+                            &s2n_secp256r1_mlkem_768,
+                        };
+                        const struct s2n_kem_preferences hrr_kem_prefs = {
+                            .kem_count = 0,
+                            .kems = NULL,
+                            .tls13_kem_group_count = s2n_array_len(hrr_kem_groups),
+                            .tls13_kem_groups = hrr_kem_groups,
+                        };
+                        struct s2n_security_policy hrr_policy = policy_curves_match;
+                        hrr_policy.kem_preferences = &hrr_kem_prefs;
+
                         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                                 s2n_connection_ptr_free);
                         EXPECT_NOT_NULL(conn);
-                        conn->security_policy_override = &policy_curves_match;
+                        conn->security_policy_override = &hrr_policy;
 
                         DEFER_CLEANUP(struct s2n_stuffer first_hello = { 0 }, s2n_stuffer_free);
                         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&first_hello, MEM_FOR_EXTENSION));
