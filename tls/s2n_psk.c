@@ -384,29 +384,29 @@ int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t **identity
 /* The binder hash is computed by hashing the concatenation of the current transcript
  * and a partial ClientHello that does not include the binders themselves.
  */
-int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
+S2N_RESULT s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *output_binder_hash)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(partial_client_hello);
-    POSIX_ENSURE_REF(output_binder_hash);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(partial_client_hello);
+    RESULT_ENSURE_REF(output_binder_hash);
     struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
-    POSIX_ENSURE_REF(hashes);
+    RESULT_ENSURE_REF(hashes);
 
     /* Retrieve the current transcript.
      * The current transcript will be empty unless this handshake included a HelloRetryRequest. */
     s2n_hash_algorithm hash_alg = S2N_HASH_NONE;
     struct s2n_hash_state *hash_state = &hashes->hash_workspace;
-    POSIX_GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
-    POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, hash_alg, hash_state));
+    RESULT_GUARD_POSIX(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
+    RESULT_GUARD(s2n_handshake_copy_hash_state(conn, hash_alg, hash_state));
 
     /* Add the partial client hello to the transcript. */
-    POSIX_GUARD(s2n_hash_update(hash_state, partial_client_hello->data, partial_client_hello->size));
+    RESULT_GUARD_POSIX(s2n_hash_update(hash_state, partial_client_hello->data, partial_client_hello->size));
 
     /* Get the transcript digest */
-    POSIX_GUARD(s2n_hash_digest(hash_state, output_binder_hash->data, output_binder_hash->size));
+    RESULT_GUARD_POSIX(s2n_hash_digest(hash_state, output_binder_hash->data, output_binder_hash->size));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* The binder is computed in the same way as the Finished message
@@ -422,7 +422,7 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
     POSIX_ENSURE_REF(output_binder);
 
     DEFER_CLEANUP(struct s2n_tls13_keys psk_keys = { 0 }, s2n_tls13_keys_free);
-    POSIX_GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
+    POSIX_GUARD_RESULT(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     POSIX_ENSURE_EQ(binder_hash->size, psk_keys.size);
     POSIX_ENSURE_EQ(output_binder->size, psk_keys.size);
 
@@ -433,10 +433,10 @@ int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_
 
     /* Expand the binder key into the finished key */
     s2n_tls13_key_blob(finished_key, psk_keys.size);
-    POSIX_GUARD(s2n_tls13_derive_finished_key(&psk_keys, binder_key, &finished_key));
+    POSIX_GUARD_RESULT(s2n_tls13_derive_finished_key(&psk_keys, binder_key, &finished_key));
 
     /* HMAC the binder hash with the binder finished key */
-    POSIX_GUARD(s2n_hkdf_extract(&psk_keys.hmac, psk_keys.hmac_algorithm, &finished_key, binder_hash, output_binder));
+    POSIX_GUARD_RESULT(s2n_hkdf_extract(&psk_keys.hmac, psk_keys.hmac_algorithm, &finished_key, binder_hash, output_binder));
 
     return S2N_SUCCESS;
 }
@@ -448,12 +448,12 @@ int s2n_psk_verify_binder(struct s2n_connection *conn, struct s2n_psk *psk,
     POSIX_ENSURE_REF(binder_to_verify);
 
     DEFER_CLEANUP(struct s2n_tls13_keys psk_keys = { 0 }, s2n_tls13_keys_free);
-    POSIX_GUARD(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
+    POSIX_GUARD_RESULT(s2n_tls13_keys_init(&psk_keys, psk->hmac_alg));
     POSIX_ENSURE_EQ(binder_to_verify->size, psk_keys.size);
 
     /* Calculate the binder hash from the transcript */
     s2n_tls13_key_blob(binder_hash, psk_keys.size);
-    POSIX_GUARD(s2n_psk_calculate_binder_hash(conn, psk->hmac_alg, partial_client_hello, &binder_hash));
+    POSIX_GUARD_RESULT(s2n_psk_calculate_binder_hash(conn, psk->hmac_alg, partial_client_hello, &binder_hash));
 
     /* Calculate the expected binder from the binder hash */
     s2n_tls13_key_blob(expected_binder, psk_keys.size);
@@ -525,7 +525,7 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
             uint8_t hash_size = 0;
             RESULT_GUARD_POSIX(s2n_hmac_digest_size(psk->hmac_alg, &hash_size));
             RESULT_GUARD_POSIX(s2n_blob_init(binder_hash, binder_hashes_data[psk->hmac_alg], hash_size));
-            RESULT_GUARD_POSIX(s2n_psk_calculate_binder_hash(conn, psk->hmac_alg, partial_client_hello, binder_hash));
+            RESULT_GUARD(s2n_psk_calculate_binder_hash(conn, psk->hmac_alg, partial_client_hello, binder_hash));
         }
 
         RESULT_GUARD(s2n_psk_write_binder(conn, psk, binder_hash, out));

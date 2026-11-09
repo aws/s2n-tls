@@ -1013,7 +1013,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
@@ -1041,7 +1041,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
 
@@ -1070,7 +1070,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
@@ -1104,7 +1104,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
 
@@ -1160,7 +1160,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
@@ -1210,7 +1210,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Can request new tickets */
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(conn, new_tickets));
@@ -1266,7 +1266,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
@@ -1316,7 +1316,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
@@ -1346,7 +1346,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             s2n_blocked_status blocked = 0;
             EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
@@ -1392,7 +1392,7 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer output = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &output, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&output, &output, conn));
 
             /* Test with no variable fields */
             {
@@ -1475,12 +1475,12 @@ int main(int argc, char **argv)
 
         /* Setup config */
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
@@ -1497,8 +1497,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
 
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         /* Do handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

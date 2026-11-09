@@ -40,8 +40,8 @@ static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_
     EXPECT_SUCCESS(s2n_connection_set_blinding(*server_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(*server_conn, "default_tls13"));
 
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(io_pair));
-    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(io_pair));
+    EXPECT_OK(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
 
     return S2N_RESULT_OK;
 }
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, S2N_DEFAULT_RECORD_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, client_conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, malformed_record, sizeof(malformed_record)));
 
@@ -182,7 +182,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, client_conn));
 
             /* Indicate that we're already sending. That will cause an error. */
             client_conn->send_in_use = true;
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, malformed_record, sizeof(malformed_record)));
 
@@ -907,7 +907,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, S2N_DEFAULT_RECORD_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &ch_record));
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &early_record));
@@ -950,7 +950,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
 
             uint8_t actual_payload[BUFFER_SIZE] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -1033,7 +1033,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, S2N_DEFAULT_RECORD_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &ch_record));
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &early_record));
@@ -1078,7 +1078,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, S2N_DEFAULT_RECORD_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &ch_record));
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &early_record));

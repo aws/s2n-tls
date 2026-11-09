@@ -77,8 +77,8 @@ static S2N_RESULT s2n_security_policy_write_format_v1_to_stuffer(const struct s2
         const struct s2n_ecc_named_curve *strongly_preferred_curve = NULL;
         const struct s2n_kem_group *strongly_preferred_kem_group = NULL;
         bool found = false;
-        RESULT_GUARD_POSIX(s2n_find_ecc_curve_from_iana_id(policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_curve, &found));
-        RESULT_GUARD_POSIX(s2n_find_kem_group_from_iana_id(policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_kem_group, &found));
+        RESULT_GUARD(s2n_find_ecc_curve_from_iana_id(policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_curve, &found));
+        RESULT_GUARD(s2n_find_kem_group_from_iana_id(policy->strongly_preferred_groups->iana_ids[i], &strongly_preferred_kem_group, &found));
         RESULT_ENSURE((strongly_preferred_curve == NULL) != (strongly_preferred_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
         if (strongly_preferred_curve != NULL) {
@@ -147,28 +147,28 @@ static S2N_RESULT s2n_security_policy_write_to_stuffer(const struct s2n_security
     return S2N_RESULT_OK;
 }
 
-int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
+S2N_RESULT s2n_security_policy_write_length(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint32_t *length)
 {
-    POSIX_ENSURE_REF(policy);
-    POSIX_ENSURE_REF(length);
+    RESULT_ENSURE_REF(policy);
+    RESULT_ENSURE_REF(length);
 
     DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
-    POSIX_GUARD_RESULT(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
+    RESULT_GUARD(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
 
     *length = s2n_stuffer_data_available(&stuffer);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
+S2N_RESULT s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length, uint32_t *output_size)
 {
-    POSIX_ENSURE_REF(policy);
-    POSIX_ENSURE_REF(buffer);
-    POSIX_ENSURE_REF(output_size);
+    RESULT_ENSURE_REF(policy);
+    RESULT_ENSURE_REF(buffer);
+    RESULT_ENSURE_REF(output_size);
     *output_size = 0;
 
     /* Intermediate stuffer is needed because s2n_stuffer_printf requires temporary space for null 
@@ -176,14 +176,14 @@ int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
      * available 
      */
     DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&stuffer, 1024));
-    POSIX_GUARD_RESULT(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&stuffer, 1024));
+    RESULT_GUARD(s2n_security_policy_write_to_stuffer(policy, format, &stuffer));
     uint32_t required_size = s2n_stuffer_data_available(&stuffer);
-    POSIX_ENSURE(buffer_length >= required_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    RESULT_ENSURE(buffer_length >= required_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
 
-    POSIX_CHECKED_MEMCPY(buffer, stuffer.blob.data, required_size);
+    RESULT_CHECKED_MEMCPY(buffer, stuffer.blob.data, required_size);
     *output_size = s2n_stuffer_data_available(&stuffer);
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_security_policy_write_fd(const struct s2n_security_policy *policy,

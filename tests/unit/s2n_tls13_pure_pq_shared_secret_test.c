@@ -51,8 +51,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_blob client_secret = { 0 }, s2n_free);
         DEFER_CLEANUP(struct s2n_blob server_secret = { 0 }, s2n_free);
 
-        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(client_conn, &client_secret));
-        EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(server_conn, &server_secret));
+        EXPECT_OK(s2n_tls13_compute_shared_secret(client_conn, &client_secret));
+        EXPECT_OK(s2n_tls13_compute_shared_secret(server_conn, &server_secret));
 
         S2N_BLOB_EXPECT_EQUAL(client_secret, server_secret);
 

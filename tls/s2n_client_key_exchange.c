@@ -88,22 +88,22 @@ static int s2n_hybrid_client_action(struct s2n_connection *conn, struct s2n_blob
     POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &shared_key_0));
     POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, shared_key_1));
 
-    POSIX_GUARD(s2n_kem_free(&conn->kex_params.kem_params));
+    POSIX_GUARD_RESULT(s2n_kem_free(&conn->kex_params.kem_params));
 
     return 0;
 }
 
-static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
+static S2N_RESULT s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shared_key)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     /* Turn the pre-master secret into a master secret */
-    POSIX_GUARD_RESULT(s2n_kex_tls_prf(conn->secure->cipher_suite->key_exchange_alg, conn, shared_key));
+    RESULT_GUARD(s2n_kex_tls_prf(conn->secure->cipher_suite->key_exchange_alg, conn, shared_key));
 
     /* Expand the keys */
-    POSIX_GUARD(s2n_prf_key_expansion(conn));
+    RESULT_GUARD(s2n_prf_key_expansion(conn));
     /* Save the master secret in the cache.
      * Failing to cache the session should not affect the current handshake.
      */
@@ -112,7 +112,7 @@ static int s2n_calculate_keys(struct s2n_connection *conn, struct s2n_blob *shar
     }
     /* log the secret, if needed */
     s2n_result_ignore(s2n_key_log_tls12_secret(conn));
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared_key)
@@ -244,7 +244,7 @@ int s2n_client_key_recv(struct s2n_connection *conn)
     DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_free_or_wipe);
     POSIX_GUARD_RESULT(s2n_kex_client_key_recv(key_exchange, conn, &shared_key));
 
-    POSIX_GUARD(s2n_calculate_keys(conn, &shared_key));
+    POSIX_GUARD_RESULT(s2n_calculate_keys(conn, &shared_key));
     return 0;
 }
 
@@ -344,6 +344,6 @@ int s2n_client_key_send(struct s2n_connection *conn)
 
     POSIX_GUARD_RESULT(s2n_kex_client_key_send(key_exchange, conn, &shared_key));
 
-    POSIX_GUARD(s2n_calculate_keys(conn, &shared_key));
+    POSIX_GUARD_RESULT(s2n_calculate_keys(conn, &shared_key));
     return 0;
 }

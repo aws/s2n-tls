@@ -133,7 +133,7 @@ static S2N_RESULT s2n_extract_secret(s2n_hmac_algorithm hmac_alg,
     DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
 
-    RESULT_GUARD_POSIX(s2n_hkdf_extract(&hmac_state, hmac_alg,
+    RESULT_GUARD(s2n_hkdf_extract(&hmac_state, hmac_alg,
             previous_secret_material, new_secret_material, output));
     return S2N_RESULT_OK;
 }
@@ -157,7 +157,7 @@ static S2N_RESULT s2n_derive_secret(s2n_hmac_algorithm hmac_alg,
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
 
     output->size = s2n_get_hash_len(hmac_alg);
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
+    RESULT_GUARD(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
             previous_secret_material, label, context, output));
     return S2N_RESULT_OK;
 }
@@ -214,7 +214,7 @@ static S2N_RESULT s2n_tls13_compute_finished_key(struct s2n_connection *conn,
     DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
 
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac_state, CONN_HMAC_ALG(conn),
+    RESULT_GUARD(s2n_hkdf_expand_label(&hmac_state, CONN_HMAC_ALG(conn),
             base_key, &s2n_tls13_label_finished, &(struct s2n_blob){ 0 }, output));
     return S2N_RESULT_OK;
 }
@@ -376,7 +376,7 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
     RESULT_GUARD(s2n_derive_secret_without_context(conn, S2N_EARLY_SECRET, &derived_secret));
 
     DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free_or_wipe);
-    RESULT_GUARD_POSIX(s2n_tls13_compute_shared_secret(conn, &shared_secret));
+    RESULT_GUARD(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
     RESULT_GUARD(s2n_extract_secret(CONN_HMAC_ALG(conn),
             &derived_secret,
@@ -770,7 +770,7 @@ int s2n_connection_tls_exporter(struct s2n_connection *conn,
 
     struct s2n_blob output = { 0 };
     POSIX_GUARD(s2n_blob_init(&output, output_in, output_length));
-    POSIX_GUARD(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
+    POSIX_GUARD_RESULT(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
             &derived_secret, &s2n_tls13_label_exporter, &digest, &output));
 
     return S2N_SUCCESS;

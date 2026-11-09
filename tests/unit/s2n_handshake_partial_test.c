@@ -32,8 +32,8 @@ static S2N_RESULT s2n_get_test_client_and_server(struct s2n_connection **client_
     RESULT_GUARD_POSIX(s2n_connection_set_config(*client_conn, config));
     RESULT_GUARD_POSIX(s2n_connection_set_config(*server_conn, config));
 
-    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(io_pair));
-    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
+    RESULT_GUARD(s2n_io_pair_init_non_blocking(io_pair));
+    RESULT_GUARD(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
 
     return S2N_RESULT_OK;
 }
@@ -53,12 +53,12 @@ int main()
     EXPECT_SUCCESS(s2n_psk_configure_early_data(test_psk, 100, 0x13, 0x01));
 
     struct s2n_cert_chain_and_key *cert_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&cert_chain,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     struct s2n_config *config = s2n_config_new();
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
 
     /* Test s2n_negotiate_until_message */
@@ -169,15 +169,15 @@ int main()
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     END_OF_EARLY_DATA));
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), END_OF_EARLY_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), END_OF_EARLY_DATA);
 
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), APPLICATION_DATA);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(server_conn), APPLICATION_DATA);

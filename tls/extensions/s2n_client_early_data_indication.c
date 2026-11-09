@@ -66,7 +66,7 @@ static S2N_RESULT s2n_early_data_config_is_possible(struct s2n_connection *conn)
     RESULT_ENSURE_GTE(s2n_connection_get_protocol_version(conn), S2N_TLS13);
 
     const struct s2n_cipher_preferences *cipher_preferences = NULL;
-    RESULT_GUARD_POSIX(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
+    RESULT_GUARD(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
     RESULT_ENSURE_REF(cipher_preferences);
 
     /* Early data must require a supported cipher */

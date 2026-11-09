@@ -430,7 +430,7 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer input = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
         EXPECT_SUCCESS(s2n_setup_handler_to_expect(SERVER_CHANGE_CIPHER_SPEC, S2N_CLIENT));
 
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer input = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
         EXPECT_SUCCESS(s2n_setup_handler_to_expect(CLIENT_CHANGE_CIPHER_SPEC, S2N_SERVER));
 
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
@@ -543,7 +543,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
@@ -569,7 +569,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
             conn->handshake.handshake_type = 0;
             conn->handshake.message_number = 0;
@@ -605,7 +605,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
             uint8_t server_css_message_number = 2;
             conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | MIDDLEBOX_COMPAT;
@@ -634,7 +634,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
             EXPECT_SUCCESS(s2n_test_write_header(&input, TLS_HANDSHAKE, TLS_CERT_REQ));
             EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_read_io(conn), S2N_ERR_HANDSHAKE_STATE);

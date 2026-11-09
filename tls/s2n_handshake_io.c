@@ -919,12 +919,12 @@ int s2n_generate_new_client_session_id(struct s2n_connection *conn)
 }
 
 /* Lets the server flag whether a HelloRetryRequest is needed while processing extensions */
-int s2n_set_hello_retry_required(struct s2n_connection *conn)
+S2N_RESULT s2n_set_hello_retry_required(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
-    POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
-    POSIX_GUARD_RESULT(s2n_handshake_type_set_tls13_flag(conn, HELLO_RETRY_REQUEST));
+    RESULT_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_HELLO_RETRY);
+    RESULT_GUARD(s2n_handshake_type_set_tls13_flag(conn, HELLO_RETRY_REQUEST));
 
     /* HelloRetryRequests also indicate rejection of early data.
      *
@@ -937,10 +937,10 @@ int s2n_set_hello_retry_required(struct s2n_connection *conn)
      *#    with a HelloRetryRequest.
      **/
     if (conn->early_data_state == S2N_EARLY_DATA_REQUESTED) {
-        POSIX_GUARD_RESULT(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REJECTED));
+        RESULT_GUARD(s2n_connection_set_early_data_state(conn, S2N_EARLY_DATA_REJECTED));
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 bool s2n_is_hello_retry_message(struct s2n_connection *conn)
@@ -1338,11 +1338,11 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
     /* Add the message to our handshake hashes */
     struct s2n_blob hashed = { 0 };
     POSIX_GUARD(s2n_blob_init(&hashed, conn->header_in.blob.data + 2, 3));
-    POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
+    POSIX_GUARD_RESULT(s2n_conn_update_handshake_hashes(conn, &hashed));
 
     hashed.data = conn->in.blob.data;
     hashed.size = s2n_stuffer_data_available(&conn->in);
-    POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
+    POSIX_GUARD_RESULT(s2n_conn_update_handshake_hashes(conn, &hashed));
 
     /* Handle an SSLv2 client hello */
     POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
@@ -1735,7 +1735,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         POSIX_GUARD_RESULT(s2n_tls13_secrets_clean(conn));
 
         /* Send any pending post-handshake messages */
-        POSIX_GUARD(s2n_post_handshake_send(conn, blocked));
+        POSIX_GUARD_RESULT(s2n_post_handshake_send(conn, blocked));
 
         /* If the handshake has just ended, free up memory */
         POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));

@@ -19,30 +19,30 @@
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 
-int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params)
+S2N_RESULT s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params)
 {
-    POSIX_ENSURE_REF(kat_file_path);
-    POSIX_ENSURE_REF(kem_params);
-    POSIX_ENSURE_REF(kem_params->kem);
+    RESULT_ENSURE_REF(kat_file_path);
+    RESULT_ENSURE_REF(kem_params);
+    RESULT_ENSURE_REF(kem_params->kem);
 
-    POSIX_GUARD(s2n_alloc(&kem_params->private_key, kem_params->kem->private_key_length));
+    RESULT_GUARD_POSIX(s2n_alloc(&kem_params->private_key, kem_params->kem->private_key_length));
     FILE *kat_file = fopen(kat_file_path, "r");
-    POSIX_ENSURE_REF(kat_file);
-    POSIX_GUARD(ReadHex(kat_file, kem_params->private_key.data, kem_params->kem->private_key_length, "sk = "));
+    RESULT_ENSURE_REF(kat_file);
+    RESULT_GUARD(ReadHex(kat_file, kem_params->private_key.data, kem_params->kem->private_key_length, "sk = "));
     fclose(kat_file);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params)
+S2N_RESULT s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params)
 {
-    POSIX_ENSURE_REF(buf);
-    POSIX_ENSURE_REF(kem_params);
-    POSIX_ENSURE_REF(kem_params->kem);
+    RESULT_ENSURE_REF(buf);
+    RESULT_ENSURE_REF(kem_params);
+    RESULT_ENSURE_REF(kem_params->kem);
 
     DEFER_CLEANUP(struct s2n_stuffer ciphertext = { 0 }, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_alloc(&ciphertext, len));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&ciphertext, buf, len));
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc(&ciphertext, len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&ciphertext, buf, len));
 
     /* Don't GUARD the call to recv_ciphertext().
      * recv_ciphertext() parses the would-be ciphertext bytes from the
@@ -63,28 +63,28 @@ int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n
     int recv_ciphertext_ret = s2n_kem_recv_ciphertext(&ciphertext, kem_params);
 
     if (s2n_pq_is_enabled() && recv_ciphertext_ret != S2N_SUCCESS) {
-        POSIX_ENSURE_NE(s2n_errno, S2N_ERR_PQ_CRYPTO);
+        RESULT_ENSURE_NE(s2n_errno, S2N_ERR_PQ_CRYPTO);
     }
 
     if (!s2n_pq_is_enabled()) {
-        POSIX_ENSURE_NE(recv_ciphertext_ret, S2N_SUCCESS);
+        RESULT_ENSURE_NE(recv_ciphertext_ret, S2N_SUCCESS);
     }
 
     /* Shared secret may have been alloc'ed in recv_ciphertext */
-    POSIX_GUARD(s2n_free(&kem_params->shared_secret));
+    RESULT_GUARD_POSIX(s2n_free(&kem_params->shared_secret));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params)
+S2N_RESULT s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params)
 {
-    POSIX_ENSURE_REF(buf);
-    POSIX_ENSURE_REF(kem_params);
-    POSIX_ENSURE_REF(kem_params->kem);
+    RESULT_ENSURE_REF(buf);
+    RESULT_ENSURE_REF(kem_params);
+    RESULT_ENSURE_REF(kem_params->kem);
 
     DEFER_CLEANUP(struct s2n_stuffer public_key = { 0 }, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_alloc(&public_key, len));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&public_key, buf, len));
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc(&public_key, len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&public_key, buf, len));
 
     /* s2n_kem_recv_public_key performs only very basic checks, like ensuring
      * that the public key size is correct. If the received public key passes,
@@ -92,7 +92,7 @@ int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n
      * for encryption. */
     if (s2n_kem_recv_public_key(&public_key, kem_params) == S2N_SUCCESS) {
         DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
-        POSIX_GUARD(s2n_stuffer_growable_alloc(&out, 8192));
+        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&out, 8192));
         int send_ct_ret = s2n_kem_send_ciphertext(&out, kem_params);
 
         /* The KEM encaps functions are written in such a way that
@@ -101,15 +101,15 @@ int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n
          * key is not valid. If PQ is not enabled, send_ciphertext()
          * should always fail because of a PQ crypto errno. */
         if (s2n_pq_is_enabled()) {
-            POSIX_ENSURE_EQ(send_ct_ret, S2N_SUCCESS);
+            RESULT_ENSURE_EQ(send_ct_ret, S2N_SUCCESS);
         } else {
-            POSIX_ENSURE_NE(send_ct_ret, S2N_SUCCESS);
-            POSIX_ENSURE_EQ(s2n_errno, S2N_ERR_PQ_CRYPTO);
+            RESULT_ENSURE_NE(send_ct_ret, S2N_SUCCESS);
+            RESULT_ENSURE_EQ(s2n_errno, S2N_ERR_PQ_CRYPTO);
         }
     }
 
     /* Clean up */
-    POSIX_GUARD(s2n_kem_free(kem_params));
+    RESULT_GUARD(s2n_kem_free(kem_params));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }

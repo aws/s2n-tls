@@ -94,7 +94,7 @@ static S2N_RESULT s2n_signature_algorithms_get_legacy_default(struct s2n_connect
 
     s2n_authentication_method auth_method = 0;
     if (signer == S2N_CLIENT) {
-        RESULT_GUARD_POSIX(s2n_get_auth_method_for_cert_type(
+        RESULT_GUARD(s2n_get_auth_method_for_cert_type(
                 conn->handshake_params.client_cert_pkey_type, &auth_method));
     } else {
         RESULT_ENSURE_REF(conn->secure);
@@ -132,7 +132,7 @@ S2N_RESULT s2n_signature_algorithm_recv(struct s2n_connection *conn, struct s2n_
             S2N_ERR_BAD_MESSAGE);
 
     const struct s2n_signature_preferences *signature_preferences = NULL;
-    RESULT_GUARD_POSIX(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    RESULT_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     RESULT_ENSURE_REF(signature_preferences);
 
     for (size_t i = 0; i < signature_preferences->count; i++) {
@@ -201,7 +201,7 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
     }
 
     const struct s2n_signature_preferences *signature_preferences = NULL;
-    RESULT_GUARD_POSIX(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    RESULT_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     RESULT_ENSURE_REF(signature_preferences);
 
     const struct s2n_signature_scheme *fallback_candidate = NULL;
@@ -325,7 +325,7 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
 S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     const struct s2n_signature_preferences *signature_preferences = NULL;
-    RESULT_GUARD_POSIX(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    RESULT_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
     RESULT_ENSURE_REF(signature_preferences);
 
     struct s2n_stuffer_reservation size = { 0 };

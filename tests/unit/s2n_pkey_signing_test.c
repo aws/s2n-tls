@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     struct s2n_cert_chain_and_key *rsa_cert_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
 
     /* Determining all possible valid combinations of hash algorithms and
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
         };
 
         struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
                 S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
         DEFER_CLEANUP(struct s2n_pkey public_key_parsed = { 0 }, s2n_pkey_free);
         EXPECT_OK(s2n_setup_public_key(&public_key_parsed, ecdsa_cert_chain));
@@ -395,7 +395,7 @@ int main(int argc, char **argv)
         };
 
         struct s2n_cert_chain_and_key *rsa_pss_cert_chain = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
                 S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
         DEFER_CLEANUP(struct s2n_pkey public_key_parsed = { 0 }, s2n_pkey_free);
         EXPECT_OK(s2n_setup_public_key(&public_key_parsed, rsa_pss_cert_chain));

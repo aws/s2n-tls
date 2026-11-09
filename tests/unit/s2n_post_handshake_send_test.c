@@ -99,12 +99,12 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+        EXPECT_OK(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         EXPECT_OK(s2n_connection_set_secrets(server_conn));
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
+        EXPECT_OK(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
         EXPECT_OK(s2n_connection_set_secrets(client_conn));
 
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
@@ -158,12 +158,12 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+        EXPECT_OK(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
         EXPECT_OK(s2n_connection_set_secrets(server_conn));
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
+        EXPECT_OK(s2n_connection_set_all_protocol_versions(client_conn, S2N_TLS13));
         EXPECT_OK(s2n_connection_set_secrets(client_conn));
 
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);

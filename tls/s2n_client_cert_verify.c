@@ -54,11 +54,11 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
         POSIX_GUARD_RESULT(s2n_handshake_copy_hash_state(conn, chosen_sig_scheme->hash_alg, hash_state));
 
         /* Verify the signature */
-        POSIX_GUARD(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg, hash_state, &signature));
+        POSIX_GUARD_RESULT(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg, hash_state, &signature));
     });
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
-    POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    POSIX_GUARD_RESULT(s2n_conn_update_required_handshake_hashes(conn));
 
     return S2N_SUCCESS;
 }
@@ -93,7 +93,7 @@ static int s2n_client_cert_verify_send_complete(struct s2n_connection *conn, str
     POSIX_GUARD(s2n_stuffer_write(out, signature));
 
     /* Client certificate has been verified. Minimize required handshake hash algs */
-    POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    POSIX_GUARD_RESULT(s2n_conn_update_required_handshake_hashes(conn));
 
     return S2N_SUCCESS;
 }

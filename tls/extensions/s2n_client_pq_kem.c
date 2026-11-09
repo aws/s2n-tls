@@ -48,7 +48,7 @@ static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     const struct s2n_kem_preferences *kem_preferences = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    POSIX_GUARD_RESULT(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     POSIX_ENSURE_REF(kem_preferences);
 
     POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_preferences->kem_count * sizeof(kem_extension_size)));

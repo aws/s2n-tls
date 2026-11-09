@@ -181,20 +181,20 @@ S2N_RESULT s2n_post_handshake_write_records(struct s2n_connection *conn, s2n_blo
     return S2N_RESULT_OK;
 }
 
-int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
+S2N_RESULT s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     /* Currently, we only support TLS1.3 post-handshake messages. */
     if (conn->actual_protocol_version < S2N_TLS13) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
-    POSIX_GUARD_RESULT(s2n_post_handshake_write_records(conn, blocked));
+    RESULT_GUARD(s2n_post_handshake_write_records(conn, blocked));
 
-    POSIX_GUARD(s2n_key_update_send(conn, blocked));
-    POSIX_GUARD_RESULT(s2n_tls13_server_nst_send(conn, blocked));
+    RESULT_GUARD(s2n_key_update_send(conn, blocked));
+    RESULT_GUARD(s2n_tls13_server_nst_send(conn, blocked));
 
-    POSIX_GUARD(s2n_stuffer_resize(&conn->handshake.io, 0));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_stuffer_resize(&conn->handshake.io, 0));
+    return S2N_RESULT_OK;
 }

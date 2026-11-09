@@ -78,27 +78,27 @@ static bool s2n_renegotiation_info_should_send(struct s2n_connection *conn)
  *#    include an empty "renegotiation_info" extension in the ServerHello
  *#    message.
  */
-static int s2n_renegotiation_info_send_initial(struct s2n_connection *conn, struct s2n_stuffer *out)
+static S2N_RESULT s2n_renegotiation_info_send_initial(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, 0));
+    return S2N_RESULT_OK;
 }
 
-static int s2n_renegotiation_info_send_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *out)
+static S2N_RESULT s2n_renegotiation_info_send_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     /* s2n-tls servers do not support renegotiation.
      * We add the renegotiation version of this logic only for testing.
      */
-    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *# This text applies if the connection's "secure_renegotiation" flag is
      *# set to TRUE (if it is set to FALSE, see Section 4.4).
      */
-    POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
+    RESULT_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.7
@@ -107,20 +107,20 @@ static int s2n_renegotiation_info_send_renegotiation(struct s2n_connection *conn
      *#    the ServerHello.
      */
     const uint8_t verify_data_len = conn->handshake.finished_len;
-    POSIX_ENSURE_GT(verify_data_len, 0);
-    POSIX_GUARD(s2n_stuffer_write_uint8(out, verify_data_len * 2));
-    POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.client_finished, verify_data_len));
-    POSIX_GUARD(s2n_stuffer_write_bytes(out, conn->handshake.server_finished, verify_data_len));
+    RESULT_ENSURE_GT(verify_data_len, 0);
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(out, verify_data_len * 2));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, conn->handshake.client_finished, verify_data_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, conn->handshake.server_finished, verify_data_len));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     if (s2n_handshake_is_renegotiation(conn)) {
-        POSIX_GUARD(s2n_renegotiation_info_send_renegotiation(conn, out));
+        POSIX_GUARD_RESULT(s2n_renegotiation_info_send_renegotiation(conn, out));
     } else {
-        POSIX_GUARD(s2n_renegotiation_info_send_initial(conn, out));
+        POSIX_GUARD_RESULT(s2n_renegotiation_info_send_initial(conn, out));
     }
     return S2N_SUCCESS;
 }
@@ -130,9 +130,9 @@ static int s2n_renegotiation_info_send(struct s2n_connection *conn, struct s2n_s
  *# o  When a ServerHello is received, the client MUST check if it
  *#    includes the "renegotiation_info" extension:
  */
-static int s2n_renegotiation_info_recv_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static S2N_RESULT s2n_renegotiation_info_recv_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.4
@@ -141,30 +141,30 @@ static int s2n_renegotiation_info_recv_initial(struct s2n_connection *conn, stru
      *#    abort the handshake (by sending a fatal handshake_failure alert).
      */
     uint8_t renegotiated_connection_len = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-    POSIX_ENSURE(renegotiated_connection_len == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    RESULT_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    RESULT_ENSURE(renegotiated_connection_len == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *# *  If the extension is present, set the secure_renegotiation flag to TRUE.
      */
     conn->secure_renegotiation = 1;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static S2N_RESULT s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
     uint8_t verify_data_len = conn->handshake.finished_len;
-    POSIX_ENSURE_GT(verify_data_len, 0);
+    RESULT_ENSURE_GT(verify_data_len, 0);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *# This text applies if the connection's "secure_renegotiation" flag is
      *# set to TRUE (if it is set to FALSE, see Section 4.2).
      */
-    POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
+    RESULT_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.5
@@ -176,20 +176,20 @@ static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn
      */
 
     uint8_t renegotiated_connection_len = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    POSIX_ENSURE(verify_data_len * 2 == renegotiated_connection_len, S2N_ERR_BAD_MESSAGE);
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    RESULT_ENSURE(verify_data_len * 2 == renegotiated_connection_len, S2N_ERR_BAD_MESSAGE);
 
     uint8_t *first_half = s2n_stuffer_raw_read(extension, verify_data_len);
-    POSIX_ENSURE_REF(first_half);
-    POSIX_ENSURE(s2n_constant_time_equals(first_half, conn->handshake.client_finished, verify_data_len),
+    RESULT_ENSURE_REF(first_half);
+    RESULT_ENSURE(s2n_constant_time_equals(first_half, conn->handshake.client_finished, verify_data_len),
             S2N_ERR_BAD_MESSAGE);
 
     uint8_t *second_half = s2n_stuffer_raw_read(extension, verify_data_len);
-    POSIX_ENSURE_REF(second_half);
-    POSIX_ENSURE(s2n_constant_time_equals(second_half, conn->handshake.server_finished, verify_data_len),
+    RESULT_ENSURE_REF(second_half);
+    RESULT_ENSURE(s2n_constant_time_equals(second_half, conn->handshake.server_finished, verify_data_len),
             S2N_ERR_BAD_MESSAGE);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /**
@@ -203,9 +203,9 @@ static int s2n_renegotiation_info_recv_renegotiation(struct s2n_connection *conn
 static int s2n_renegotiation_info_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (s2n_handshake_is_renegotiation(conn)) {
-        POSIX_GUARD(s2n_renegotiation_info_recv_renegotiation(conn, extension));
+        POSIX_GUARD_RESULT(s2n_renegotiation_info_recv_renegotiation(conn, extension));
     } else {
-        POSIX_GUARD(s2n_renegotiation_info_recv_initial(conn, extension));
+        POSIX_GUARD_RESULT(s2n_renegotiation_info_recv_initial(conn, extension));
     }
     return S2N_SUCCESS;
 }

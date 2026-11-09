@@ -71,7 +71,7 @@ int s2n_server_finished_send(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_crypto_parameters_switch(conn));
 
     if (s2n_connection_is_session_resumed(conn)) {
-        POSIX_GUARD(s2n_prf_key_expansion(conn));
+        POSIX_GUARD_RESULT(s2n_prf_key_expansion(conn));
     }
 
     return S2N_SUCCESS;

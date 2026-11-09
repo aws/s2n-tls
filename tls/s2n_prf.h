@@ -63,6 +63,6 @@ S2N_RESULT s2n_prf_free(struct s2n_connection *conn);
 int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 int s2n_prf_hybrid_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 S2N_RESULT s2n_prf_generate_key_material(struct s2n_connection *conn, struct s2n_key_material *key_material);
-int s2n_prf_key_expansion(struct s2n_connection *conn);
+S2N_RESULT s2n_prf_key_expansion(struct s2n_connection *conn);
 int s2n_prf_server_finished(struct s2n_connection *conn);
 int s2n_prf_client_finished(struct s2n_connection *conn);

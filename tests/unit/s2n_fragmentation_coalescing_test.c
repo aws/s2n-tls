@@ -200,7 +200,7 @@ int main(int argc, char **argv)
         /* Use a stuffer as the input IO */
         DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
-        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&in, conn));
+        EXPECT_OK(s2n_connection_set_recv_io_stuffer(&in, conn));
 
         /* Pretend the client hello has already been set */
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
-        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&in, conn));
+        EXPECT_OK(s2n_connection_set_recv_io_stuffer(&in, conn));
 
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         conn->handshake.message_number = SERVER_HELLO;
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
-        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&in, conn));
+        EXPECT_OK(s2n_connection_set_recv_io_stuffer(&in, conn));
 
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         conn->handshake.message_number = SERVER_HELLO;
@@ -319,7 +319,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
-        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&in, conn));
+        EXPECT_OK(s2n_connection_set_recv_io_stuffer(&in, conn));
 
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         conn->handshake.message_number = SERVER_HELLO;
@@ -373,7 +373,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
-        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&in, conn));
+        EXPECT_OK(s2n_connection_set_recv_io_stuffer(&in, conn));
 
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         conn->handshake.message_number = SERVER_HELLO;

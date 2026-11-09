@@ -315,80 +315,80 @@ static const struct s2n_hkdf_impl *s2n_get_hkdf_implementation()
     return &s2n_custom_hkdf_impl;
 }
 
-int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
+S2N_RESULT s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
         const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
 {
-    POSIX_ENSURE_REF(hmac);
-    POSIX_ENSURE_REF(salt);
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(pseudo_rand_key);
+    RESULT_ENSURE_REF(hmac);
+    RESULT_ENSURE_REF(salt);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(pseudo_rand_key);
 
     const struct s2n_hkdf_impl *hkdf_implementation = s2n_get_hkdf_implementation();
-    POSIX_ENSURE_REF(hkdf_implementation);
+    RESULT_ENSURE_REF(hkdf_implementation);
 
-    POSIX_GUARD(hkdf_implementation->hkdf_extract(hmac, alg, salt, key, pseudo_rand_key));
+    RESULT_GUARD_POSIX(hkdf_implementation->hkdf_extract(hmac, alg, salt, key, pseudo_rand_key));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *pseudo_rand_key,
+static S2N_RESULT s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *pseudo_rand_key,
         const struct s2n_blob *info, struct s2n_blob *output)
 {
-    POSIX_ENSURE_REF(hmac);
-    POSIX_ENSURE_REF(pseudo_rand_key);
-    POSIX_ENSURE_REF(info);
-    POSIX_ENSURE_REF(output);
+    RESULT_ENSURE_REF(hmac);
+    RESULT_ENSURE_REF(pseudo_rand_key);
+    RESULT_ENSURE_REF(info);
+    RESULT_ENSURE_REF(output);
 
     const struct s2n_hkdf_impl *hkdf_implementation = s2n_get_hkdf_implementation();
-    POSIX_ENSURE_REF(hkdf_implementation);
+    RESULT_ENSURE_REF(hkdf_implementation);
 
-    POSIX_GUARD(hkdf_implementation->hkdf_expand(hmac, alg, pseudo_rand_key, info, output));
+    RESULT_GUARD_POSIX(hkdf_implementation->hkdf_expand(hmac, alg, pseudo_rand_key, info, output));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label,
+S2N_RESULT s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label,
         const struct s2n_blob *context, struct s2n_blob *output)
 {
-    POSIX_ENSURE_REF(label);
-    POSIX_ENSURE_REF(context);
-    POSIX_ENSURE_REF(output);
+    RESULT_ENSURE_REF(label);
+    RESULT_ENSURE_REF(context);
+    RESULT_ENSURE_REF(output);
 
     /* Per RFC8446: 7.1, a HKDF label is a 2 byte length field, and two 1...255 byte arrays with a one byte length field each. */
     uint8_t hkdf_label_buf[2 + 256 + 256] = { 0 };
     struct s2n_blob hkdf_label_blob = { 0 };
     struct s2n_stuffer hkdf_label = { 0 };
 
-    POSIX_ENSURE_LTE(label->size, S2N_MAX_HKDF_EXPAND_LABEL_LENGTH);
+    RESULT_ENSURE_LTE(label->size, S2N_MAX_HKDF_EXPAND_LABEL_LENGTH);
 
-    POSIX_GUARD(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
-    POSIX_GUARD(s2n_stuffer_init(&hkdf_label, &hkdf_label_blob));
-    POSIX_GUARD(s2n_stuffer_write_uint16(&hkdf_label, output->size));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&hkdf_label, label->size + sizeof("tls13 ") - 1));
-    POSIX_GUARD(s2n_stuffer_write_str(&hkdf_label, "tls13 "));
-    POSIX_GUARD(s2n_stuffer_write(&hkdf_label, label));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&hkdf_label, context->size));
-    POSIX_GUARD(s2n_stuffer_write(&hkdf_label, context));
+    RESULT_GUARD_POSIX(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&hkdf_label, &hkdf_label_blob));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&hkdf_label, output->size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&hkdf_label, label->size + sizeof("tls13 ") - 1));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_str(&hkdf_label, "tls13 "));
+    RESULT_GUARD_POSIX(s2n_stuffer_write(&hkdf_label, label));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&hkdf_label, context->size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write(&hkdf_label, context));
 
     hkdf_label_blob.size = s2n_stuffer_data_available(&hkdf_label);
-    POSIX_GUARD(s2n_hkdf_expand(hmac, alg, secret, &hkdf_label_blob, output));
+    RESULT_GUARD(s2n_hkdf_expand(hmac, alg, secret, &hkdf_label_blob, output));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
+S2N_RESULT s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
         const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output)
 {
-    POSIX_ENSURE_REF(hmac);
-    POSIX_ENSURE_REF(salt);
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(info);
-    POSIX_ENSURE_REF(output);
+    RESULT_ENSURE_REF(hmac);
+    RESULT_ENSURE_REF(salt);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(info);
+    RESULT_ENSURE_REF(output);
 
     const struct s2n_hkdf_impl *hkdf_implementation = s2n_get_hkdf_implementation();
-    POSIX_ENSURE_REF(hkdf_implementation);
+    RESULT_ENSURE_REF(hkdf_implementation);
 
-    POSIX_GUARD(hkdf_implementation->hkdf(hmac, alg, salt, key, info, output));
+    RESULT_GUARD_POSIX(hkdf_implementation->hkdf(hmac, alg, salt, key, info, output));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }

@@ -35,16 +35,16 @@ S2N_RESULT s2n_handshake_transcript_update(struct s2n_connection *conn)
     RESULT_ENSURE_REF(bytes);
     RESULT_GUARD_POSIX(s2n_blob_init(&data, bytes, len));
 
-    RESULT_GUARD_POSIX(s2n_conn_update_handshake_hashes(conn, &data));
+    RESULT_GUARD(s2n_conn_update_handshake_hashes(conn, &data));
     return S2N_RESULT_OK;
 }
 
-int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
+S2N_RESULT s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(data);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(data);
     struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
-    POSIX_ENSURE_REF(hashes);
+    RESULT_ENSURE_REF(hashes);
 
     /* MD5 and SHA1 are not permitted in FIPS mode, but an exception is made in
      * order to continue to support TLS1.0 and TLS1.1. NIST SP 800-52r1 approves
@@ -54,11 +54,11 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
      */
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_MD5)) {
-        POSIX_GUARD(s2n_hash_update(&hashes->md5, data->data, data->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(&hashes->md5, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1)) {
-        POSIX_GUARD(s2n_hash_update(&hashes->sha1, data->data, data->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(&hashes->sha1, data->data, data->size));
     }
 
     const uint8_t md5_sha1_required =
@@ -66,26 +66,26 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
                     && s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA1));
 
     if (md5_sha1_required) {
-        POSIX_GUARD(s2n_hash_update(&hashes->md5_sha1, data->data, data->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(&hashes->md5_sha1, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA224)) {
-        POSIX_GUARD(s2n_hash_update(&hashes->sha224, data->data, data->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(&hashes->sha224, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA256)) {
-        POSIX_GUARD(s2n_hash_update(&hashes->sha256, data->data, data->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(&hashes->sha256, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA384)) {
-        POSIX_GUARD(s2n_hash_update(&hashes->sha384, data->data, data->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(&hashes->sha384, data->data, data->size));
     }
 
     if (s2n_handshake_is_hash_required(&conn->handshake, S2N_HASH_SHA512)) {
-        POSIX_GUARD(s2n_hash_update(&hashes->sha512, data->data, data->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(&hashes->sha512, data->data, data->size));
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* When a HelloRetryRequest message is used, the hash transcript needs to be recreated.
@@ -119,11 +119,11 @@ int s2n_server_hello_retry_recreate_transcript(struct s2n_connection *conn)
     /* Step 2: Update the transcript with the synthetic message */
     struct s2n_blob msg_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&msg_blob, msghdr, MESSAGE_HASH_HEADER_LENGTH));
-    POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
+    POSIX_GUARD_RESULT(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
     /* Step 3: Update the transcript with the ClientHello1 hash */
     POSIX_GUARD(s2n_blob_init(&msg_blob, client_hello1_digest_out, hash_digest_length));
-    POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &msg_blob));
+    POSIX_GUARD_RESULT(s2n_conn_update_handshake_hashes(conn, &msg_blob));
 
     return S2N_SUCCESS;
 }

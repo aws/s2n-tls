@@ -65,10 +65,10 @@ S2N_RESULT s2n_handshake_parse_header(struct s2n_stuffer *io, uint8_t *message_t
     return S2N_RESULT_OK;
 }
 
-static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state **hash_state)
+static S2N_RESULT s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state **hash_state)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->handshake.hashes);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->handshake.hashes);
 
     switch (hash_alg) {
         case S2N_HASH_MD5:
@@ -93,17 +93,17 @@ static int s2n_handshake_get_hash_state_ptr(struct s2n_connection *conn, s2n_has
             *hash_state = &conn->handshake.hashes->md5_sha1;
             break;
         default:
-            POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
+            RESULT_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
             break;
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg)
 {
     struct s2n_hash_state *hash_state = NULL;
-    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state));
+    RESULT_GUARD(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state));
     RESULT_GUARD_POSIX(s2n_hash_reset(hash_state));
     return S2N_RESULT_OK;
 }
@@ -111,21 +111,21 @@ S2N_RESULT s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_
 S2N_RESULT s2n_handshake_copy_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *copy)
 {
     struct s2n_hash_state *hash_state = NULL;
-    RESULT_GUARD_POSIX(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state));
+    RESULT_GUARD(s2n_handshake_get_hash_state_ptr(conn, hash_alg, &hash_state));
     RESULT_GUARD_POSIX(s2n_hash_copy(copy, hash_state));
     return S2N_RESULT_OK;
 }
 
-int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake)
+S2N_RESULT s2n_handshake_require_all_hashes(struct s2n_handshake *handshake)
 {
     memset(handshake->required_hash_algs, 1, sizeof(handshake->required_hash_algs));
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_handshake_require_hash(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
+static S2N_RESULT s2n_handshake_require_hash(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
 {
     handshake->required_hash_algs[hash_alg] = 1;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
@@ -138,10 +138,10 @@ uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash
  * ClientHello or ServerHello is processed in client and server mode respectively. The relevant handshake parameters
  * are not available until those messages are processed.
  */
-int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
+S2N_RESULT s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
 
     /* Clear all of the required hashes */
     memset(conn->handshake.required_hash_algs, 0, sizeof(conn->handshake.required_hash_algs));
@@ -150,14 +150,14 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
         message_type_t handshake_message = s2n_conn_get_current_message_type(conn);
         const uint8_t client_cert_verify_done = (handshake_message >= CLIENT_CERT_VERIFY) ? 1 : 0;
         s2n_cert_auth_type client_cert_auth_type = 0;
-        POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+        RESULT_GUARD_POSIX(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
         /* In TLS1.2 the transcript hash used in the client's certificate verify message
          * is determined by the signature algorithm used to sign the certificate verify message.
          * Therefore all hashes are needed until we're past CLIENT_CERT_VERIFY if client auth is possible. */
         if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
-            POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
-            return S2N_SUCCESS;
+            RESULT_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
+            return S2N_RESULT_OK;
         }
     }
 
@@ -166,8 +166,8 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
         case S2N_SSLv3:
         case S2N_TLS10:
         case S2N_TLS11:
-            POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_MD5));
-            POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_SHA1));
+            RESULT_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_MD5));
+            RESULT_GUARD(s2n_handshake_require_hash(&conn->handshake, S2N_HASH_SHA1));
             break;
         case S2N_TLS12:
             /* fall through */
@@ -175,8 +175,8 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
             /* For TLS 1.2 and TLS 1.3, the cipher suite defines the PRF hash alg */
             s2n_hmac_algorithm prf_alg = conn->secure->cipher_suite->prf_alg;
             s2n_hash_algorithm hash_alg = 0;
-            POSIX_GUARD(s2n_hmac_hash_alg(prf_alg, &hash_alg));
-            POSIX_GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
+            RESULT_GUARD_POSIX(s2n_hmac_hash_alg(prf_alg, &hash_alg));
+            RESULT_GUARD(s2n_handshake_require_hash(&conn->handshake, hash_alg));
             break;
         }
         default:
@@ -186,10 +186,10 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
              * is currently unreachable (the handshake sets the version to one of
              * the five known values), but serves as defense-in-depth against
              * internal state corruption. */
-            POSIX_BAIL(S2N_ERR_SAFETY);
+            RESULT_BAIL(S2N_ERR_SAFETY);
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /*
@@ -212,33 +212,33 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
  * - Support for issuing non-simple wildcard certificates is insignificant.
  * - Certificate selection can be implemented with a constant number of lookups(two).
  */
-int s2n_create_wildcard_hostname(struct s2n_stuffer *hostname_stuffer, struct s2n_stuffer *output)
+S2N_RESULT s2n_create_wildcard_hostname(struct s2n_stuffer *hostname_stuffer, struct s2n_stuffer *output)
 {
     /* Find the end of the first label */
-    POSIX_GUARD(s2n_stuffer_skip_to_char(hostname_stuffer, '.'));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_to_char(hostname_stuffer, '.'));
 
     /* No first label found */
     if (s2n_stuffer_data_available(hostname_stuffer) == 0) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* Slap a single wildcard character to be the first label in output */
-    POSIX_GUARD(s2n_stuffer_write_uint8(output, '*'));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(output, '*'));
 
     /* Simply copy the rest of the input to the output. */
-    POSIX_GUARD(s2n_stuffer_copy(hostname_stuffer, output, s2n_stuffer_data_available(hostname_stuffer)));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(hostname_stuffer, output, s2n_stuffer_data_available(hostname_stuffer)));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
+static S2N_RESULT s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
         struct s2n_blob *dns_name,
         struct s2n_cert_chain_and_key *matches[S2N_CERT_TYPE_COUNT],
         uint8_t *match_exists)
 {
     struct s2n_blob map_value = { 0 };
     bool key_found = false;
-    POSIX_GUARD_RESULT(s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value, &key_found));
+    RESULT_GUARD(s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value, &key_found));
     if (key_found) {
         struct certs_by_type *value = (void *) map_value.data;
         for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
@@ -247,7 +247,7 @@ static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
         *match_exists = 1;
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* Find certificates that match the ServerName TLS extension sent by the client.
@@ -277,7 +277,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_skip_write(&normalized_hostname_stuffer, normalized_name.size));
 
     /* Find the exact matches for the ServerName */
-    POSIX_GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
+    POSIX_GUARD_RESULT(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
             &normalized_name,
             conn->handshake_params.exact_sni_matches,
             &(conn->handshake_params.exact_sni_match_exists)));
@@ -289,7 +289,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
         POSIX_GUARD(s2n_blob_init(&wildcard_blob, (uint8_t *) wildcard_hostname, sizeof(wildcard_hostname)));
         struct s2n_stuffer wildcard_stuffer = { 0 };
         POSIX_GUARD(s2n_stuffer_init(&wildcard_stuffer, &wildcard_blob));
-        POSIX_GUARD(s2n_create_wildcard_hostname(&normalized_hostname_stuffer, &wildcard_stuffer));
+        POSIX_GUARD_RESULT(s2n_create_wildcard_hostname(&normalized_hostname_stuffer, &wildcard_stuffer));
         const uint32_t wildcard_len = s2n_stuffer_data_available(&wildcard_stuffer);
 
         /* Couldn't create a valid wildcard from the input */
@@ -299,7 +299,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
 
         /* The client's SNI is wildcardified, do an exact match against the set of server certs. */
         wildcard_blob.size = wildcard_len;
-        POSIX_GUARD(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
+        POSIX_GUARD_RESULT(s2n_find_cert_matches(conn->config->domain_name_to_cert_map,
                 &wildcard_blob,
                 conn->handshake_params.wc_sni_matches,
                 &(conn->handshake_params.wc_sni_match_exists)));

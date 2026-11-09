@@ -87,7 +87,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer_and_ctrunc(void *io_context, struct msg
 static S2N_RESULT s2n_assert_seq_num_equal(struct s2n_blob actual_blob, uint64_t expected)
 {
     uint64_t actual = 0;
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&actual_blob, &actual));
+    RESULT_GUARD(s2n_sequence_number_to_uint64(&actual_blob, &actual));
     RESULT_ENSURE(actual == expected, S2N_ERR_TEST_ASSERTION);
     return S2N_RESULT_OK;
 }

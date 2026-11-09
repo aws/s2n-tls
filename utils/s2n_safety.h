@@ -40,7 +40,7 @@
 #endif
 
 int s2n_in_unit_test_set(bool is_unit);
-int s2n_in_integ_test_set(bool is_integ);
+S2N_RESULT s2n_in_integ_test_set(bool is_integ);
 bool s2n_in_unit_test();
 bool s2n_in_test();
 

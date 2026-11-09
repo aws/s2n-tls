@@ -79,7 +79,7 @@ static int s2n_client_renegotiation_send(struct s2n_connection *conn, struct s2n
  *# "renegotiation_info" extension and respond as described in this
  *# specification even if the offered client version is {0x03, 0x00}.
  */
-static int s2n_client_renegotiation_recv_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static S2N_RESULT s2n_client_renegotiation_recv_initial(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.6
@@ -88,9 +88,9 @@ static int s2n_client_renegotiation_recv_initial(struct s2n_connection *conn, st
      *# and if it is not, MUST abort the handshake.
      */
     uint8_t renegotiated_connection_len = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
-    POSIX_ENSURE(renegotiated_connection_len == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    RESULT_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
+    RESULT_ENSURE(renegotiated_connection_len == 0, S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.6
@@ -98,24 +98,24 @@ static int s2n_client_renegotiation_recv_initial(struct s2n_connection *conn, st
      */
     conn->secure_renegotiation = 1;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_client_renegotiation_recv_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
+static S2N_RESULT s2n_client_renegotiation_recv_renegotiation(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     /* s2n-tls servers do not support renegotiation.
      * We add the renegotiation version of this logic only for testing.
      */
-    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *# This text applies if the connection's "secure_renegotiation" flag is
      *# set to TRUE (if it is set to FALSE, see Section 4.4).
      */
-    POSIX_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
+    RESULT_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc5746#3.7
@@ -126,26 +126,26 @@ static int s2n_client_renegotiation_recv_renegotiation(struct s2n_connection *co
      */
 
     uint8_t verify_data_len = conn->handshake.finished_len;
-    POSIX_ENSURE_GT(verify_data_len, 0);
+    RESULT_ENSURE_GT(verify_data_len, 0);
 
     uint8_t renegotiated_connection_len = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
-    POSIX_ENSURE(verify_data_len == renegotiated_connection_len, S2N_ERR_BAD_MESSAGE);
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(extension, &renegotiated_connection_len));
+    RESULT_ENSURE(verify_data_len == renegotiated_connection_len, S2N_ERR_BAD_MESSAGE);
 
     uint8_t *renegotiated_connection = s2n_stuffer_raw_read(extension, verify_data_len);
-    POSIX_ENSURE_REF(renegotiated_connection);
-    POSIX_ENSURE(s2n_constant_time_equals(renegotiated_connection, conn->handshake.client_finished, verify_data_len),
+    RESULT_ENSURE_REF(renegotiated_connection);
+    RESULT_ENSURE(s2n_constant_time_equals(renegotiated_connection, conn->handshake.client_finished, verify_data_len),
             S2N_ERR_BAD_MESSAGE);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_client_renegotiation_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     if (s2n_handshake_is_renegotiation(conn)) {
-        POSIX_GUARD(s2n_client_renegotiation_recv_renegotiation(conn, extension));
+        POSIX_GUARD_RESULT(s2n_client_renegotiation_recv_renegotiation(conn, extension));
     } else {
-        POSIX_GUARD(s2n_client_renegotiation_recv_initial(conn, extension));
+        POSIX_GUARD_RESULT(s2n_client_renegotiation_recv_initial(conn, extension));
     }
     POSIX_ENSURE(s2n_stuffer_data_available(extension) == 0, S2N_ERR_BAD_MESSAGE);
     return S2N_SUCCESS;

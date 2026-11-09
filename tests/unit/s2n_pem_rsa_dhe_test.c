@@ -118,7 +118,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&rsa_key_out, available_size), available_size));
     EXPECT_OK(s2n_asn1der_to_private_key(&priv_key, &b, wrong_type));
 
-    EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));
+    EXPECT_OK(s2n_pkey_match(&pub_key, &priv_key));
 
     struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());

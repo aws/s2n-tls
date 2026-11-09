@@ -48,7 +48,7 @@ static S2N_RESULT s2n_setup_conn(struct s2n_connection *conn)
 
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&input_stuffer));
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&output_stuffer));
-    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
+    RESULT_GUARD(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
 
     return S2N_RESULT_OK;
 }
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             uint8_t expected_message_type = 7;
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, expected_message_type));
@@ -192,7 +192,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
 
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
@@ -232,7 +232,7 @@ int main(int argc, char **argv)
 
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH + 1));
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             uint8_t actual_message_type = 0;
 
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             uint8_t actual_message_type = 0;
             size_t expected_buffer_size = 0;
@@ -489,14 +489,14 @@ int main(int argc, char **argv)
 
             /* Sabotage the output stuffer to block writing */
             struct s2n_stuffer bad_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input_stuffer, &bad_stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input_stuffer, &bad_stuffer, conn));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), CLIENT_HELLO);
             EXPECT_EQUAL(s2n_stuffer_data_available(&output_stuffer), 0);
 
             /* Fix the output stuffer */
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input_stuffer, &output_stuffer, conn));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), SERVER_HELLO);
@@ -536,7 +536,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Create a post-handshake message that isn't supported by quic */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, TLS_KEY_UPDATE));
@@ -559,7 +559,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Construct and process multiple ST handshake messages */
             for (size_t i = 1; i < 10; i++) {
@@ -583,7 +583,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Mock receiving a fragmented handshake message */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message_bytes, i));

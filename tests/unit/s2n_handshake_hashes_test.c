@@ -57,7 +57,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(size < sizeof(data));
 
                 struct s2n_hash_state *hash_state = NULL;
-                EXPECT_SUCCESS(s2n_handshake_get_hash_state_ptr(&conn, alg, &hash_state));
+                EXPECT_OK(s2n_handshake_get_hash_state_ptr(&conn, alg, &hash_state));
 
                 /* Hash is setup / useable */
                 EXPECT_SUCCESS(s2n_hash_digest(hash_state, data, size));
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(size < sizeof(data));
 
                 struct s2n_hash_state *hash_state = NULL;
-                EXPECT_SUCCESS(s2n_handshake_get_hash_state_ptr(&conn, alg, &hash_state));
+                EXPECT_OK(s2n_handshake_get_hash_state_ptr(&conn, alg, &hash_state));
                 EXPECT_SUCCESS(s2n_hash_digest(hash_state, data, size));
 
                 /* Can't calculate the digest again: only one digest allowed per hash */
@@ -130,25 +130,25 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
 
         struct s2n_hash_state *hash_state = NULL;
-        EXPECT_SUCCESS(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state));
+        EXPECT_OK(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state));
         EXPECT_NOT_NULL(hash_state);
         EXPECT_SUCCESS(s2n_hash_digest(hash_state, digest, SHA256_DIGEST_LENGTH));
         EXPECT_FAILURE_WITH_ERRNO(s2n_hash_digest(hash_state, digest, SHA256_DIGEST_LENGTH), S2N_ERR_HASH_NOT_READY);
 
         /* A wiped connection's hashes can be reused. */
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        EXPECT_SUCCESS(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state));
+        EXPECT_OK(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state));
         EXPECT_NOT_NULL(hash_state);
         EXPECT_SUCCESS(s2n_hash_digest(hash_state, digest, SHA256_DIGEST_LENGTH));
 
         /* Freeing the handshake frees the hashes */
         EXPECT_SUCCESS(s2n_connection_free_handshake(conn));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state), S2N_ERR_NULL);
         EXPECT_NULL(conn->handshake.hashes);
 
         /* Wiping the connection should restore the freed hashes */
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        EXPECT_SUCCESS(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state));
+        EXPECT_OK(s2n_handshake_get_hash_state_ptr(conn, S2N_HASH_SHA256, &hash_state));
         EXPECT_NOT_NULL(hash_state);
         EXPECT_SUCCESS(s2n_hash_digest(hash_state, digest, SHA256_DIGEST_LENGTH));
 

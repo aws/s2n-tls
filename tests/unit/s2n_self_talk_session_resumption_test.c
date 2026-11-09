@@ -49,8 +49,8 @@ static S2N_RESULT s2n_wipe_connections(struct s2n_connection *client_conn, struc
     RESULT_GUARD_POSIX(s2n_connection_wipe(server_conn));
     RESULT_GUARD_POSIX(s2n_connection_wipe(client_conn));
     RESULT_GUARD_POSIX(s2n_io_pair_close(io_pair));
-    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(io_pair));
-    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client_conn, server_conn, io_pair));
+    RESULT_GUARD(s2n_io_pair_init_non_blocking(io_pair));
+    RESULT_GUARD(s2n_connections_set_io_pair(client_conn, server_conn, io_pair));
     return S2N_RESULT_OK;
 }
 
@@ -218,9 +218,9 @@ int main(int argc, char **argv)
     struct s2n_config *server_config = s2n_config_new();
     EXPECT_NOT_NULL(server_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "AWS-CRT-SDK-TLSv1.0"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(server_config));
     struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
             S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, true));
@@ -230,9 +230,9 @@ int main(int argc, char **argv)
     struct s2n_config *tls12_server_config = s2n_config_new();
     EXPECT_NOT_NULL(tls12_server_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_server_config, "test_all_tls12"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls12_server_config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(tls12_server_config));
     struct s2n_cert_chain_and_key *tls12_chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls12_chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&tls12_chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN,
             S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls12_server_config, tls12_chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls12_server_config, true));
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
     struct s2n_config *tls13_client_config = s2n_config_new();
     EXPECT_NOT_NULL(tls13_client_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "AWS-CRT-SDK-TLSv1.0"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls13_client_config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(tls13_client_config));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls13_client_config, true));
     DEFER_CLEANUP(struct s2n_stuffer cb_session_data = { 0 }, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&cb_session_data, 0));
@@ -252,7 +252,7 @@ int main(int argc, char **argv)
     struct s2n_config *tls12_client_config = s2n_config_new();
     EXPECT_NOT_NULL(tls12_client_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, "ELBSecurityPolicy-2016-08"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls12_client_config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(tls12_client_config));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls12_client_config, true));
     EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(tls12_client_config, s2n_test_session_ticket_cb, &cb_session_data));
 
@@ -270,8 +270,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate initial handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client sets up a resumption connection with the received session ticket data */
             size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);
@@ -328,8 +328,8 @@ int main(int argc, char **argv)
         {
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Negotiate initial handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -349,8 +349,8 @@ int main(int argc, char **argv)
         {
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client sets up a resumption connection with the received session ticket data */
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.data, tls12_ticket.size));
@@ -371,8 +371,8 @@ int main(int argc, char **argv)
         {
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client sets up a resumption connection with the received session ticket data */
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.data, tls12_ticket.size));
@@ -394,8 +394,8 @@ int main(int argc, char **argv)
         {
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client sets up a resumption connection with the received session ticket data */
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.data, tls12_ticket.size));
@@ -418,8 +418,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate initial handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -432,7 +432,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Client sets up a resumption connection with the received session ticket data */
         size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);
@@ -469,8 +469,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate initial handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -483,7 +483,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Client sets up a resumption connection with the received session ticket data */
         size_t cb_session_data_len = s2n_stuffer_data_available(&cb_session_data);
@@ -525,8 +525,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate initial handshake to produce TLS1.2 session ticket */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -543,7 +543,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
         /* Client sets up a resumption connection with the received TLS1.2 session ticket data */
@@ -584,8 +584,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -601,7 +601,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
         /* Client sets up a resumption connection with the received session ticket data */
@@ -634,8 +634,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         DEFER_CLEANUP(struct s2n_stuffer tls12_ticket = { 0 }, s2n_stuffer_free);
         DEFER_CLEANUP(struct s2n_stuffer tls13_ticket = { 0 }, s2n_stuffer_free);
@@ -653,7 +653,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate initial TLS1.2 handshake */
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_client_config));
@@ -668,7 +668,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             bool do_tls13 = (i % 2 == 0);
 
@@ -718,8 +718,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         DEFER_CLEANUP(struct s2n_stuffer tls12_ticket = { 0 }, s2n_stuffer_free);
         DEFER_CLEANUP(struct s2n_stuffer tls13_ticket = { 0 }, s2n_stuffer_free);
@@ -736,7 +736,7 @@ int main(int argc, char **argv)
         /* Prepare client and server for a second connection */
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate initial TLS1.2 handshake */
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_client_config));
@@ -757,7 +757,7 @@ int main(int argc, char **argv)
             /* Prepare client and server for new connection */
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config[j]));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_server_config));
@@ -781,7 +781,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer session_state_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&session_state_stuffer, &session_state));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&session_state_stuffer, session_length));
-            EXPECT_SUCCESS(s2n_client_deserialize_resumption_state(client_conn, &session_state_stuffer));
+            EXPECT_OK(s2n_client_deserialize_resumption_state(client_conn, &session_state_stuffer));
         }
 
         /* Tests that if a TLS1.3 ticket is set on the connection, s2n_connection_get_session will
@@ -791,7 +791,7 @@ int main(int argc, char **argv)
             /* Prepare client and server for new connection */
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config[j]));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -831,14 +831,14 @@ int main(int argc, char **argv)
         struct s2n_config *no_key_config = s2n_config_new();
         EXPECT_NOT_NULL(no_key_config);
         no_key_config->security_policy = server_config->security_policy;
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(no_key_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config, true));
 
         struct s2n_config *no_key_config_with_cache = s2n_config_new();
         EXPECT_NOT_NULL(no_key_config_with_cache);
         no_key_config_with_cache->security_policy = server_config->security_policy;
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config_with_cache));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(no_key_config_with_cache));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_key_config_with_cache, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config_with_cache, true));
         EXPECT_SUCCESS(s2n_config_set_cache_store_callback(no_key_config_with_cache, s2n_cache_store_cb, NULL));
@@ -860,8 +860,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
 
             struct s2n_test_io_pair io_pair = { 0 };
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Initial handshake */
             {
@@ -961,8 +961,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
 
             struct s2n_test_io_pair io_pair = { 0 };
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Initial handshake */
             {
@@ -1066,8 +1066,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate initial handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -1087,7 +1087,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client sets up a resumption connection with the received TLS1.2 session ticket data */
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
@@ -1128,8 +1128,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&output, &input, client_conn));
 
         /* Wipe psk_ke extension when it is received */
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, s2n_wipe_psk_ke_ext, NULL));
@@ -1163,8 +1163,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&output, &input, client_conn));
 
         /* Alter psk_ke extension when it is received so that it only supports psk_ke mode */
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, s2n_alter_psk_ke_ext, NULL));
@@ -1198,8 +1198,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&output, &input, client_conn));
 
         /* Disable any client hello cb changes */
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, NULL, NULL));
@@ -1221,16 +1221,16 @@ int main(int argc, char **argv)
         /* Server uses an RSA cert; the client uses an ECDSA cert for its mTLS
          * identity. Each side trusts the other's CA. */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *server_chain = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&server_chain,
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&server_chain,
                 "rsae", "pkcs", "2048", "sha256"));
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&client_chain,
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&client_chain,
                 "ec", "ecdsa", "p256", "sha256"));
 
         char server_ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
-        EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(server_ca_path, "rsae", "pkcs", "2048", "sha256"));
+        EXPECT_OK(s2n_test_cert_permutation_get_ca_path(server_ca_path, "rsae", "pkcs", "2048", "sha256"));
         char client_ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
-        EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(client_ca_path, "ec", "ecdsa", "p256", "sha256"));
+        EXPECT_OK(s2n_test_cert_permutation_get_ca_path(client_ca_path, "ec", "ecdsa", "p256", "sha256"));
 
         /* Client presents its ECDSA cert if asked, but uses OPTIONAL so it can
          * connect to both the public (no client auth) and mTLS servers. */
@@ -1272,13 +1272,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
             /* Obtain a resumption ticket from the public (no client auth) server. */
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, mtls_client_config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, public_server_config));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
@@ -1293,7 +1293,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, mtls_client_config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, mtls_server_config));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             size_t session_len = s2n_stuffer_data_available(&mtls_session_data);
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, mtls_session_data.blob.data, session_len));
@@ -1320,8 +1320,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);

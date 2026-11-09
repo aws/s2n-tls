@@ -76,22 +76,22 @@ static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
 static struct s2n_config s2n_default_tls13_config = { 0 };
 
-static int s2n_config_setup_default(struct s2n_config *config)
+static S2N_RESULT s2n_config_setup_default(struct s2n_config *config)
 {
-    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "default"));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default"));
+    return S2N_RESULT_OK;
 }
 
-static int s2n_config_setup_tls13(struct s2n_config *config)
+static S2N_RESULT s2n_config_setup_tls13(struct s2n_config *config)
 {
-    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "default_tls13"));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_tls13"));
+    return S2N_RESULT_OK;
 }
 
-static int s2n_config_setup_fips(struct s2n_config *config)
+static S2N_RESULT s2n_config_setup_fips(struct s2n_config *config)
 {
-    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "default_fips"));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_fips"));
+    return S2N_RESULT_OK;
 }
 
 static int s2n_config_init(struct s2n_config *config)
@@ -109,11 +109,11 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
-    POSIX_GUARD(s2n_config_setup_default(config));
+    POSIX_GUARD_RESULT(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
-        POSIX_GUARD(s2n_config_setup_tls13(config));
+        POSIX_GUARD_RESULT(s2n_config_setup_tls13(config));
     } else if (s2n_is_in_fips_mode()) {
-        POSIX_GUARD(s2n_config_setup_fips(config));
+        POSIX_GUARD_RESULT(s2n_config_setup_fips(config));
     }
 
     POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
@@ -134,7 +134,7 @@ static int s2n_config_cleanup(struct s2n_config *config)
         config->custom_x509_extension_oids = NULL;
     }
 
-    POSIX_GUARD(s2n_config_free_session_ticket_keys(config));
+    POSIX_GUARD_RESULT(s2n_config_free_session_ticket_keys(config));
     POSIX_GUARD(s2n_config_free_cert_chain_and_key(config));
     POSIX_GUARD(s2n_config_free_dhparams(config));
     POSIX_GUARD(s2n_free(&config->application_protocols));
@@ -146,31 +146,31 @@ static int s2n_config_cleanup(struct s2n_config *config)
     return 0;
 }
 
-static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
+static S2N_RESULT s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         struct s2n_blob *name,
         struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    POSIX_ENSURE_REF(config);
-    POSIX_ENSURE_REF(name);
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(name);
 
     struct s2n_map *domain_name_to_cert_map = config->domain_name_to_cert_map;
     /* s2n_map does not allow zero-size key */
     if (name->size == 0) {
-        return 0;
+        return S2N_RESULT_OK;
     }
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
-    POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-    POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    RESULT_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    RESULT_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     struct s2n_blob s2n_map_value = { 0 };
     bool key_found = false;
-    POSIX_GUARD_RESULT(s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value, &key_found));
+    RESULT_GUARD(s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value, &key_found));
     if (!key_found) {
         struct certs_by_type value = { { 0 } };
         value.certs[cert_type] = cert_key_pair;
         s2n_map_value.data = (uint8_t *) &value;
         s2n_map_value.size = sizeof(struct certs_by_type);
 
-        POSIX_GUARD_RESULT(s2n_map_unlock(domain_name_to_cert_map));
+        RESULT_GUARD(s2n_map_unlock(domain_name_to_cert_map));
 
         int add_result = s2n_result_is_ok(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value)) ? S2N_SUCCESS : S2N_FAILURE;
 
@@ -180,8 +180,8 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
          * check, silently disabling SNI-based certificate selection for the
          * lifetime of this config.
          */
-        POSIX_GUARD_RESULT(s2n_map_complete(domain_name_to_cert_map));
-        POSIX_GUARD(add_result);
+        RESULT_GUARD(s2n_map_complete(domain_name_to_cert_map));
+        RESULT_GUARD_POSIX(add_result);
     } else {
         struct certs_by_type *value = (void *) s2n_map_value.data;
         if (value->certs[cert_type] == NULL) {
@@ -203,31 +203,31 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
         }
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+S2N_RESULT s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     uint32_t cn_len = 0;
-    POSIX_GUARD_RESULT(s2n_array_num_elements(cert_key_pair->cn_names, &cn_len));
+    RESULT_GUARD(s2n_array_num_elements(cert_key_pair->cn_names, &cn_len));
     uint32_t san_len = 0;
-    POSIX_GUARD_RESULT(s2n_array_num_elements(cert_key_pair->san_names, &san_len));
+    RESULT_GUARD(s2n_array_num_elements(cert_key_pair->san_names, &san_len));
 
     if (san_len == 0) {
         for (uint32_t i = 0; i < cn_len; i++) {
             struct s2n_blob *cn_name = NULL;
-            POSIX_GUARD_RESULT(s2n_array_get(cert_key_pair->cn_names, i, (void **) &cn_name));
-            POSIX_GUARD(s2n_config_update_domain_name_to_cert_map(config, cn_name, cert_key_pair));
+            RESULT_GUARD(s2n_array_get(cert_key_pair->cn_names, i, (void **) &cn_name));
+            RESULT_GUARD(s2n_config_update_domain_name_to_cert_map(config, cn_name, cert_key_pair));
         }
     } else {
         for (uint32_t i = 0; i < san_len; i++) {
             struct s2n_blob *san_name = NULL;
-            POSIX_GUARD_RESULT(s2n_array_get(cert_key_pair->san_names, i, (void **) &san_name));
-            POSIX_GUARD(s2n_config_update_domain_name_to_cert_map(config, san_name, cert_key_pair));
+            RESULT_GUARD(s2n_array_get(cert_key_pair->san_names, i, (void **) &san_name));
+            RESULT_GUARD(s2n_config_update_domain_name_to_cert_map(config, san_name, cert_key_pair));
         }
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 struct s2n_config *s2n_fetch_default_config(void)
@@ -241,34 +241,34 @@ struct s2n_config *s2n_fetch_default_config(void)
     return &s2n_default_config;
 }
 
-int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
+S2N_RESULT s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 {
-    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
+    RESULT_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
     config->check_ocsp = 0;
     config->disable_x509_validation = 1;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_config_defaults_init(void)
+S2N_RESULT s2n_config_defaults_init(void)
 {
     /* Set up fips defaults */
     if (s2n_is_in_fips_mode()) {
-        POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
-        POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
-        POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_fips_config));
+        RESULT_GUARD_POSIX(s2n_config_init(&s2n_default_fips_config));
+        RESULT_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
+        RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_fips_config));
     } else {
         /* Set up default */
-        POSIX_GUARD(s2n_config_init(&s2n_default_config));
-        POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
-        POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
+        RESULT_GUARD_POSIX(s2n_config_init(&s2n_default_config));
+        RESULT_GUARD(s2n_config_setup_default(&s2n_default_config));
+        RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_config));
     }
 
     /* TLS 1.3 default config is only used in tests so avoid initialization costs in applications */
-    POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
-    POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
+    RESULT_GUARD_POSIX(s2n_config_init(&s2n_default_tls13_config));
+    RESULT_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 void s2n_wipe_static_configs(void)
@@ -328,22 +328,22 @@ struct s2n_config *s2n_config_new(void)
     return new_config;
 }
 
-int s2n_config_init_session_ticket_keys(struct s2n_config *config)
+S2N_RESULT s2n_config_init_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys == NULL) {
-        POSIX_ENSURE_REF(config->ticket_keys = s2n_array_new_with_capacity(sizeof(struct s2n_ticket_key), S2N_MAX_TICKET_KEYS));
+        RESULT_ENSURE_REF(config->ticket_keys = s2n_array_new_with_capacity(sizeof(struct s2n_ticket_key), S2N_MAX_TICKET_KEYS));
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-int s2n_config_free_session_ticket_keys(struct s2n_config *config)
+S2N_RESULT s2n_config_free_session_ticket_keys(struct s2n_config *config)
 {
     if (config->ticket_keys != NULL) {
-        POSIX_GUARD_RESULT(s2n_array_free_p(&config->ticket_keys));
+        RESULT_GUARD(s2n_array_free_p(&config->ticket_keys));
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_free_cert_chain_and_key(struct s2n_config *config)
@@ -539,16 +539,16 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
-static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+static S2N_RESULT s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    POSIX_ENSURE_REF(config->domain_name_to_cert_map);
-    POSIX_ENSURE_REF(cert_key_pair);
+    RESULT_ENSURE_REF(config->domain_name_to_cert_map);
+    RESULT_ENSURE_REF(cert_key_pair);
 
-    POSIX_GUARD_RESULT(s2n_security_policy_validate_certificate_chain(config->security_policy, cert_key_pair));
+    RESULT_GUARD(s2n_security_policy_validate_certificate_chain(config->security_policy, cert_key_pair));
 
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
-    POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-    POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    RESULT_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    RESULT_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
 
     /* Perform all fallible checks BEFORE inserting into the domain name map.
@@ -562,12 +562,12 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
              * default_certs_by_type mapping, library-owned chains MUST be set as the default
              * to avoid a memory leak. If they're not the default, they're not freed.
              */
-            POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED,
+            RESULT_ENSURE(config->cert_ownership != S2N_LIB_OWNED,
                     S2N_ERR_MULTIPLE_DEFAULT_CERTIFICATES_PER_AUTH_TYPE);
         }
     }
 
-    POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
+    RESULT_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
@@ -579,7 +579,7 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
         config->no_signing_key = true;
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
@@ -650,7 +650,7 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
             s2n_cert_chain_and_key_ptr_free);
     POSIX_ENSURE_REF(chain_and_key);
     POSIX_GUARD(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
-    POSIX_GUARD(s2n_config_add_cert_chain_and_key_impl(config, chain_and_key));
+    POSIX_GUARD_RESULT(s2n_config_add_cert_chain_and_key_impl(config, chain_and_key));
     config->cert_ownership = S2N_LIB_OWNED;
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(chain_and_key);
@@ -670,7 +670,7 @@ int s2n_config_add_cert_chain(struct s2n_config *config,
     POSIX_ENSURE_REF(chain_and_key);
     POSIX_GUARD(s2n_cert_chain_and_key_load_public_pem_bytes(chain_and_key,
             cert_chain_pem, cert_chain_pem_size));
-    POSIX_GUARD(s2n_config_add_cert_chain_and_key_impl(config, chain_and_key));
+    POSIX_GUARD_RESULT(s2n_config_add_cert_chain_and_key_impl(config, chain_and_key));
     config->cert_ownership = S2N_LIB_OWNED;
 
     ZERO_TO_DISABLE_DEFER_CLEANUP(chain_and_key);
@@ -683,7 +683,7 @@ int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct
     POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     POSIX_ENSURE_REF(cert_key_pair);
-    POSIX_GUARD(s2n_config_add_cert_chain_and_key_impl(config, cert_key_pair));
+    POSIX_GUARD_RESULT(s2n_config_add_cert_chain_and_key_impl(config, cert_key_pair));
     config->cert_ownership = S2N_APP_OWNED;
 
     return S2N_SUCCESS;
@@ -711,20 +711,20 @@ int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey
     return S2N_SUCCESS;
 }
 
-static int s2n_config_clear_default_certificates(struct s2n_config *config)
+static S2N_RESULT s2n_config_clear_default_certificates(struct s2n_config *config)
 {
-    POSIX_ENSURE_REF(config);
+    RESULT_ENSURE_REF(config);
 
     /* Clearing library-owned chains would lead to a memory leak.
      * See s2n_config_free_cert_chain_and_key.
      */
-    POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
+    RESULT_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         config->default_certs_by_type.certs[i] = NULL;
     }
     config->cert_ownership = S2N_NOT_OWNED;
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
@@ -752,7 +752,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
         new_defaults.certs[cert_type] = cert_key_pairs[i];
     }
 
-    POSIX_GUARD(s2n_config_clear_default_certificates(config));
+    POSIX_GUARD_RESULT(s2n_config_clear_default_certificates(config));
     for (size_t i = 0; i < num_cert_key_pairs; i++) {
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
         POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
@@ -994,9 +994,9 @@ int s2n_config_set_session_tickets_onoff(struct s2n_config *config, uint8_t enab
 
     /* session ticket || session id is enabled */
     if (enabled) {
-        POSIX_GUARD(s2n_config_init_session_ticket_keys(config));
+        POSIX_GUARD_RESULT(s2n_config_init_session_ticket_keys(config));
     } else if (!config->use_session_cache) {
-        POSIX_GUARD(s2n_config_free_session_ticket_keys(config));
+        POSIX_GUARD_RESULT(s2n_config_free_session_ticket_keys(config));
     }
 
     return 0;
@@ -1006,11 +1006,11 @@ int s2n_config_set_session_cache_onoff(struct s2n_config *config, uint8_t enable
 {
     POSIX_ENSURE_REF(config);
     if (enabled && config->cache_store && config->cache_retrieve && config->cache_delete) {
-        POSIX_GUARD(s2n_config_init_session_ticket_keys(config));
+        POSIX_GUARD_RESULT(s2n_config_init_session_ticket_keys(config));
         config->use_session_cache = 1;
     } else {
         if (!config->use_tickets) {
-            POSIX_GUARD(s2n_config_free_session_ticket_keys(config));
+            POSIX_GUARD_RESULT(s2n_config_free_session_ticket_keys(config));
         }
         config->use_session_cache = 0;
     }
@@ -1049,7 +1049,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         return 0;
     }
 
-    POSIX_GUARD(s2n_config_wipe_expired_ticket_crypto_keys(config, -1));
+    POSIX_GUARD_RESULT(s2n_config_wipe_expired_ticket_crypto_keys(config, -1));
 
     POSIX_ENSURE(key_len != 0, S2N_ERR_INVALID_TICKET_KEY_LENGTH);
 
@@ -1083,7 +1083,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     DEFER_CLEANUP(struct s2n_hmac_state hmac = { 0 }, s2n_hmac_free);
 
     POSIX_GUARD(s2n_hmac_new(&hmac));
-    POSIX_GUARD(s2n_hkdf(&hmac, S2N_HMAC_SHA256, &salt, &in_key, &info, &out_key));
+    POSIX_GUARD_RESULT(s2n_hkdf(&hmac, S2N_HMAC_SHA256, &salt, &in_key, &info, &out_key));
 
     POSIX_CHECKED_MEMCPY(session_ticket_key->key_name, name_data, s2n_array_len(name_data));
     POSIX_CHECKED_MEMCPY(session_ticket_key->aes_key, out_key.data, S2N_AES256_KEY_LEN);
@@ -1098,7 +1098,7 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
         session_ticket_key->intro_timestamp = (intro_time_in_seconds_from_epoch * ONE_SEC_IN_NANOS);
     }
 
-    POSIX_GUARD(s2n_config_store_ticket_key(config, session_ticket_key));
+    POSIX_GUARD_RESULT(s2n_config_store_ticket_key(config, session_ticket_key));
 
     return 0;
 }

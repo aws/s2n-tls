@@ -88,9 +88,9 @@ int main()
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
             const s2n_extension_type extension_type = { 0 };
 
-            EXPECT_FAILURE(s2n_extension_process(NULL, &conn, &parsed_extension_list));
-            EXPECT_FAILURE(s2n_extension_process(&extension_type, NULL, &parsed_extension_list));
-            EXPECT_FAILURE(s2n_extension_process(&extension_type, &conn, NULL));
+            EXPECT_ERROR(s2n_extension_process(NULL, &conn, &parsed_extension_list));
+            EXPECT_ERROR(s2n_extension_process(&extension_type, NULL, &parsed_extension_list));
+            EXPECT_ERROR(s2n_extension_process(&extension_type, &conn, NULL));
         };
 
         /* Successfully process a basic parsed_extension */
@@ -107,7 +107,7 @@ int main()
             SET_PARSED_EXTENSION(parsed_extension_list, test_parsed_extension);
 
             received_flag = false;
-            EXPECT_SUCCESS(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
+            EXPECT_OK(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
 
             EXPECT_EXTENSION_PROCESSED(parsed_extension_list, test_extension_type_internal_id);
             EXPECT_TRUE(received_flag);
@@ -130,13 +130,13 @@ int main()
 
             /* First time processing */
             received_flag = false;
-            EXPECT_SUCCESS(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
+            EXPECT_OK(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
             EXPECT_EXTENSION_PROCESSED(parsed_extension_list, test_extension_type_internal_id);
             EXPECT_TRUE(received_flag);
 
             /* Second time processing */
             received_flag = false;
-            EXPECT_SUCCESS(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
+            EXPECT_OK(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
             EXPECT_EXTENSION_PROCESSED(parsed_extension_list, test_extension_type_internal_id);
             /* The extension has already been processed, so recv is not called again */
             EXPECT_FALSE(received_flag);
@@ -160,7 +160,7 @@ int main()
             SET_PARSED_EXTENSION(parsed_extension_list, test_parsed_extension);
 
             received_flag = false;
-            EXPECT_SUCCESS(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
+            EXPECT_OK(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list));
 
             EXPECT_EXTENSION_PROCESSED(parsed_extension_list, test_extension_type_internal_id);
             EXPECT_TRUE(received_flag);
@@ -182,7 +182,7 @@ int main()
             parsed_extension_list.parsed_extensions[test_extension_type_internal_id] = test_parsed_extension;
 
             received_flag = false;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list),
+            EXPECT_ERROR_WITH_ERRNO(s2n_extension_process(&test_extension_type, conn, &parsed_extension_list),
                     S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
             EXPECT_NO_EXTENSIONS_PROCESSED(parsed_extension_list);
@@ -204,7 +204,7 @@ int main()
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
                 received_flag = false;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_extension_process(&test_required_extension_type, conn, &parsed_extension_list),
+                EXPECT_ERROR_WITH_ERRNO(s2n_extension_process(&test_required_extension_type, conn, &parsed_extension_list),
                         S2N_ERR_MISSING_EXTENSION);
 
                 EXPECT_NO_EXTENSIONS_PROCESSED(parsed_extension_list);
@@ -224,7 +224,7 @@ int main()
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
                 received_flag = false;
-                EXPECT_SUCCESS(s2n_extension_process(&test_optional_extension_type, conn, &parsed_extension_list));
+                EXPECT_OK(s2n_extension_process(&test_optional_extension_type, conn, &parsed_extension_list));
 
                 EXPECT_EXTENSION_PROCESSED(parsed_extension_list, test_extension_type_internal_id);
                 EXPECT_FALSE(received_flag);
@@ -268,9 +268,9 @@ int main()
             struct s2n_connection conn = { 0 };
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
 
-            EXPECT_FAILURE(s2n_extension_list_process(0, NULL, &parsed_extension_list));
-            EXPECT_FAILURE(s2n_extension_list_process(0, &conn, NULL));
-            EXPECT_FAILURE(s2n_extension_list_process(-1, &conn, &parsed_extension_list));
+            EXPECT_ERROR(s2n_extension_list_process(0, NULL, &parsed_extension_list));
+            EXPECT_ERROR(s2n_extension_list_process(0, &conn, NULL));
+            EXPECT_ERROR(s2n_extension_list_process(-1, &conn, &parsed_extension_list));
         };
 
         /* Process a single parsed_extension */
@@ -279,12 +279,12 @@ int main()
 
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
 
             SET_PARSED_EXTENSION(parsed_extension_list, test_empty_parsed_extension);
 
             conn->server_name_used = false;
-            EXPECT_SUCCESS(s2n_extension_list_process(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS,
+            EXPECT_OK(s2n_extension_list_process(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS,
                     conn, &parsed_extension_list));
 
             EXPECT_EXTENSION_PROCESSED(parsed_extension_list, test_empty_internal_id);
@@ -299,13 +299,13 @@ int main()
 
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
 
             SET_PARSED_EXTENSION(parsed_extension_list, test_empty_parsed_extension);
             SET_PARSED_EXTENSION(parsed_extension_list, test_parsed_extension);
 
             conn->server_name_used = false;
-            EXPECT_SUCCESS(s2n_extension_list_process(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS,
+            EXPECT_OK(s2n_extension_list_process(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS,
                     conn, &parsed_extension_list));
 
             EXPECT_EXTENSION_PROCESSED(parsed_extension_list, test_internal_id);
@@ -321,12 +321,12 @@ int main()
 
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
 
             SET_PARSED_EXTENSION(parsed_extension_list, test_empty_parsed_extension);
 
             conn->server_name_used = false;
-            EXPECT_SUCCESS(s2n_extension_list_process(S2N_EXTENSION_LIST_EMPTY, conn, &parsed_extension_list));
+            EXPECT_OK(s2n_extension_list_process(S2N_EXTENSION_LIST_EMPTY, conn, &parsed_extension_list));
 
             EXPECT_NO_EXTENSIONS_PROCESSED(parsed_extension_list);
             EXPECT_FALSE(conn->server_name_used);

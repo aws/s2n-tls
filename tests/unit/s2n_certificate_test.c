@@ -109,11 +109,11 @@ int main(int argc, char **argv)
     const uint8_t ocsp_data[] = "ocsp data";
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Test s2n_cert_chain_and_key_new */
@@ -232,10 +232,10 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         struct s2n_cert_chain_and_key *s2n_chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&s2n_chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&s2n_chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         struct s2n_config *config_skip_x509_verification = s2n_config_new();
@@ -267,7 +267,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_x509_verification));
             EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 0);
 
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Negotiate handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -286,7 +286,7 @@ int main(int argc, char **argv)
             /* Input certificate chain is not empty */
             {
                 DEFER_CLEANUP(struct s2n_cert_chain_and_key *input = NULL, s2n_cert_chain_and_key_ptr_free);
-                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&input,
+                EXPECT_OK(s2n_test_cert_chain_and_key_new(&input,
                         S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, input),
                         S2N_ERR_INVALID_ARGUMENT);
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_x509_verification));
             EXPECT_EQUAL(server_conn->x509_validator.skip_cert_validation, 0);
 
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Negotiate handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -350,7 +350,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_x509_verification));
             EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 0);
 
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Negotiate handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_x509_verification));
             EXPECT_EQUAL(client_conn->x509_validator.skip_cert_validation, 0);
 
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Negotiate handshake */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
         size_t i = 0;
 
         struct s2n_cert_chain_and_key *custom_cert_chain = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&custom_cert_chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&custom_cert_chain,
                 S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID,
                 S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY));
         struct s2n_cert *cert = custom_cert_chain->cert_chain->head;
@@ -700,8 +700,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls12_server_conn, "test_all_tls12"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(tls12_client_conn, tls12_server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(tls12_client_conn, tls12_server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(tls12_server_conn, tls12_client_conn));
 
             EXPECT_EQUAL(tls12_server_conn->actual_protocol_version, S2N_TLS12);
@@ -721,8 +721,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls13_server_conn, "default_tls13"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(tls13_client_conn, tls13_server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(tls13_client_conn, tls13_server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(tls13_server_conn, tls13_client_conn));
 
             EXPECT_EQUAL(tls13_server_conn->actual_protocol_version, S2N_TLS13);
@@ -778,8 +778,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server, unsafe_config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
             EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
@@ -819,8 +819,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
                     S2N_ERR_CERT_UNTRUSTED);
@@ -940,7 +940,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         /* Safety checks */
@@ -973,7 +973,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         /* Safety checks */
@@ -1003,7 +1003,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN,
                 S2N_DEFAULT_TEST_PRIVATE_KEY));
         POSIX_ENSURE_REF(chain->cert_chain);

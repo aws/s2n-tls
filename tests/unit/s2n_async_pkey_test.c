@@ -99,7 +99,7 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
     if (type == S2N_ASYNC_SIGN) {
         /* Create new chain and key, and modify current server conn */
         struct s2n_cert_chain_and_key *chain_and_key_2 = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         /* Change server conn cert data */
@@ -110,7 +110,7 @@ static int async_handler_sign_with_different_pkey_and_apply(struct s2n_connectio
         EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
 
         /* Set pkey_op's validation mode to S2N_ASYNC_PKEY_VALIDATION_FAST and test that async sign apply will pass now */
-        EXPECT_SUCCESS(s2n_async_pkey_op_set_validation_mode(pkey_op, S2N_ASYNC_PKEY_VALIDATION_FAST));
+        EXPECT_OK(s2n_async_pkey_op_set_validation_mode(pkey_op, S2N_ASYNC_PKEY_VALIDATION_FAST));
         EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
 
         /* Set chain_and_key back to original value and free new chain_and_key */
@@ -370,11 +370,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Run all tests for 2 cipher suites to test both sign and decrypt operations */
@@ -411,7 +411,7 @@ int main(int argc, char **argv)
             server_config->security_policy = &server_security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             struct s2n_test_io_pair io_pair;
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -452,7 +452,7 @@ int main(int argc, char **argv)
             server_config->security_policy = &server_security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
@@ -469,7 +469,7 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             struct s2n_test_io_pair io_pair;
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -493,7 +493,7 @@ int main(int argc, char **argv)
             server_config->security_policy = &server_security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
@@ -510,7 +510,7 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             struct s2n_test_io_pair io_pair;
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -537,7 +537,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
@@ -554,7 +554,7 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             struct s2n_test_io_pair io_pair;
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -579,7 +579,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(client_config);
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -595,7 +595,7 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -762,7 +762,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
 
@@ -776,7 +776,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 

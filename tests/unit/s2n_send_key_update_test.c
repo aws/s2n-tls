@@ -27,7 +27,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
 
-int s2n_key_update_write(struct s2n_blob *out);
+S2N_RESULT s2n_key_update_write(struct s2n_blob *out);
 
 static int s2n_test_init_encryption(struct s2n_connection *conn)
 {
@@ -94,8 +94,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&output, &input, client_conn));
 
         /* Mimic key update send conditions */
         for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         struct s2n_connection *client_conn = NULL;
         struct s2n_connection *server_conn = NULL;
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -173,7 +173,7 @@ int main(int argc, char **argv)
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE] = { 0 };
         struct s2n_blob key_update_blob = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
-        EXPECT_SUCCESS(s2n_key_update_write(&key_update_blob));
+        EXPECT_OK(s2n_key_update_write(&key_update_blob));
         EXPECT_OK(s2n_record_write(client_conn, TLS_HANDSHAKE, &key_update_blob));
         EXPECT_SUCCESS(s2n_flush(client_conn, &blocked));
 

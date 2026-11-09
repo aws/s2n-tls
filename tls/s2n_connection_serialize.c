@@ -342,7 +342,7 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
     uint64_t parsed_sequence_num = 0;
     struct s2n_blob seq_num_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&seq_num_blob, seq_num, S2N_TLS_SEQUENCE_NUM_LEN));
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num_blob, &parsed_sequence_num));
+    RESULT_GUARD(s2n_sequence_number_to_uint64(&seq_num_blob, &parsed_sequence_num));
 
     /* we don't need to initialize the context when the sequence number is 0 */
     if (parsed_sequence_num == 0) {
@@ -400,7 +400,7 @@ static S2N_RESULT s2n_restore_secrets(struct s2n_connection *conn, struct s2n_co
             S2N_TLS_RANDOM_DATA_LEN);
     RESULT_CHECKED_MEMCPY(conn->handshake_params.server_random, parsed_values->version.tls12.server_random,
             S2N_TLS_RANDOM_DATA_LEN);
-    RESULT_GUARD_POSIX(s2n_prf_key_expansion(conn));
+    RESULT_GUARD(s2n_prf_key_expansion(conn));
 
     /* PRF key expansion seeds the implicit IVs from the master secret, which is
      * only correct at record 0. For TLS1.0 and SSLv3 CBC the blob ships the

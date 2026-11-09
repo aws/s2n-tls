@@ -44,7 +44,7 @@ int main(int argc, char **argv)
         {
             struct s2n_blob blob = { 0 };
             EXPECT_SUCCESS(s2n_free(&blob));
-            EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
+            EXPECT_OK(s2n_free_without_wipe(&blob));
             EXPECT_SUCCESS(s2n_free_or_wipe(&blob));
         };
 
@@ -55,14 +55,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_free(&blob));
 
             EXPECT_SUCCESS(s2n_free(&blob));
-            EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
+            EXPECT_OK(s2n_free_without_wipe(&blob));
             EXPECT_SUCCESS(s2n_free_or_wipe(&blob));
         };
 
         /* Test: error for NULL */
         {
             EXPECT_FAILURE_WITH_ERRNO(s2n_free(NULL), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_free_without_wipe(NULL), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_free_without_wipe(NULL), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_free_or_wipe(NULL), S2N_ERR_NULL);
         };
 
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
             /* No-op for empty blob */
             struct s2n_blob blob = { 0 };
             EXPECT_SUCCESS(s2n_free(&blob));
-            EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
+            EXPECT_OK(s2n_free_without_wipe(&blob));
             EXPECT_SUCCESS(s2n_free_or_wipe(&blob));
 
             /* Restore real free callback */
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
          * s2n_free_without_wipe should still zero the blob before calling the callback.
          */
         s2n_failing_free_cb_called = false;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_free_without_wipe(&blob), S2N_ERR_CANCELLED);
+        EXPECT_ERROR_WITH_ERRNO(s2n_free_without_wipe(&blob), S2N_ERR_CANCELLED);
         EXPECT_TRUE(s2n_failing_free_cb_called);
 
         /* The blob must be zeroed despite the callback failure */
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
 
         /* Second free: must be a safe no-op, not a double-free */
         s2n_failing_free_cb_called = false;
-        EXPECT_SUCCESS(s2n_free_without_wipe(&blob));
+        EXPECT_OK(s2n_free_without_wipe(&blob));
         EXPECT_FALSE(s2n_failing_free_cb_called);
 
         /* Restore real callbacks */

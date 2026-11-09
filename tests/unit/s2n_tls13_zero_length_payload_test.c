@@ -69,8 +69,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
 
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
 
         EXPECT_OK(s2n_record_write(client_conn, TLS_APPLICATION_DATA, &zero_length_data));
         EXPECT_SUCCESS(s2n_flush(client_conn, &blocked));
@@ -116,8 +116,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
 
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
 
         S2N_BLOB_FROM_HEX(record_header_blob, tls13_zero_length_handshake_record_hex);
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&client_to_server, record_header_blob.data, record_header_blob.size));
@@ -155,8 +155,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
 
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
 
         S2N_BLOB_FROM_HEX(record_header_blob, tls13_zero_length_alert_record_hex);
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&client_to_server, record_header_blob.data, record_header_blob.size));

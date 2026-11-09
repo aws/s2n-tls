@@ -69,7 +69,7 @@ int main(int argc, char **argv)
     EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
 
     /* Client uses the stuffer pair normally */
-    EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_pair.client_in, &io_pair.server_in, client_conn));
+    EXPECT_OK(s2n_connection_set_io_stuffers(&io_pair.client_in, &io_pair.server_in, client_conn));
 
     /* Server uses a separate "in" stuffer so we can manually control how
      * much data is available for reading. Server still writes directly to
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
      */
     DEFER_CLEANUP(struct s2n_stuffer server_in = { 0 }, s2n_stuffer_free);
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
-    EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &io_pair.client_in, server_conn));
+    EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &io_pair.client_in, server_conn));
 
     /* Negotiate the handshake by shuttling data between io_pair.server_in
      * and server_in manually, similar to how the original test shuttled
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     /* Reconnect the server to read directly from the stuffer pair for shutdown,
      * since the intermediate stuffer was only needed for partial-record testing.
      */
-    EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_pair.server_in, &io_pair.client_in, server_conn));
+    EXPECT_OK(s2n_connection_set_io_stuffers(&io_pair.server_in, &io_pair.client_in, server_conn));
 
     /* Shutdown */
     EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));

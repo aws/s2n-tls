@@ -138,7 +138,7 @@ int main(int argc, char *argv[])
         /* Self-talk: Disable validity period validation on client for server auth */
         for (int i = 0; i < s2n_array_len(test_cases); i++) {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     test_cases[i].cert_pem_path, test_cases[i].key_pem_path));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -162,7 +162,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
         /* Self-talk: Disable validity period validation on server for client auth */
         for (int i = 0; i < s2n_array_len(test_cases); i++) {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *default_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&default_chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&default_chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
@@ -202,7 +202,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     test_cases[i].cert_pem_path, test_cases[i].key_pem_path));
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
@@ -218,7 +218,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 

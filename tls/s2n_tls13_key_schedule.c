@@ -105,7 +105,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
      **/
     RESULT_ENSURE_LTE(key_size, key->size);
     key->size = key_size;
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
+    RESULT_GUARD(s2n_hkdf_expand_label(&hmac, hmac_alg,
             &secret, key_purpose, &s2n_zero_length_context, key));
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
@@ -113,7 +113,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
      **/
     RESULT_ENSURE_LTE(iv_size, iv->size);
     iv->size = iv_size;
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
+    RESULT_GUARD(s2n_hkdf_expand_label(&hmac, hmac_alg,
             &secret, iv_purpose, &s2n_zero_length_context, iv));
 
     return S2N_RESULT_OK;

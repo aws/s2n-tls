@@ -40,7 +40,7 @@
 #define S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT 30
 
 /* forward declaration */
-int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
+S2N_RESULT s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
@@ -358,7 +358,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -378,7 +378,7 @@ int main(int argc, char **argv)
         /* Chain owned by application */
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -403,7 +403,7 @@ int main(int argc, char **argv)
          */
         {
             struct s2n_cert_chain_and_key *chain = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
         /* Switch from library-owned certs to application-owned certs */
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -469,11 +469,11 @@ int main(int argc, char **argv)
         /* Succeeds if chains owned by app */
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_1 = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_1,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_1,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_2 = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_2,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_2,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -490,7 +490,7 @@ int main(int argc, char **argv)
         /* Fails if chains owned by library */
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -918,7 +918,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             /* Ensure a handshake succeeds with a minimal server config and no mutual auth */
@@ -945,8 +945,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
                 EXPECT_FALSE(server_config->trust_store.loaded_system_certs);
                 EXPECT_NULL(server_config->trust_store.trust_store);
@@ -980,8 +980,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
                 EXPECT_FALSE(server_config->trust_store.loaded_system_certs);
                 EXPECT_NULL(server_config->trust_store.trust_store);
@@ -1120,8 +1120,8 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *valid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa", "p384", "sha384"));
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa", "p384", "sha384"));
 
         struct s2n_security_policy rfc9151_applied_locally = security_policy_20250429;
         rfc9151_applied_locally.certificate_preferences_apply_locally = true;
@@ -1172,7 +1172,7 @@ int main(int argc, char **argv)
         /* certs in the domain map are validated */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_build_domain_name_to_cert_map(config, invalid_cert));
+            EXPECT_OK(s2n_config_build_domain_name_to_cert_map(config, invalid_cert));
 
             /* default_certs_by_type is empty. */
             EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
@@ -1381,7 +1381,7 @@ int main(int argc, char **argv)
          */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_only_chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_only_chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&cert_only_chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_pkey_free(cert_only_chain->private_key));
         EXPECT_SUCCESS(s2n_pkey_zero_init(cert_only_chain->private_key));
@@ -1425,7 +1425,7 @@ int main(int argc, char **argv)
          */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_only_chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_only_chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&cert_only_chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_pkey_free(cert_only_chain->private_key));
         EXPECT_SUCCESS(s2n_pkey_zero_init(cert_only_chain->private_key));
@@ -1570,7 +1570,7 @@ int main(int argc, char **argv)
         /* Create a cert chain to attempt adding. */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         /* Install a malloc callback that always fails so s2n_map_add will
@@ -1589,7 +1589,7 @@ int main(int argc, char **argv)
          * function will take the !key_found branch: unlock -> add (FAIL).
          * With the fix, complete is still called before returning the error.
          */
-        EXPECT_FAILURE(s2n_config_build_domain_name_to_cert_map(config, chain));
+        EXPECT_ERROR(s2n_config_build_domain_name_to_cert_map(config, chain));
 
         /* Restore the real malloc callback before any further allocations. */
         EXPECT_OK(s2n_mem_override_callbacks(saved_init_cb, saved_cleanup_cb,
@@ -1753,7 +1753,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -1798,7 +1798,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));

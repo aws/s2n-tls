@@ -193,18 +193,18 @@ int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *st
     return s2n_stuffer_write_bytes(stuffer, (const uint8_t *) str, length);
 }
 
-int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length)
+S2N_RESULT s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length)
 {
-    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
-    POSIX_ENSURE_REF(data);
+    RESULT_PRECONDITION(s2n_stuffer_validate(stuffer));
+    RESULT_ENSURE_REF(data);
 
     struct s2n_blob data_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&data_blob, data, length));
+    RESULT_GUARD_POSIX(s2n_blob_init(&data_blob, data, length));
 
-    POSIX_GUARD(s2n_stuffer_init(stuffer, &data_blob));
-    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(stuffer, &data_blob));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(stuffer, length));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* If we call va_start or va_copy there MUST be a matching call to va_end,

@@ -109,7 +109,7 @@ static int s2n_test_apply_with_invalid_signature_handler(struct s2n_connection *
         if (type == S2N_ASYNC_SIGN) {
             /* Create new chain and key, and modify current server conn */
             struct s2n_cert_chain_and_key *chain_and_key_2 = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key_2,
                     S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
             /* Change server conn cert data */
@@ -120,7 +120,7 @@ static int s2n_test_apply_with_invalid_signature_handler(struct s2n_connection *
             EXPECT_FAILURE_WITH_ERRNO(s2n_async_pkey_op_apply(pkey_op, conn), S2N_ERR_VERIFY_SIGNATURE);
 
             /* Set pkey_op's validation mode to S2N_ASYNC_PKEY_VALIDATION_FAST and test that async sign apply will pass now */
-            EXPECT_SUCCESS(s2n_async_pkey_op_set_validation_mode(pkey_op, S2N_ASYNC_PKEY_VALIDATION_FAST));
+            EXPECT_OK(s2n_async_pkey_op_set_validation_mode(pkey_op, S2N_ASYNC_PKEY_VALIDATION_FAST));
             EXPECT_SUCCESS(s2n_async_pkey_op_apply(pkey_op, conn));
 
             /* Set chain_and_key back to original value and free new chain_and_key */
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
         conn->handshake_params.client_cert_sig_scheme = &s2n_rsa_pkcs1_md5_sha1;
 
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
         chain_and_key->private_key->size = test_size;
         chain_and_key->private_key->sign = test_sign;
@@ -201,14 +201,14 @@ int main(int argc, char **argv)
     /*  Test: async private key operations. */
     {
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(client_config, s2n_async_pkey_store_op));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
         /* This cipher preference is set to avoid TLS 1.3. */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
         /* Enable signature validation to test S2N_CLIENT connection signature for async sign operation */
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(server_config));
 
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(server_conn);
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -261,14 +261,14 @@ int main(int argc, char **argv)
     /* Test: Apply with invalid signature */
     {
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(client_config, s2n_async_pkey_store_op));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
         /* Enable signature validation to test S2N_CLIENT connection signature for async sign operation */
         EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(client_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(server_config));
 
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
         EXPECT_NOT_NULL(server_conn);
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 

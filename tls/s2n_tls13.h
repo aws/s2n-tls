@@ -50,4 +50,4 @@ bool s2n_is_middlebox_compat_enabled(struct s2n_connection *conn);
 
 bool s2n_is_hello_retry_handshake(struct s2n_connection *conn);
 bool s2n_is_hello_retry_message(struct s2n_connection *conn);
-int s2n_set_hello_retry_required(struct s2n_connection *conn);
+S2N_RESULT s2n_set_hello_retry_required(struct s2n_connection *conn);

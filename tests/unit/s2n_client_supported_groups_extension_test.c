@@ -60,7 +60,7 @@ int main()
         EXPECT_NOT_NULL(ecc_pref);
 
         const struct s2n_kem_preferences *kem_pref = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+        EXPECT_OK(s2n_connection_get_kem_preferences(conn, &kem_pref));
         EXPECT_NOT_NULL(kem_pref);
         EXPECT_EQUAL(kem_pref, &kem_preferences_null);
 
@@ -114,7 +114,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
 
             EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
@@ -165,7 +165,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
 
             EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
@@ -210,7 +210,7 @@ int main()
                 EXPECT_NOT_NULL(server_ecc_pref);
 
                 const struct s2n_kem_preferences *server_kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
+                EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
                 EXPECT_NOT_NULL(server_kem_pref);
 
                 EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(client_conn, &stuffer));
@@ -357,7 +357,7 @@ int main()
             EXPECT_NOT_NULL(client_ecc_pref);
 
             const struct s2n_kem_preferences *client_kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(client_conn, &client_kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(client_conn, &client_kem_pref));
             EXPECT_NOT_NULL(client_kem_pref);
 
             struct s2n_connection *server_conn = NULL;
@@ -403,7 +403,7 @@ int main()
                 EXPECT_NOT_NULL(client_ecc_pref);
 
                 const struct s2n_kem_preferences *client_kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(client_conn, &client_kem_pref));
+                EXPECT_OK(s2n_connection_get_kem_preferences(client_conn, &client_kem_pref));
                 EXPECT_NOT_NULL(client_kem_pref);
 
                 struct s2n_connection *server_conn = NULL;

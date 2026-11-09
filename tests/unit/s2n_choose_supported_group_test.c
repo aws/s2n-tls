@@ -43,7 +43,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
             EXPECT_EQUAL(kem_pref, &kem_preferences_null);
 
@@ -60,7 +60,7 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-            EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
+            EXPECT_OK(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
@@ -81,7 +81,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
             EXPECT_EQUAL(kem_pref, &kem_preferences_null);
 
@@ -99,7 +99,7 @@ int main()
             }
 
             server_conn->kex_params.mutually_supported_curves[1] = ecc_pref->ecc_curves[1];
-            EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
+            EXPECT_OK(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
@@ -120,7 +120,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
             EXPECT_EQUAL(kem_pref, &kem_preferences_null);
 
@@ -132,7 +132,7 @@ int main()
                 EXPECT_NULL(server_conn->kex_params.mutually_supported_kem_groups[i]);
             }
 
-            EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
+            EXPECT_OK(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
@@ -171,7 +171,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
             EXPECT_EQUAL(kem_pref, &test_kem_prefs);
 
@@ -188,7 +188,7 @@ int main()
                 EXPECT_NULL(server_conn->kex_params.mutually_supported_kem_groups[i]);
             }
 
-            EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
+            EXPECT_OK(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
@@ -209,7 +209,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
             EXPECT_EQUAL(kem_pref, &test_kem_prefs);
 
@@ -226,7 +226,7 @@ int main()
                 server_conn->kex_params.mutually_supported_kem_groups[i] = kem_pref->tls13_kem_groups[i];
             }
 
-            EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
+            EXPECT_OK(s2n_choose_supported_group(server_conn));
 
             const struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
             if (s2n_pq_is_enabled()) {
@@ -255,7 +255,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
             EXPECT_EQUAL(kem_pref, &test_kem_prefs);
 
@@ -275,7 +275,7 @@ int main()
             const struct s2n_kem_group *chosen_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
             EXPECT_NOT_NULL(chosen_group);
             server_conn->kex_params.mutually_supported_kem_groups[0] = chosen_group;
-            EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
+            EXPECT_OK(s2n_choose_supported_group(server_conn));
 
             EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, chosen_group);
             EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, chosen_group->curve);
@@ -294,7 +294,7 @@ int main()
             EXPECT_NOT_NULL(ecc_pref);
 
             const struct s2n_kem_preferences *kem_pref = NULL;
-            EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+            EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
             EXPECT_NOT_NULL(kem_pref);
             EXPECT_EQUAL(kem_pref, &test_kem_prefs);
 
@@ -311,7 +311,7 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_params.kem);
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-            EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
+            EXPECT_OK(s2n_choose_supported_group(server_conn));
 
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
             EXPECT_NULL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);

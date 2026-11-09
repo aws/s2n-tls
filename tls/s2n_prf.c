@@ -136,11 +136,11 @@ S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s
  * HMAC). The use of weak hash algorithms is inherent to the SSLv3 protocol
  * specification. SSLv3 is disabled by default and not recommended.
  */
-static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
+static S2N_RESULT s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->handshake.hashes);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->handshake.hashes);
     struct s2n_hash_state *workspace = &conn->handshake.hashes->hash_workspace;
 
     uint32_t outputlen = out->size;
@@ -152,35 +152,35 @@ static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, s
     uint8_t A = 'A';
     while (outputlen) {
         struct s2n_hash_state *sha1 = workspace;
-        POSIX_GUARD(s2n_hash_reset(sha1));
-        POSIX_GUARD(s2n_hash_init(sha1, S2N_HASH_SHA1));
+        RESULT_GUARD_POSIX(s2n_hash_reset(sha1));
+        RESULT_GUARD_POSIX(s2n_hash_init(sha1, S2N_HASH_SHA1));
 
         for (int i = 0; i < iteration; i++) {
-            POSIX_GUARD(s2n_hash_update(sha1, &A, 1));
+            RESULT_GUARD_POSIX(s2n_hash_update(sha1, &A, 1));
         }
 
-        POSIX_GUARD(s2n_hash_update(sha1, secret->data, secret->size));
-        POSIX_GUARD(s2n_hash_update(sha1, seed_a->data, seed_a->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(sha1, secret->data, secret->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(sha1, seed_a->data, seed_a->size));
 
         if (seed_b) {
-            POSIX_GUARD(s2n_hash_update(sha1, seed_b->data, seed_b->size));
+            RESULT_GUARD_POSIX(s2n_hash_update(sha1, seed_b->data, seed_b->size));
             if (seed_c) {
-                POSIX_GUARD(s2n_hash_update(sha1, seed_c->data, seed_c->size));
+                RESULT_GUARD_POSIX(s2n_hash_update(sha1, seed_c->data, seed_c->size));
             }
         }
 
-        POSIX_GUARD(s2n_hash_digest(sha1, sha_digest, sizeof(sha_digest)));
+        RESULT_GUARD_POSIX(s2n_hash_digest(sha1, sha_digest, sizeof(sha_digest)));
 
         struct s2n_hash_state *md5 = workspace;
-        POSIX_GUARD(s2n_hash_reset(md5));
-        POSIX_GUARD(s2n_hash_init(md5, S2N_HASH_MD5));
-        POSIX_GUARD(s2n_hash_update(md5, secret->data, secret->size));
-        POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
-        POSIX_GUARD(s2n_hash_digest(md5, md5_digest, sizeof(md5_digest)));
+        RESULT_GUARD_POSIX(s2n_hash_reset(md5));
+        RESULT_GUARD_POSIX(s2n_hash_init(md5, S2N_HASH_MD5));
+        RESULT_GUARD_POSIX(s2n_hash_update(md5, secret->data, secret->size));
+        RESULT_GUARD_POSIX(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
+        RESULT_GUARD_POSIX(s2n_hash_digest(md5, md5_digest, sizeof(md5_digest)));
 
         uint32_t bytes_to_copy = S2N_MIN(outputlen, sizeof(md5_digest));
 
-        POSIX_CHECKED_MEMCPY(output, md5_digest, bytes_to_copy);
+        RESULT_CHECKED_MEMCPY(output, md5_digest, bytes_to_copy);
 
         outputlen -= bytes_to_copy;
         output += bytes_to_copy;
@@ -190,7 +190,7 @@ static int s2n_prf_sslv3(struct s2n_connection *conn, struct s2n_blob *secret, s
         iteration++;
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_hmac_p_hash_new(struct s2n_prf_working_space *ws)
@@ -261,47 +261,47 @@ const struct s2n_p_hash_hmac *s2n_get_hmac_implementation()
     return &s2n_internal_p_hash_hmac;
 }
 
-static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret, struct s2n_blob *label,
+static S2N_RESULT s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     uint8_t digest_size = 0;
-    POSIX_GUARD(s2n_hmac_digest_size(alg, &digest_size));
+    RESULT_GUARD_POSIX(s2n_hmac_digest_size(alg, &digest_size));
 
     const struct s2n_p_hash_hmac *hmac = s2n_get_hmac_implementation();
-    POSIX_ENSURE_REF(hmac);
+    RESULT_ENSURE_REF(hmac);
 
     /* First compute hmac(secret + A(0)) */
-    POSIX_GUARD(hmac->init(ws, alg, secret));
-    POSIX_GUARD(hmac->update(ws, label->data, label->size));
-    POSIX_GUARD(hmac->update(ws, seed_a->data, seed_a->size));
+    RESULT_GUARD_POSIX(hmac->init(ws, alg, secret));
+    RESULT_GUARD_POSIX(hmac->update(ws, label->data, label->size));
+    RESULT_GUARD_POSIX(hmac->update(ws, seed_a->data, seed_a->size));
 
     if (seed_b) {
-        POSIX_GUARD(hmac->update(ws, seed_b->data, seed_b->size));
+        RESULT_GUARD_POSIX(hmac->update(ws, seed_b->data, seed_b->size));
         if (seed_c) {
-            POSIX_GUARD(hmac->update(ws, seed_c->data, seed_c->size));
+            RESULT_GUARD_POSIX(hmac->update(ws, seed_c->data, seed_c->size));
         }
     }
-    POSIX_GUARD(hmac->final(ws, ws->digest0, digest_size));
+    RESULT_GUARD_POSIX(hmac->final(ws, ws->digest0, digest_size));
 
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
 
     while (outputlen) {
         /* Now compute hmac(secret + A(N - 1) + seed) */
-        POSIX_GUARD(hmac->reset(ws));
-        POSIX_GUARD(hmac->update(ws, ws->digest0, digest_size));
+        RESULT_GUARD_POSIX(hmac->reset(ws));
+        RESULT_GUARD_POSIX(hmac->update(ws, ws->digest0, digest_size));
 
         /* Add the label + seed and compute this round's A */
-        POSIX_GUARD(hmac->update(ws, label->data, label->size));
-        POSIX_GUARD(hmac->update(ws, seed_a->data, seed_a->size));
+        RESULT_GUARD_POSIX(hmac->update(ws, label->data, label->size));
+        RESULT_GUARD_POSIX(hmac->update(ws, seed_a->data, seed_a->size));
         if (seed_b) {
-            POSIX_GUARD(hmac->update(ws, seed_b->data, seed_b->size));
+            RESULT_GUARD_POSIX(hmac->update(ws, seed_b->data, seed_b->size));
             if (seed_c) {
-                POSIX_GUARD(hmac->update(ws, seed_c->data, seed_c->size));
+                RESULT_GUARD_POSIX(hmac->update(ws, seed_c->data, seed_c->size));
             }
         }
 
-        POSIX_GUARD(hmac->final(ws, ws->digest1, digest_size));
+        RESULT_GUARD_POSIX(hmac->final(ws, ws->digest1, digest_size));
 
         uint32_t bytes_to_xor = S2N_MIN(outputlen, digest_size);
 
@@ -312,14 +312,14 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
         }
 
         /* Stash a digest of A(N), in A(N), for the next round */
-        POSIX_GUARD(hmac->reset(ws));
-        POSIX_GUARD(hmac->update(ws, ws->digest0, digest_size));
-        POSIX_GUARD(hmac->final(ws, ws->digest0, digest_size));
+        RESULT_GUARD_POSIX(hmac->reset(ws));
+        RESULT_GUARD_POSIX(hmac->update(ws, ws->digest0, digest_size));
+        RESULT_GUARD_POSIX(hmac->final(ws, ws->digest0, digest_size));
     }
 
-    POSIX_GUARD(hmac->cleanup(ws));
+    RESULT_GUARD_POSIX(hmac->cleanup(ws));
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_prf_new(struct s2n_connection *conn)
@@ -379,7 +379,7 @@ S2N_RESULT s2n_prf_custom(struct s2n_connection *conn, struct s2n_blob *secret, 
     RESULT_GUARD_POSIX(s2n_blob_zero(out));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        RESULT_GUARD_POSIX(s2n_p_hash(conn->prf_space, conn->secure->cipher_suite->prf_alg, secret, label, seed_a,
+        RESULT_GUARD(s2n_p_hash(conn->prf_space, conn->secure->cipher_suite->prf_alg, secret, label, seed_a,
                 seed_b, seed_c, out));
         return S2N_RESULT_OK;
     }
@@ -387,9 +387,9 @@ S2N_RESULT s2n_prf_custom(struct s2n_connection *conn, struct s2n_blob *secret, 
     struct s2n_blob half_secret = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&half_secret, secret->data, (secret->size + 1) / 2));
 
-    RESULT_GUARD_POSIX(s2n_p_hash(conn->prf_space, S2N_HMAC_MD5, &half_secret, label, seed_a, seed_b, seed_c, out));
+    RESULT_GUARD(s2n_p_hash(conn->prf_space, S2N_HMAC_MD5, &half_secret, label, seed_a, seed_b, seed_c, out));
     half_secret.data += secret->size - half_secret.size;
-    RESULT_GUARD_POSIX(s2n_p_hash(conn->prf_space, S2N_HMAC_SHA1, &half_secret, label, seed_a, seed_b, seed_c, out));
+    RESULT_GUARD(s2n_p_hash(conn->prf_space, S2N_HMAC_SHA1, &half_secret, label, seed_a, seed_b, seed_c, out));
 
     return S2N_RESULT_OK;
 }
@@ -410,7 +410,7 @@ int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blo
     POSIX_ENSURE(S2N_IMPLIES(seed_c != NULL, seed_b != NULL), S2N_ERR_PRF_INVALID_SEED);
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
-        POSIX_GUARD(s2n_prf_sslv3(conn, secret, seed_a, seed_b, seed_c, out));
+        POSIX_GUARD_RESULT(s2n_prf_sslv3(conn, secret, seed_a, seed_b, seed_c, out));
         return S2N_SUCCESS;
     }
 
@@ -734,44 +734,44 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     return s2n_prf(conn, &master_secret, &label, &md5, &sha, NULL, &server_finished);
 }
 
-static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_key_material *key_material)
+static S2N_RESULT s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_key_material *key_material)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
-    POSIX_ENSURE_REF(cipher);
-    POSIX_ENSURE_REF(cipher->set_encryption_key);
-    POSIX_ENSURE_REF(cipher->set_decryption_key);
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_REF(cipher->set_encryption_key);
+    RESULT_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD_RESULT(cipher->set_encryption_key(&conn->secure->client_key, &key_material->client_key));
+        RESULT_GUARD(cipher->set_encryption_key(&conn->secure->client_key, &key_material->client_key));
     } else {
-        POSIX_GUARD_RESULT(cipher->set_decryption_key(&conn->secure->client_key, &key_material->client_key));
+        RESULT_GUARD(cipher->set_decryption_key(&conn->secure->client_key, &key_material->client_key));
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_key_material *key_material)
+static S2N_RESULT s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_key_material *key_material)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
-    POSIX_ENSURE_REF(cipher);
-    POSIX_ENSURE_REF(cipher->set_encryption_key);
-    POSIX_ENSURE_REF(cipher->set_decryption_key);
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_REF(cipher->set_encryption_key);
+    RESULT_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_SERVER) {
-        POSIX_GUARD_RESULT(cipher->set_encryption_key(&conn->secure->server_key, &key_material->server_key));
+        RESULT_GUARD(cipher->set_encryption_key(&conn->secure->server_key, &key_material->server_key));
     } else {
-        POSIX_GUARD_RESULT(cipher->set_decryption_key(&conn->secure->server_key, &key_material->server_key));
+        RESULT_GUARD(cipher->set_decryption_key(&conn->secure->server_key, &key_material->server_key));
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_prf_generate_key_material(struct s2n_connection *conn, struct s2n_key_material *key_material)
@@ -798,58 +798,58 @@ S2N_RESULT s2n_prf_generate_key_material(struct s2n_connection *conn, struct s2n
     return S2N_RESULT_OK;
 }
 
-int s2n_prf_key_expansion(struct s2n_connection *conn)
+S2N_RESULT s2n_prf_key_expansion(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
     struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
-    POSIX_ENSURE_REF(cipher_suite);
-    POSIX_ENSURE_REF(cipher_suite->record_alg);
+    RESULT_ENSURE_REF(cipher_suite);
+    RESULT_ENSURE_REF(cipher_suite->record_alg);
     const struct s2n_cipher *cipher = cipher_suite->record_alg->cipher;
-    POSIX_ENSURE_REF(cipher);
+    RESULT_ENSURE_REF(cipher);
 
     struct s2n_key_material key_material = { 0 };
-    POSIX_GUARD_RESULT(s2n_prf_generate_key_material(conn, &key_material));
+    RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
 
-    POSIX_ENSURE(cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
-    POSIX_GUARD_RESULT(cipher->init(&conn->secure->client_key));
-    POSIX_GUARD_RESULT(cipher->init(&conn->secure->server_key));
+    RESULT_ENSURE(cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
+    RESULT_GUARD(cipher->init(&conn->secure->client_key));
+    RESULT_GUARD(cipher->init(&conn->secure->server_key));
 
     /* Seed the client MAC */
-    POSIX_GUARD(s2n_hmac_reset(&conn->secure->client_record_mac));
-    POSIX_GUARD(s2n_hmac_init(
+    RESULT_GUARD_POSIX(s2n_hmac_reset(&conn->secure->client_record_mac));
+    RESULT_GUARD_POSIX(s2n_hmac_init(
             &conn->secure->client_record_mac,
             cipher_suite->record_alg->hmac_alg,
             key_material.client_mac.data,
             key_material.client_mac.size));
 
     /* Seed the server MAC */
-    POSIX_GUARD(s2n_hmac_reset(&conn->secure->server_record_mac));
-    POSIX_GUARD(s2n_hmac_init(
+    RESULT_GUARD_POSIX(s2n_hmac_reset(&conn->secure->server_record_mac));
+    RESULT_GUARD_POSIX(s2n_hmac_init(
             &conn->secure->server_record_mac,
             conn->secure->cipher_suite->record_alg->hmac_alg,
             key_material.server_mac.data,
             key_material.server_mac.size));
 
     /* Make the client key */
-    POSIX_GUARD(s2n_prf_make_client_key(conn, &key_material));
+    RESULT_GUARD(s2n_prf_make_client_key(conn, &key_material));
 
     /* Make the server key */
-    POSIX_GUARD(s2n_prf_make_server_key(conn, &key_material));
+    RESULT_GUARD(s2n_prf_make_server_key(conn, &key_material));
 
     /* Composite CBC does MAC inside the cipher, pass it the MAC key.
      * Must happen after setting encryption/decryption keys.
      */
     if (cipher->type == S2N_COMPOSITE) {
-        POSIX_GUARD(cipher->io.comp.set_mac_write_key(&conn->secure->client_key, key_material.client_mac.data, key_material.client_mac.size));
-        POSIX_GUARD(cipher->io.comp.set_mac_write_key(&conn->secure->server_key, key_material.server_mac.data, key_material.server_mac.size));
+        RESULT_GUARD_POSIX(cipher->io.comp.set_mac_write_key(&conn->secure->client_key, key_material.client_mac.data, key_material.client_mac.size));
+        RESULT_GUARD_POSIX(cipher->io.comp.set_mac_write_key(&conn->secure->server_key, key_material.server_mac.data, key_material.server_mac.size));
     }
 
     /* set IV */
-    POSIX_ENSURE_EQ(key_material.client_iv.size, key_material.server_iv.size);
-    POSIX_ENSURE_LTE(key_material.client_iv.size, S2N_TLS_MAX_IV_LEN);
-    POSIX_CHECKED_MEMCPY(conn->secure->client_implicit_iv, key_material.client_iv.data, key_material.client_iv.size);
-    POSIX_CHECKED_MEMCPY(conn->secure->server_implicit_iv, key_material.server_iv.data, key_material.server_iv.size);
+    RESULT_ENSURE_EQ(key_material.client_iv.size, key_material.server_iv.size);
+    RESULT_ENSURE_LTE(key_material.client_iv.size, S2N_TLS_MAX_IV_LEN);
+    RESULT_CHECKED_MEMCPY(conn->secure->client_implicit_iv, key_material.client_iv.data, key_material.client_iv.size);
+    RESULT_CHECKED_MEMCPY(conn->secure->server_implicit_iv, key_material.server_iv.data, key_material.server_iv.size);
 
-    return 0;
+    return S2N_RESULT_OK;
 }

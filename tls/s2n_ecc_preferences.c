@@ -168,7 +168,7 @@ const struct s2n_ecc_preferences s2n_ecc_preferences_null = {
 
 /* Checks if the ecc_curves present in s2n_ecc_preferences list is a subset of s2n_all_supported_curves_list
  * maintained in s2n_ecc_evp.c */
-int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences)
+S2N_RESULT s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_preferences)
 {
     int check = 1;
     for (int i = 0; i < ecc_preferences->count; i++) {
@@ -182,10 +182,10 @@ int s2n_check_ecc_preferences_curves_list(const struct s2n_ecc_preferences *ecc_
         }
         check *= curve_found;
         if (check == 0) {
-            POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+            RESULT_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         }
     }
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* Determines if query_iana_id corresponds to a curve for these ECC preferences. */

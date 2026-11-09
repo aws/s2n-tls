@@ -52,7 +52,7 @@ static S2N_RESULT s2n_setup_negotiated_pair(
 
     struct s2n_config *config = s2n_config_new();
     RESULT_ENSURE_REF(config);
-    RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
+    RESULT_GUARD(s2n_config_set_unsafe_for_testing(config));
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, cipher_pref));
     RESULT_GUARD_POSIX(s2n_config_set_session_tickets_onoff(config, 1));
@@ -72,8 +72,8 @@ static S2N_RESULT s2n_setup_negotiated_pair(
     RESULT_ENSURE_REF(server);
     RESULT_GUARD_POSIX(s2n_connection_set_config(server, config));
 
-    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(out_io_pair));
-    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client, server, out_io_pair));
+    RESULT_GUARD(s2n_io_pair_init_non_blocking(out_io_pair));
+    RESULT_GUARD(s2n_connections_set_io_pair(client, server, out_io_pair));
 
     *out_client = client;
     *out_server = server;
@@ -88,11 +88,11 @@ int main(int argc, char **argv)
 
     /* Load certs used across multiple sub-tests */
     struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* ── Safety ─────────────────────────────────────────────────────────── */

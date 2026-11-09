@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_p384_sha256 = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_p384_sha256, "ec",
+            EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&ecdsa_p384_sha256, "ec",
                     "ecdsa", "p384", "sha384"));
             DEFER_CLEANUP(X509 *test_cert = NULL, X509_free_pointer);
             EXPECT_OK(s2n_openssl_x509_parse(&ecdsa_p384_sha256->cert_chain->head->raw, &test_cert));

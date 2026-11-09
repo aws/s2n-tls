@@ -185,7 +185,7 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
             struct s2n_config *server_config = NULL, *client_config = NULL;
 
             struct s2n_cert_chain_and_key *chain_and_key = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -277,7 +277,7 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
                 struct s2n_config *server_config = NULL, *client_config = NULL;
 
                 struct s2n_cert_chain_and_key *chain_and_key = NULL;
-                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                         S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
                 EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 
                 EXPECT_NOT_NULL(client_config = s2n_config_new());
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
-                EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+                EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
 
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
@@ -333,7 +333,7 @@ int main(int argc, char **argv)
             struct s2n_config *server_config = NULL, *client_config = NULL;
 
             struct s2n_cert_chain_and_key *chain_and_key = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all_ecdsa"));
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
 
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, NULL));
 
@@ -377,7 +377,7 @@ int main(int argc, char **argv)
             struct s2n_config *server_config = NULL, *client_config = NULL;
 
             struct s2n_cert_chain_and_key *chain_and_key = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
             struct s2n_config *server_config = NULL, *client_config = NULL;
 
             struct s2n_cert_chain_and_key *chain_and_key = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
@@ -456,7 +456,7 @@ int main(int argc, char **argv)
                 for (size_t client_auth = 0; client_auth <= 1; client_auth++) {
                     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                             s2n_cert_chain_and_key_ptr_free);
-                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                             S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
 
                     DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
@@ -533,7 +533,7 @@ int main(int argc, char **argv)
              */
             {
                 DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                         S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
                 EXPECT_NOT_NULL(chain_and_key);
 
@@ -567,7 +567,7 @@ int main(int argc, char **argv)
 
         /* Set an invalid protocol version that no case in the switch handles */
         conn->actual_protocol_version = 255;
-        EXPECT_FAILURE_WITH_ERRNO(
+        EXPECT_ERROR_WITH_ERRNO(
                 s2n_conn_update_required_handshake_hashes(conn), S2N_ERR_SAFETY);
     }
 

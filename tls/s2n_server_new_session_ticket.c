@@ -366,7 +366,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, &key, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&ticket_size));
 
-    RESULT_GUARD_POSIX(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
+    RESULT_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&message_size));
 

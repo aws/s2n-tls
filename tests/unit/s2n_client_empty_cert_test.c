@@ -32,7 +32,7 @@ int main(int argc, char **argv)
         /* Magic number 3 is the length of the certificate_length field */
         EXPECT_SUCCESS(s2n_stuffer_alloc(&out, 3));
 
-        EXPECT_SUCCESS(s2n_send_empty_cert_chain(&out));
+        EXPECT_OK(s2n_send_empty_cert_chain(&out));
         EXPECT_EQUAL(s2n_stuffer_data_available(&out), 3);
         uint32_t cert_len = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint24(&out, &cert_len));

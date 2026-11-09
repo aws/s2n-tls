@@ -120,14 +120,14 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer)
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer)
+S2N_RESULT s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer)
 {
-    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    RESULT_PRECONDITION(s2n_stuffer_validate(stuffer));
     if (stuffer->alloced) {
-        POSIX_GUARD(s2n_free_without_wipe(&stuffer->blob));
+        RESULT_GUARD(s2n_free_without_wipe(&stuffer->blob));
     }
     *stuffer = (struct s2n_stuffer){ 0 };
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size)
