@@ -259,7 +259,17 @@ int main(int argc, char **argv)
          * The params should be back to their initial state. */
         struct s2n_psk_parameters expected_params = { 0 };
         EXPECT_OK(s2n_psk_parameters_init(&expected_params));
-        EXPECT_BYTEARRAY_EQUAL(&expected_params, &params, sizeof(struct s2n_psk_parameters));
+        EXPECT_EQUAL(params.type, expected_params.type);
+        EXPECT_EQUAL(params.binder_list_size, expected_params.binder_list_size);
+        EXPECT_EQUAL(params.chosen_psk_wire_index, expected_params.chosen_psk_wire_index);
+        EXPECT_EQUAL(params.chosen_psk, expected_params.chosen_psk);
+        EXPECT_EQUAL(params.psk_ke_mode, expected_params.psk_ke_mode);
+        EXPECT_EQUAL(params.psk_list.len, expected_params.psk_list.len);
+        EXPECT_EQUAL(params.psk_list.element_size, expected_params.psk_list.element_size);
+        EXPECT_EQUAL(params.psk_list.mem.data, expected_params.psk_list.mem.data);
+        EXPECT_EQUAL(params.psk_list.mem.size, expected_params.psk_list.mem.size);
+        EXPECT_EQUAL(params.psk_list.mem.allocated, expected_params.psk_list.mem.allocated);
+        EXPECT_EQUAL(params.psk_list.mem.growable, expected_params.psk_list.mem.growable);
     };
 
     /* Test s2n_psk_parameters_wipe_secrets */
