@@ -142,7 +142,9 @@ fn io_behavior(s2n_policy: &Policy, send_buffer_size: Option<usize>, fragment: u
     // Map the requested fragment length back to the coarse setting that produces
     // it. The default (no call) already targets the max fragment.
     let apply_fragmentation = |conn: &mut s2n_tls::connection::Connection| match fragment {
-        MAX_FRAGMENT_LEN => {}
+        MAX_FRAGMENT_LEN => {
+            conn.prefer_throughput().unwrap();
+        }
         SMALL_FRAGMENT_LEN => {
             conn.prefer_low_latency().unwrap();
         }
