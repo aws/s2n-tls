@@ -121,19 +121,11 @@ static S2N_RESULT s2n_calculate_transcript_digest(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_extract_secret(s2n_hmac_algorithm hmac_alg,
+static S2N_RESULT s2n_extract_secret(struct s2n_hmac_state *hmac_state, s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *previous_secret_material, const struct s2n_blob *new_secret_material,
         struct s2n_blob *output)
 {
-    /*
-     * TODO: We should be able to reuse the prf_work_space rather
-     * than allocating a new HMAC every time.
-     * https://github.com/aws/s2n-tls/issues/3206
-     */
-    DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
-    RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
-
-    RESULT_GUARD_POSIX(s2n_hkdf_extract(&hmac_state, hmac_alg,
+    RESULT_GUARD_POSIX(s2n_hkdf_extract(hmac_state, hmac_alg,
             previous_secret_material, new_secret_material, output));
     return S2N_RESULT_OK;
 }
@@ -144,20 +136,12 @@ static S2N_RESULT s2n_extract_secret(s2n_hmac_algorithm hmac_alg,
  *#      HKDF-Expand-Label(Secret, Label,
  *#                        Transcript-Hash(Messages), Hash.length)
  */
-static S2N_RESULT s2n_derive_secret(s2n_hmac_algorithm hmac_alg,
+static S2N_RESULT s2n_derive_secret(struct s2n_hmac_state *hmac_state, s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *previous_secret_material, const struct s2n_blob *label, const struct s2n_blob *context,
         struct s2n_blob *output)
 {
-    /*
-     * TODO: We should be able to reuse the prf_work_space rather
-     * than allocating a new HMAC every time.
-     * https://github.com/aws/s2n-tls/issues/3206
-     */
-    DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
-    RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
-
     output->size = s2n_get_hash_len(hmac_alg);
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
+    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(hmac_state, hmac_alg,
             previous_secret_material, label, context, output));
     return S2N_RESULT_OK;
 }
@@ -170,9 +154,13 @@ static S2N_RESULT s2n_derive_secret_with_context(struct s2n_connection *conn,
     RESULT_ENSURE_REF(label);
     RESULT_ENSURE_REF(output);
 
+    struct s2n_prf_working_space *ws = NULL;
+    RESULT_GUARD(s2n_connection_get_prf_space(conn, &ws));
+    RESULT_ENSURE_REF(ws);
+
     RESULT_ENSURE(conn->secrets.extract_secret_type == input_secret_type, S2N_ERR_SECRET_SCHEDULE_STATE);
     RESULT_ENSURE(s2n_conn_get_current_message_type(conn) == transcript_end_msg, S2N_ERR_SECRET_SCHEDULE_STATE);
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn), &CONN_SECRET(conn, extract_secret),
+    RESULT_GUARD(s2n_derive_secret(&ws->space.tls13.tls13_hmac, CONN_HMAC_ALG(conn), &CONN_SECRET(conn, extract_secret),
             label, &CONN_HASH(conn, transcript_hash_digest), output));
     return S2N_RESULT_OK;
 }
@@ -183,8 +171,12 @@ static S2N_RESULT s2n_derive_secret_without_context(struct s2n_connection *conn,
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(output);
 
+    struct s2n_prf_working_space *ws = NULL;
+    RESULT_GUARD(s2n_connection_get_prf_space(conn, &ws));
+    RESULT_ENSURE_REF(ws);
+
     RESULT_ENSURE(conn->secrets.extract_secret_type == input_secret_type, S2N_ERR_SECRET_SCHEDULE_STATE);
-    RESULT_GUARD(s2n_derive_secret(CONN_HMAC_ALG(conn), &CONN_SECRET(conn, extract_secret),
+    RESULT_GUARD(s2n_derive_secret(&ws->space.tls13.tls13_hmac, CONN_HMAC_ALG(conn), &CONN_SECRET(conn, extract_secret),
             &s2n_tls13_label_derived_secret, &EMPTY_CONTEXT(CONN_HMAC_ALG(conn)), output));
     return S2N_RESULT_OK;
 }
@@ -207,14 +199,11 @@ static S2N_RESULT s2n_tls13_compute_finished_key(struct s2n_connection *conn,
 
     RESULT_GUARD(s2n_handshake_set_finished_len(conn, output->size));
 
-    /*
-     * TODO: We should be able to reuse the prf_work_space rather
-     * than allocating a new HMAC every time.
-     */
-    DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
-    RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
+    struct s2n_prf_working_space *ws = NULL;
+    RESULT_GUARD(s2n_connection_get_prf_space(conn, &ws));
+    RESULT_ENSURE_REF(ws);
 
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac_state, CONN_HMAC_ALG(conn),
+    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&ws->space.tls13.tls13_hmac, CONN_HMAC_ALG(conn),
             base_key, &s2n_tls13_label_finished, &(struct s2n_blob){ 0 }, output));
     return S2N_RESULT_OK;
 }
@@ -266,7 +255,15 @@ S2N_RESULT s2n_extract_early_secret(struct s2n_psk *psk)
 {
     RESULT_ENSURE_REF(psk);
     RESULT_GUARD_POSIX(s2n_realloc(&psk->early_secret, s2n_get_hash_len(psk->hmac_alg)));
-    RESULT_GUARD(s2n_extract_secret(psk->hmac_alg,
+
+    /* At this point in the handshake the protocol version has not been
+     * negotiated (this runs while the client writes the ClientHello or the
+     * server reads it), so we can't commit to the TLS 1.3 side of the
+     * prf_space union. A local context is used deliberately. */
+    DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
+    RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
+
+    RESULT_GUARD(s2n_extract_secret(&hmac_state, psk->hmac_alg,
             &ZERO_VALUE(psk->hmac_alg),
             &psk->secret,
             &psk->early_secret));
@@ -300,7 +297,11 @@ static S2N_RESULT s2n_extract_early_secret_for_schedule(struct s2n_connection *c
      *# to compute the Early Secret corresponding to the zero PSK.
      */
     if (psk == NULL) {
-        RESULT_GUARD(s2n_extract_secret(hmac_alg,
+        struct s2n_prf_working_space *ws = NULL;
+        RESULT_GUARD(s2n_connection_get_prf_space(conn, &ws));
+        RESULT_ENSURE_REF(ws);
+
+        RESULT_GUARD(s2n_extract_secret(&ws->space.tls13.tls13_hmac, hmac_alg,
                 &ZERO_VALUE(hmac_alg),
                 &ZERO_VALUE(hmac_alg),
                 &CONN_SECRET(conn, extract_secret)));
@@ -333,7 +334,15 @@ S2N_RESULT s2n_derive_binder_key(struct s2n_psk *psk, struct s2n_blob *output)
         label = &s2n_tls13_label_external_psk_binder_key;
     }
     RESULT_GUARD(s2n_extract_early_secret(psk));
-    RESULT_GUARD(s2n_derive_secret(psk->hmac_alg,
+
+    /* At this point in the handshake the protocol version has not been
+     * negotiated (this runs while the client writes the ClientHello or the
+     * server reads it), so we cannot commit to the TLS 1.3 side of the
+     * prf_space union. A local context is used deliberately. */
+    DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
+    RESULT_GUARD_POSIX(s2n_hmac_new(&hmac_state));
+
+    RESULT_GUARD(s2n_derive_secret(&hmac_state, psk->hmac_alg,
             &psk->early_secret,
             label,
             &EMPTY_CONTEXT(psk->hmac_alg),
@@ -378,7 +387,11 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
     DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free_or_wipe);
     RESULT_GUARD_POSIX(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
-    RESULT_GUARD(s2n_extract_secret(CONN_HMAC_ALG(conn),
+    struct s2n_prf_working_space *ws = NULL;
+    RESULT_GUARD(s2n_connection_get_prf_space(conn, &ws));
+    RESULT_ENSURE_REF(ws);
+
+    RESULT_GUARD(s2n_extract_secret(&ws->space.tls13.tls13_hmac, CONN_HMAC_ALG(conn),
             &derived_secret,
             &shared_secret,
             &CONN_SECRET(conn, extract_secret)));
@@ -467,7 +480,11 @@ static S2N_RESULT s2n_extract_master_secret(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_blob_init(&derived_secret, derived_secret_bytes, S2N_TLS13_SECRET_MAX_LEN));
     RESULT_GUARD(s2n_derive_secret_without_context(conn, S2N_HANDSHAKE_SECRET, &derived_secret));
 
-    RESULT_GUARD(s2n_extract_secret(CONN_HMAC_ALG(conn),
+    struct s2n_prf_working_space *ws = NULL;
+    RESULT_GUARD(s2n_connection_get_prf_space(conn, &ws));
+    RESULT_ENSURE_REF(ws);
+
+    RESULT_GUARD(s2n_extract_secret(&ws->space.tls13.tls13_hmac, CONN_HMAC_ALG(conn),
             &derived_secret,
             &ZERO_VALUE(CONN_HMAC_ALG(conn)),
             &CONN_SECRET(conn, extract_secret)));
@@ -748,14 +765,13 @@ int s2n_connection_tls_exporter(struct s2n_connection *conn,
     POSIX_ENSURE_LTE(s2n_get_hash_len(CONN_HMAC_ALG(conn)), S2N_MAX_DIGEST_LEN);
     POSIX_GUARD(s2n_blob_init(&derived_secret,
             derived_secret_bytes, s2n_get_hash_len(CONN_HMAC_ALG(conn))));
-    POSIX_GUARD_RESULT(s2n_derive_secret(hmac_alg, &CONN_SECRET(conn, exporter_master_secret),
+
+    struct s2n_prf_working_space *ws = NULL;
+    POSIX_GUARD_RESULT(s2n_connection_get_prf_space(conn, &ws));
+    POSIX_ENSURE_REF(ws);
+
+    POSIX_GUARD_RESULT(s2n_derive_secret(&ws->space.tls13.tls13_hmac, hmac_alg, &CONN_SECRET(conn, exporter_master_secret),
             &label, &EMPTY_CONTEXT(hmac_alg), &derived_secret));
-
-    DEFER_CLEANUP(struct s2n_hmac_state hmac_state = { 0 }, s2n_hmac_free);
-    POSIX_GUARD(s2n_hmac_new(&hmac_state));
-
-    DEFER_CLEANUP(struct s2n_hash_state hash = { 0 }, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&hash));
 
     s2n_hash_algorithm hash_alg = { 0 };
     POSIX_GUARD(s2n_hmac_hash_alg(hmac_alg, &hash_alg));
@@ -764,13 +780,13 @@ int s2n_connection_tls_exporter(struct s2n_connection *conn,
     POSIX_ENSURE_LTE(s2n_get_hash_len(CONN_HMAC_ALG(conn)), S2N_MAX_DIGEST_LEN);
     POSIX_GUARD(s2n_blob_init(&digest, digest_bytes, s2n_get_hash_len(CONN_HMAC_ALG(conn))));
 
-    POSIX_GUARD(s2n_hash_init(&hash, hash_alg));
-    POSIX_GUARD(s2n_hash_update(&hash, context, context_length));
-    POSIX_GUARD(s2n_hash_digest(&hash, digest.data, digest.size));
+    POSIX_GUARD(s2n_hash_init(&ws->space.tls13.tls13_hash, hash_alg));
+    POSIX_GUARD(s2n_hash_update(&ws->space.tls13.tls13_hash, context, context_length));
+    POSIX_GUARD(s2n_hash_digest(&ws->space.tls13.tls13_hash, digest.data, digest.size));
 
     struct s2n_blob output = { 0 };
     POSIX_GUARD(s2n_blob_init(&output, output_in, output_length));
-    POSIX_GUARD(s2n_hkdf_expand_label(&hmac_state, hmac_alg,
+    POSIX_GUARD(s2n_hkdf_expand_label(&ws->space.tls13.tls13_hmac, hmac_alg,
             &derived_secret, &s2n_tls13_label_exporter, &digest, &output));
 
     return S2N_SUCCESS;

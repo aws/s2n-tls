@@ -86,14 +86,14 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
     const uint32_t key_size = cipher->key_material_size;
     const uint32_t iv_size = S2N_TLS13_FIXED_IV_LEN;
 
-    /*
-     * TODO: We should be able to reuse the prf_work_space rather
-     * than allocating a new HMAC every time.
-     * https://github.com/aws/s2n-tls/issues/3206
-     */
+    /* Reuse the per-connection key-schedule HMAC context from prf_space
+     * rather than allocating a new HMAC every time (aws/s2n-tls#3206).
+     * s2n_hkdf_expand_label calls s2n_hmac_init internally, fully resetting
+     * the context before use, so the output is byte-identical to a fresh one. */
     s2n_hmac_algorithm hmac_alg = cipher_suite->prf_alg;
-    DEFER_CLEANUP(struct s2n_hmac_state hmac = { 0 }, s2n_hmac_free);
-    RESULT_GUARD_POSIX(s2n_hmac_new(&hmac));
+    struct s2n_prf_working_space *ws = NULL;
+    RESULT_GUARD(s2n_connection_get_prf_space(conn, &ws));
+    RESULT_ENSURE_REF(ws);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
@@ -105,7 +105,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
      **/
     RESULT_ENSURE_LTE(key_size, key->size);
     key->size = key_size;
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
+    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&ws->space.tls13.tls13_hmac, hmac_alg,
             &secret, key_purpose, &s2n_zero_length_context, key));
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
@@ -113,7 +113,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
      **/
     RESULT_ENSURE_LTE(iv_size, iv->size);
     iv->size = iv_size;
-    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
+    RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&ws->space.tls13.tls13_hmac, hmac_alg,
             &secret, iv_purpose, &s2n_zero_length_context, iv));
 
     return S2N_RESULT_OK;

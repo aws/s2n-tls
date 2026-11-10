@@ -237,13 +237,13 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
             uint8_t zeros[S2N_MAX_DIGEST_LEN] = { 0 };
-            EXPECT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+            EXPECT_EQUAL(memcmp(connection->prf_space->space.tls12.digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
 
             s2n_stack_blob(out, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
             EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, &seed_c, &out));
 
             /* The custom PRF implementation should modify the digest fields in the prf_space */
-            EXPECT_NOT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+            EXPECT_NOT_EQUAL(memcmp(connection->prf_space->space.tls12.digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
         }
 
         /* The libcrypto PRF implementation is used when s2n-tls is in FIPS mode */
@@ -251,13 +251,13 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
             uint8_t zeros[S2N_MAX_DIGEST_LEN] = { 0 };
-            EXPECT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+            EXPECT_EQUAL(memcmp(connection->prf_space->space.tls12.digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
 
             s2n_stack_blob(out, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
             EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, &seed_c, &out));
 
             /* The libcrypto PRF implementation will not modify the digest fields in the prf_space */
-            EXPECT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+            EXPECT_EQUAL(memcmp(connection->prf_space->space.tls12.digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
         }
     }
 
