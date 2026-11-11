@@ -1,0 +1,105 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-10.5"
+
+# 10.5.  Outer ClientHello
+#
+# Any information that the client includes in the ClientHelloOuter is
+# visible to passive observers.  The client SHOULD NOT send values in
+# the ClientHelloOuter which would reveal a sensitive ClientHelloInner
+# property, such as the true server name.  It MAY send values
+# associated with the public name in the ClientHelloOuter.
+# 
+# In particular, some extensions require the client send a server-name-
+# specific value in the ClientHello.  These values may reveal
+# information about the true server name.  For example, the
+# "cached_info" ClientHello extension [RFC7924] can contain the hash of
+# a previously observed server certificate.  The client SHOULD NOT send
+# values associated with the true server name in the ClientHelloOuter.
+# It MAY send such values in the ClientHelloInner.
+# 
+# A client may also use different preferences in different contexts.
+# For example, it may send different ALPN lists to different servers or
+# in different application contexts.  A client that treats this context
+# as sensitive SHOULD NOT send context-specific values in
+# ClientHelloOuter.
+# 
+# Values which are independent of the true server name, or other
+# information the client wishes to protect, MAY be included in
+# ClientHelloOuter.  If they match the corresponding ClientHelloInner,
+# they MAY be compressed as described in Section 5.1.  However, note
+# that the payload length reveals information about which extensions
+# are compressed, so inner extensions which only sometimes match the
+# corresponding outer extension SHOULD NOT be compressed.
+# 
+# Clients MAY include additional extensions in ClientHelloOuter to
+# avoid signaling unusual behavior to passive observers, provided the
+# choice of value and value itself are not sensitive.  See
+# Section 10.10.4.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The client SHOULD NOT send values in
+the ClientHelloOuter which would reveal a sensitive ClientHelloInner
+property, such as the true server name.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+It MAY send values
+associated with the public name in the ClientHelloOuter.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The client SHOULD NOT send
+values associated with the true server name in the ClientHelloOuter.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+It MAY send such values in the ClientHelloInner.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+A client that treats this context
+as sensitive SHOULD NOT send context-specific values in
+ClientHelloOuter.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Values which are independent of the true server name, or other
+information the client wishes to protect, MAY be included in
+ClientHelloOuter.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If they match the corresponding ClientHelloInner,
+they MAY be compressed as described in Section 5.1.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+However, note
+that the payload length reveals information about which extensions
+are compressed, so inner extensions which only sometimes match the
+corresponding outer extension SHOULD NOT be compressed.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Clients MAY include additional extensions in ClientHelloOuter to
+avoid signaling unusual behavior to passive observers, provided the
+choice of value and value itself are not sensitive.
+'''
+

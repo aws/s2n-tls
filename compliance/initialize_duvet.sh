@@ -8,3 +8,4 @@ duvet extract https://www.rfc-editor.org/rfc/rfc7627 # Transport Layer Security 
 duvet extract https://www.rfc-editor.org/rfc/rfc5746 # Transport Layer Security (TLS) Renegotiation Indication Extension
 duvet extract https://www.rfc-editor.org/rfc/rfc4492 # Elliptic Curve Cryptography (ECC) Cipher Suites for Transport Layer Security (TLS)
 duvet extract https://www.rfc-editor.org/rfc/rfc8422 # Elliptic Curve Cryptography (ECC) Cipher Suites for Transport Layer Security (TLS) Versions 1.2 and Earlier
+duvet extract https://www.rfc-editor.org/rfc/rfc9849 # TLS Encrypted Client Hello

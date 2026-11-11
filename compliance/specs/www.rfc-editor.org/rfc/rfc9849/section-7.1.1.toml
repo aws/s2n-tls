@@ -1,0 +1,82 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-7.1.1"
+
+# 7.1.1.  Processing ClientHello after HelloRetryRequest
+#
+# After sending or forwarding a HelloRetryRequest, the client-facing
+# server does not repeat the steps in Section 7.1 with the second
+# ClientHelloOuter.  Instead, it continues with the ECHConfig selection
+# from the first ClientHelloOuter as follows:
+# 
+# If the client-facing server accepted ECH, it checks that the second
+# ClientHelloOuter also contains the "encrypted_client_hello"
+# extension.  If not, it MUST abort the handshake with a
+# "missing_extension" alert.  Otherwise, it checks that
+# ECHClientHello.cipher_suite and ECHClientHello.config_id are
+# unchanged, and that ECHClientHello.enc is empty.  If not, it MUST
+# abort the handshake with an "illegal_parameter" alert.
+# 
+# Finally, it decrypts the new ECHClientHello.payload as a second
+# message with the previous HPKE context:
+# 
+#     EncodedClientHelloInner = context.Open(ClientHelloOuterAAD,
+#                                            ECHClientHello.payload)
+# 
+# ClientHelloOuterAAD is computed as described in Section 5.2, but
+# using the second ClientHelloOuter.  If decryption fails, the client-
+# facing server MUST abort the handshake with a "decrypt_error" alert.
+# Otherwise, it reconstructs the second ClientHelloInner from the new
+# EncodedClientHelloInner as described in Section 5.1, using the second
+# ClientHelloOuter for any referenced extensions.
+# 
+# The client-facing server then forwards the resulting ClientHelloInner
+# to the backend server.  It forwards all subsequent TLS messages
+# between the client and backend server unmodified.
+# 
+# If the client-facing server rejected ECH, or if the first ClientHello
+# did not include an "encrypted_client_hello" extension, the client-
+# facing server proceeds with the connection as usual.  The server does
+# not decrypt the second ClientHello's ECHClientHello.payload value, if
+# there is one.  Moreover, if the server is configured with any
+# ECHConfigs, it MUST include the "encrypted_client_hello" extension in
+# its EncryptedExtensions with the "retry_configs" field set to one or
+# more ECHConfig structures with up-to-date keys, as described in
+# Section 7.1.
+# 
+# Note that a client-facing server that forwards the first ClientHello
+# cannot include its own "cookie" extension if the backend server sends
+# a HelloRetryRequest.  This means that the client-facing server either
+# needs to maintain state for such a connection or it needs to
+# coordinate with the backend server to include any information it
+# requires to process the second ClientHello.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If not, it MUST abort the handshake with a
+"missing_extension" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If not, it MUST
+abort the handshake with an "illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If decryption fails, the client-
+facing server MUST abort the handshake with a "decrypt_error" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Moreover, if the server is configured with any
+ECHConfigs, it MUST include the "encrypted_client_hello" extension in
+its EncryptedExtensions with the "retry_configs" field set to one or
+more ECHConfig structures with up-to-date keys, as described in
+Section 7.1.
+'''
+

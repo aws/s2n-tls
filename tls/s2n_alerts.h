@@ -103,6 +103,13 @@ typedef enum {
      */
     S2N_TLS_ALERT_CERTIFICATE_REQUIRED = 116,
     S2N_TLS_ALERT_NO_APPLICATION_PROTOCOL = 120,
+    /*
+     *= https://www.rfc-editor.org/rfc/rfc9849#section-11.2
+     *# IANA has created an entry, ech_required (121) in the existing "TLS
+     *# Alerts" registry (defined in [RFC8446]), with the "DTLS-OK" column
+     *# set to "Y".
+     */
+    S2N_TLS_ALERT_ECH_REQUIRED = 121,
 } s2n_tls_alert_code;
 
 int s2n_process_alert_fragment(struct s2n_connection *conn);

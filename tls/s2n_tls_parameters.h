@@ -120,6 +120,22 @@
  */
 #define TLS_EXTENSION_QUIC_TRANSPORT_PARAMETERS 0x39
 
+/**
+ *= https://www.rfc-editor.org/rfc/rfc9849#section-5
+ *#     enum {
+ *#        encrypted_client_hello(0xfe0d), (65535)
+ *#     } ExtensionType;
+ */
+#define TLS_EXTENSION_ECH 0xfe0d
+
+/**
+ *= https://www.rfc-editor.org/rfc/rfc9849#section-5.1
+ *#     enum {
+ *#        ech_outer_extensions(0xfd00), (65535)
+ *#     } ExtensionType;
+ */
+#define TLS_EXTENSION_ECH_OUTER_EXTENSIONS 0xfd00
+
 /* TLS SignatureScheme (Backwards compatible with SigHash and SigAlg values above) */
 /* Defined here: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme */
 #define TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA1   0x0201
