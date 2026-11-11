@@ -107,18 +107,6 @@ int main(int argc, char **argv)
         EMPTY_EARLY_DATA_SIZE,
     };
 
-    uint8_t tls13_server_ticket[] = {
-        S2N_SERIALIZED_FORMAT_TLS13_V2,
-        S2N_TLS13,
-        TLS_AES_128_GCM_SHA256,
-        TICKET_ISSUE_TIME_BYTES,
-        TICKET_AGE_ADD_BYTES,
-        SECRET_LEN,
-        SECRET,
-        KEYING_MATERIAL_EXPIRATION_BYTES,
-        EMPTY_EARLY_DATA_SIZE,
-    };
-
     uint8_t tls13_ticket_with_early_data[] = {
         S2N_SERIALIZED_FORMAT_TLS13_V2,
         S2N_TLS13,
@@ -933,7 +921,7 @@ int main(int argc, char **argv)
         /* Deserialized TLS1.3 server ticket sets correct keying material value */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));
@@ -968,7 +956,7 @@ int main(int argc, char **argv)
         /* Deserializing TLS1.3 server ticket fails for expired keying material */
         {
             struct s2n_blob ticket_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_server_ticket, sizeof(tls13_server_ticket)));
+            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, tls13_ticket, sizeof(tls13_ticket)));
             struct s2n_stuffer ticket_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket_stuffer, &ticket_blob));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&ticket_stuffer, ticket_blob.size));

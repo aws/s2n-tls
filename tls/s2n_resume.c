@@ -136,6 +136,7 @@ static S2N_RESULT s2n_resumption_state_tls12_init(struct s2n_resumption_state_tl
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     uint64_t now = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &now));
