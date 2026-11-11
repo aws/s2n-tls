@@ -1,0 +1,6 @@
+# Disable checks that the EXPECT_* test macros trigger on every use.
+# See https://github.com/aws/s2n-tls/issues/6162
+InheritParentConfig: true
+Checks: >
+  -concurrency-mt-unsafe,
+  -bugprone-assignment-in-if-condition
