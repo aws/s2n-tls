@@ -81,7 +81,7 @@ struct s2n_offered_psk_list {
 
 S2N_RESULT s2n_finish_psk_extension(struct s2n_connection *conn);
 
-int s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
+S2N_RESULT s2n_psk_calculate_binder_hash(struct s2n_connection *conn, s2n_hmac_algorithm hmac_alg,
         const struct s2n_blob *partial_client_hello, struct s2n_blob *output_binder_hash);
 int s2n_psk_calculate_binder(struct s2n_psk *psk, const struct s2n_blob *binder_hash,
         struct s2n_blob *output_binder);

@@ -77,7 +77,7 @@ static S2N_RESULT s2n_check_kem(const struct s2n_cipher_suite *cipher_suite, str
     *is_supported = false;
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
-    RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    RESULT_GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     RESULT_ENSURE_REF(kem_preferences);
 
     if (!s2n_pq_is_enabled() || kem_preferences->kem_count == 0) {
@@ -124,7 +124,7 @@ static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite,
     RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
-    RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_preferences));
+    RESULT_GUARD(s2n_connection_get_kem_preferences(conn, &kem_preferences));
     RESULT_ENSURE_REF(kem_preferences);
 
     struct s2n_blob *proposed_kems = &(conn->kex_params.client_pq_kem_extension);

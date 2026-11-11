@@ -281,7 +281,7 @@ int main()
             EXPECT_SUCCESS(s2n_dup(&early_secret, &psk->early_secret));
 
             /* Rewrite hashes with known ClientHello */
-            EXPECT_SUCCESS(s2n_conn_update_handshake_hashes(client_conn, &client_hello_msg));
+            EXPECT_OK(s2n_conn_update_handshake_hashes(client_conn, &client_hello_msg));
 
             EXPECT_OK(s2n_tls13_secrets_update(client_conn));
             EXPECT_OK(s2n_tls13_key_schedule_update(client_conn));
@@ -310,7 +310,7 @@ int main()
             EXPECT_NOT_NULL(server_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
 
             DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
@@ -328,7 +328,7 @@ int main()
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, S2N_DEFAULT_RECORD_LENGTH));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write(&input, &ch_record));
 

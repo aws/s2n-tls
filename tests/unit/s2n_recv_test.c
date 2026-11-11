@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
@@ -95,8 +95,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             /* Write some data */
@@ -137,8 +137,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer server_out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -174,14 +174,14 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer server_out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             /* Send a KeyUpdate message */
             s2n_atomic_flag_set(&client_conn->key_update_pending);
-            EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
+            EXPECT_OK(s2n_key_update_send(client_conn, &blocked));
             EXPECT_FALSE(s2n_atomic_flag_test(&client_conn->key_update_pending));
 
             /* Drop some of the data */
@@ -241,8 +241,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             /* Write some data, in three records */
@@ -287,8 +287,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         for (size_t multi_record = 0; multi_record <= 1; multi_record++) {

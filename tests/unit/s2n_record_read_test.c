@@ -27,7 +27,7 @@ int main(int argc, char *argv[])
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* Test s2n_sslv2_record_header_parse */
@@ -117,7 +117,7 @@ int main(int argc, char *argv[])
 
             uint8_t type = 0, version = 0;
             uint16_t length = 0;
-            EXPECT_SUCCESS(s2n_sslv2_record_header_parse(conn, &type, &version, &length));
+            EXPECT_OK(s2n_sslv2_record_header_parse(conn, &type, &version, &length));
             EXPECT_EQUAL(test_cases[i].type, type);
             EXPECT_EQUAL(test_cases[i].version, version);
             EXPECT_EQUAL(test_cases[i].length, length);
@@ -144,19 +144,19 @@ int main(int argc, char *argv[])
             uint16_t length = 0;
 
             conn->header_in_data[1] = SSLV2_MIN_SIZE - 1;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_sslv2_record_header_parse(conn, &type, &version, &length),
                     S2N_ERR_BAD_MESSAGE);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);
             EXPECT_SUCCESS(s2n_stuffer_reread(&conn->header_in));
 
             conn->header_in_data[1] = SSLV2_MIN_SIZE;
-            EXPECT_SUCCESS(s2n_sslv2_record_header_parse(conn, &type, &version, &length));
+            EXPECT_OK(s2n_sslv2_record_header_parse(conn, &type, &version, &length));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), S2N_TLS_RECORD_HEADER_LENGTH);
             EXPECT_SUCCESS(s2n_stuffer_reread(&conn->header_in));
 
             conn->header_in_data[1] = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_sslv2_record_header_parse(conn, &type, &version, &length),
                     S2N_ERR_BAD_MESSAGE);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);

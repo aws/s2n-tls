@@ -23,82 +23,82 @@
 
 #define s2n_parsed_extension_is_empty(parsed_extension) ((parsed_extension)->extension.data == NULL)
 
-int s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out)
+S2N_RESULT s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     s2n_extension_type_list *extension_type_list = NULL;
-    POSIX_GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
+    RESULT_GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
 
     struct s2n_stuffer_reservation total_extensions_size = { 0 };
-    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_extensions_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(out, &total_extensions_size));
 
     for (int i = 0; i < extension_type_list->count; i++) {
-        POSIX_GUARD(s2n_extension_send(extension_type_list->extension_types[i], conn, out));
+        RESULT_GUARD_POSIX(s2n_extension_send(extension_type_list->extension_types[i], conn, out));
     }
 
-    POSIX_GUARD(s2n_stuffer_write_vector_size(&total_extensions_size));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&total_extensions_size));
+    return S2N_RESULT_OK;
 }
 
 int s2n_extension_list_recv(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     s2n_parsed_extensions_list parsed_extension_list = { 0 };
-    POSIX_GUARD(s2n_extension_list_parse(in, &parsed_extension_list));
-    POSIX_GUARD(s2n_extension_list_process(list_type, conn, &parsed_extension_list));
+    POSIX_GUARD_RESULT(s2n_extension_list_parse(in, &parsed_extension_list));
+    POSIX_GUARD_RESULT(s2n_extension_list_process(list_type, conn, &parsed_extension_list));
     return S2N_SUCCESS;
 }
 
-static int s2n_extension_process_impl(const s2n_extension_type *extension_type,
+static S2N_RESULT s2n_extension_process_impl(const s2n_extension_type *extension_type,
         struct s2n_connection *conn, s2n_parsed_extension *parsed_extension)
 {
-    POSIX_ENSURE_REF(extension_type);
-    POSIX_ENSURE_REF(parsed_extension);
+    RESULT_ENSURE_REF(extension_type);
+    RESULT_ENSURE_REF(parsed_extension);
 
     if (parsed_extension->processed) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     if (s2n_parsed_extension_is_empty(parsed_extension)) {
-        POSIX_GUARD(s2n_extension_is_missing(extension_type, conn));
-        return S2N_SUCCESS;
+        RESULT_GUARD(s2n_extension_is_missing(extension_type, conn));
+        return S2N_RESULT_OK;
     }
 
-    POSIX_ENSURE(parsed_extension->extension_type == extension_type->iana_value,
+    RESULT_ENSURE(parsed_extension->extension_type == extension_type->iana_value,
             S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
     struct s2n_stuffer extension_stuffer = { 0 };
-    POSIX_GUARD(s2n_stuffer_init(&extension_stuffer, &parsed_extension->extension));
-    POSIX_GUARD(s2n_stuffer_skip_write(&extension_stuffer, parsed_extension->extension.size));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&extension_stuffer, &parsed_extension->extension));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&extension_stuffer, parsed_extension->extension.size));
 
-    POSIX_GUARD(s2n_extension_recv(extension_type, conn, &extension_stuffer));
+    RESULT_GUARD_POSIX(s2n_extension_recv(extension_type, conn, &extension_stuffer));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_extension_process(const s2n_extension_type *extension_type, struct s2n_connection *conn,
+S2N_RESULT s2n_extension_process(const s2n_extension_type *extension_type, struct s2n_connection *conn,
         s2n_parsed_extensions_list *parsed_extension_list)
 {
-    POSIX_ENSURE_REF(parsed_extension_list);
-    POSIX_ENSURE_REF(extension_type);
+    RESULT_ENSURE_REF(parsed_extension_list);
+    RESULT_ENSURE_REF(extension_type);
 
     s2n_extension_type_id extension_id = 0;
-    POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+    RESULT_GUARD_POSIX(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     s2n_parsed_extension *parsed_extension = &parsed_extension_list->parsed_extensions[extension_id];
-    POSIX_GUARD(s2n_extension_process_impl(extension_type, conn, parsed_extension));
+    RESULT_GUARD(s2n_extension_process_impl(extension_type, conn, parsed_extension));
     parsed_extension->processed = true;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_connection *conn,
+S2N_RESULT s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_connection *conn,
         s2n_parsed_extensions_list *parsed_extension_list)
 {
-    POSIX_ENSURE_REF(parsed_extension_list);
+    RESULT_ENSURE_REF(parsed_extension_list);
 
     s2n_extension_type_list *extension_type_list = NULL;
-    POSIX_GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
+    RESULT_GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
 
     for (int i = 0; i < extension_type_list->count; i++) {
-        POSIX_GUARD(s2n_extension_process(extension_type_list->extension_types[i],
+        RESULT_GUARD(s2n_extension_process(extension_type_list->extension_types[i],
                 conn, parsed_extension_list));
     }
 
@@ -115,52 +115,52 @@ int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_conne
      * that no parsed extensions exist without the "processed" flag set.
      */
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_extension_parse(struct s2n_stuffer *in, s2n_parsed_extension *parsed_extensions, uint16_t *wire_index)
+static S2N_RESULT s2n_extension_parse(struct s2n_stuffer *in, s2n_parsed_extension *parsed_extensions, uint16_t *wire_index)
 {
-    POSIX_ENSURE_REF(parsed_extensions);
-    POSIX_ENSURE_REF(wire_index);
+    RESULT_ENSURE_REF(parsed_extensions);
+    RESULT_ENSURE_REF(wire_index);
 
     uint16_t extension_type = 0;
-    POSIX_ENSURE(s2n_stuffer_read_uint16(in, &extension_type) == S2N_SUCCESS,
+    RESULT_ENSURE(s2n_stuffer_read_uint16(in, &extension_type) == S2N_SUCCESS,
             S2N_ERR_BAD_MESSAGE);
 
     uint16_t extension_size = 0;
-    POSIX_ENSURE(s2n_stuffer_read_uint16(in, &extension_size) == S2N_SUCCESS,
+    RESULT_ENSURE(s2n_stuffer_read_uint16(in, &extension_size) == S2N_SUCCESS,
             S2N_ERR_BAD_MESSAGE);
 
     uint8_t *extension_data = s2n_stuffer_raw_read(in, extension_size);
-    POSIX_ENSURE(extension_data != NULL, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(extension_data != NULL, S2N_ERR_BAD_MESSAGE);
 
     s2n_extension_type_id extension_id = 0;
     if (s2n_extension_supported_iana_value_to_id(extension_type, &extension_id) != S2N_SUCCESS) {
         /* Ignore unknown extensions */
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     s2n_parsed_extension *parsed_extension = &parsed_extensions[extension_id];
 
     /* Error if extension is a duplicate */
-    POSIX_ENSURE(s2n_parsed_extension_is_empty(parsed_extension),
+    RESULT_ENSURE(s2n_parsed_extension_is_empty(parsed_extension),
             S2N_ERR_DUPLICATE_EXTENSION);
 
     /* Fill in parsed extension */
     parsed_extension->extension_type = extension_type;
     parsed_extension->wire_index = *wire_index;
-    POSIX_GUARD(s2n_blob_init(&parsed_extension->extension, extension_data, extension_size));
+    RESULT_GUARD_POSIX(s2n_blob_init(&parsed_extension->extension, extension_data, extension_size));
     (*wire_index)++;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list *parsed_extension_list)
+S2N_RESULT s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list *parsed_extension_list)
 {
-    POSIX_ENSURE_REF(in);
-    POSIX_ENSURE_REF(parsed_extension_list);
+    RESULT_ENSURE_REF(in);
+    RESULT_ENSURE_REF(parsed_extension_list);
 
-    POSIX_CHECKED_MEMSET((s2n_parsed_extension *) parsed_extension_list->parsed_extensions,
+    RESULT_CHECKED_MEMSET((s2n_parsed_extension *) parsed_extension_list->parsed_extensions,
             0, sizeof(parsed_extension_list->parsed_extensions));
 
     uint16_t total_extensions_size = 0;
@@ -169,19 +169,19 @@ int s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list 
     }
 
     uint8_t *extensions_data = s2n_stuffer_raw_read(in, total_extensions_size);
-    POSIX_ENSURE(extensions_data != NULL, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(extensions_data != NULL, S2N_ERR_BAD_MESSAGE);
 
-    POSIX_GUARD(s2n_blob_init(&parsed_extension_list->raw, extensions_data, total_extensions_size));
+    RESULT_GUARD_POSIX(s2n_blob_init(&parsed_extension_list->raw, extensions_data, total_extensions_size));
 
     struct s2n_stuffer extensions_stuffer = { 0 };
-    POSIX_GUARD(s2n_stuffer_init(&extensions_stuffer, &parsed_extension_list->raw));
-    POSIX_GUARD(s2n_stuffer_skip_write(&extensions_stuffer, total_extensions_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&extensions_stuffer, &parsed_extension_list->raw));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&extensions_stuffer, total_extensions_size));
 
     uint16_t wire_index = 0;
     while (s2n_stuffer_data_available(&extensions_stuffer)) {
-        POSIX_GUARD(s2n_extension_parse(&extensions_stuffer, parsed_extension_list->parsed_extensions, &wire_index));
+        RESULT_GUARD(s2n_extension_parse(&extensions_stuffer, parsed_extension_list->parsed_extensions, &wire_index));
     }
 
     parsed_extension_list->count = wire_index;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }

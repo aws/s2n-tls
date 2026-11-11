@@ -144,13 +144,13 @@ int main(int argc, char **argv)
     /* Server does not parse TLS 1.3 extensions unless TLS 1.3 negotiated */
     {
         s2n_extension_type_list *tls13_server_hello_extensions = NULL;
-        EXPECT_SUCCESS(s2n_extension_type_list_get(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, &tls13_server_hello_extensions));
+        EXPECT_OK(s2n_extension_type_list_get(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, &tls13_server_hello_extensions));
         EXPECT_NOT_NULL(tls13_server_hello_extensions);
         EXPECT_TRUE(tls13_server_hello_extensions->count > 0);
 
         struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
+        EXPECT_OK(s2n_connection_allow_all_response_extensions(server_conn));
 
         struct s2n_stuffer extension_data = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension_data, 0));
@@ -168,14 +168,14 @@ int main(int argc, char **argv)
             parsed_extension->extension_type = tls13_extension_type->iana_value;
 
             server_conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
+            EXPECT_OK(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
 
             /* Reuse processed extension */
             EXPECT_TRUE(parsed_extension->processed);
             parsed_extension->processed = false;
 
             server_conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_FAILURE(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
+            EXPECT_ERROR(s2n_extension_process(tls13_extension_type, server_conn, &parsed_extension_list));
         }
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

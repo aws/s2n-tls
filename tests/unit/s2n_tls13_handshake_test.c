@@ -83,7 +83,7 @@ int main(int argc, char **argv)
             EXPECT_NULL(conn->psk_params.chosen_psk);
 
             DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
-            EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(conn, &shared_secret));
+            EXPECT_OK(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
             /* Verify secrets are wiped */
             for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
@@ -142,7 +142,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->psk_params.psk_list.len, S2N_TEST_PSK_COUNT);
 
             DEFER_CLEANUP(struct s2n_blob shared_secret = { 0 }, s2n_free);
-            EXPECT_SUCCESS(s2n_tls13_compute_shared_secret(conn, &shared_secret));
+            EXPECT_OK(s2n_tls13_compute_shared_secret(conn, &shared_secret));
 
             /* Verify secrets are wiped */
             for (size_t i = 0; i < conn->psk_params.psk_list.len; i++) {
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
         struct s2n_config *server_config = NULL, *client_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
 
         uint8_t *cert_chain = NULL;
         uint8_t *private_key = NULL;
@@ -196,8 +196,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
 
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         struct s2n_blob server_seq = { .data = server_conn->secure->server_sequence_number, .size = sizeof(server_conn->secure->server_sequence_number) };
         S2N_BLOB_FROM_HEX(seq_0, "0000000000000000");

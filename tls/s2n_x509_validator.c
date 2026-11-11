@@ -616,7 +616,7 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
         if (conn->actual_protocol_version >= S2N_TLS13) {
             s2n_parsed_extensions_list parsed_extensions_list = { 0 };
-            RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
+            RESULT_GUARD(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
         }
     }
 
@@ -918,7 +918,7 @@ static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2
     RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
     s2n_parsed_extensions_list parsed_extensions_list = { 0 };
-    RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
+    RESULT_GUARD(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
     *first_certificate_extensions = parsed_extensions_list;
 
     return S2N_RESULT_OK;
@@ -960,7 +960,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain_pre_cb(struct s2n_x509_validat
          */
         s2n_parsed_extensions_list first_certificate_extensions = { 0 };
         RESULT_GUARD(s2n_x509_validator_parse_leaf_certificate_extensions(conn, cert_chain_in, cert_chain_len, &first_certificate_extensions));
-        RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
+        RESULT_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
     return S2N_RESULT_OK;

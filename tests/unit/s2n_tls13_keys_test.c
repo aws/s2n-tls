@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         s2n_stack_blob(app_secret_update, keys.size, S2N_TLS13_SECRET_MAX_LEN);
 
         /* Derives next generation of traffic secret */
-        EXPECT_SUCCESS(s2n_tls13_update_application_traffic_secret(&keys, &application_secret, &app_secret_update));
+        EXPECT_OK(s2n_tls13_update_application_traffic_secret(&keys, &application_secret, &app_secret_update));
 
         /* Check the new secret is what was expected */
         S2N_BLOB_EXPECT_EQUAL(app_secret_update, updated_application_secret);

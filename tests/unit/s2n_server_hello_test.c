@@ -67,7 +67,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Test basic Server Hello Send */
@@ -633,13 +633,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
 
@@ -662,13 +662,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
             EXPECT_OK(s2n_append_test_psk_with_early_data(server_conn, 1, &s2n_tls13_aes_128_gcm_sha256));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_test_client_hello(client_conn, server_conn));
 

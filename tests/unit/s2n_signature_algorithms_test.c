@@ -102,12 +102,12 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_cert_chain = NULL,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
     struct s2n_cert_chain_and_key *certs[] = { ecdsa_cert_chain, rsa_cert_chain };
@@ -1341,7 +1341,7 @@ int main(int argc, char **argv)
             /* Setup config */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
 
             /* Setup connections */
@@ -1354,8 +1354,8 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client and server security policies should match but include no defaults */
             client_conn->security_policy_override = &sha256_policy;
@@ -1371,7 +1371,7 @@ int main(int argc, char **argv)
             /* Setup config */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
 
             /* Setup connections */
@@ -1386,8 +1386,8 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client and server security policies should have no signature schemes
              * in common, and not include the default signature schemes.
@@ -1405,7 +1405,7 @@ int main(int argc, char **argv)
         for (size_t cert_i = 0; cert_i < s2n_array_len(certs); cert_i++) {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
 
             /* Setup connections */
@@ -1420,8 +1420,8 @@ int main(int argc, char **argv)
 
             /* Create nonblocking pipes */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Client and server security policies should have no signature schemes in common.
              * Server should include the default policies.
@@ -1449,12 +1449,12 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
 
         /* Certificate uses p521 */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_p521_chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_p521_chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_p521_chain,
                 S2N_ECDSA_P512_CERT_CHAIN, S2N_ECDSA_P512_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_p521_chain));
 
@@ -1509,8 +1509,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
             EXPECT_EQUAL(client->actual_protocol_version, version);
@@ -1541,7 +1541,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_rsa_kex"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));

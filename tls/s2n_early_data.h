@@ -58,5 +58,5 @@ S2N_RESULT s2n_early_data_validate_send(struct s2n_connection *conn, uint32_t by
 S2N_RESULT s2n_early_data_validate_recv(struct s2n_connection *conn);
 bool s2n_early_data_is_trial_decryption_allowed(struct s2n_connection *conn, uint8_t record_type);
 
-int s2n_connection_set_early_data_expected(struct s2n_connection *conn);
-int s2n_connection_set_end_of_early_data(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_early_data_expected(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_end_of_early_data(struct s2n_connection *conn);

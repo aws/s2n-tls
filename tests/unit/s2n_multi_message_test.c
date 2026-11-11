@@ -59,7 +59,7 @@ int main(int argc, char **argv)
 
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
@@ -108,8 +108,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Stop client before sending its last flight of messages */
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, CLIENT_CERT));
@@ -137,7 +137,7 @@ int main(int argc, char **argv)
                 uint8_t *bytes = s2n_stuffer_raw_read(&client_conn->handshake.io, len);
                 EXPECT_NOT_NULL(bytes);
                 EXPECT_SUCCESS(s2n_blob_init(&data, bytes, len));
-                EXPECT_SUCCESS(s2n_conn_update_handshake_hashes(client_conn, &data));
+                EXPECT_OK(s2n_conn_update_handshake_hashes(client_conn, &data));
                 EXPECT_SUCCESS(s2n_stuffer_skip_read(&client_conn->handshake.io,
                         s2n_stuffer_data_available(&client_conn->handshake.io)));
             }

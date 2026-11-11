@@ -218,7 +218,7 @@ S2N_RESULT s2n_record_protocol_version(struct s2n_connection *conn, uint8_t reco
     return S2N_RESULT_OK;
 }
 
-static inline int s2n_record_encrypt(
+static inline S2N_RESULT s2n_record_encrypt(
         struct s2n_connection *conn,
         const struct s2n_cipher_suite *cipher_suite,
         struct s2n_session_key *session_key,
@@ -227,38 +227,38 @@ static inline int s2n_record_encrypt(
         struct s2n_blob *en,
         uint8_t *implicit_iv, uint16_t block_size)
 {
-    POSIX_ENSURE_REF(en->data);
+    RESULT_ENSURE_REF(en->data);
 
     switch (cipher_suite->record_alg->cipher->type) {
         case S2N_STREAM:
-            POSIX_GUARD(cipher_suite->record_alg->cipher->io.stream.encrypt(session_key, en, en));
+            RESULT_GUARD_POSIX(cipher_suite->record_alg->cipher->io.stream.encrypt(session_key, en, en));
             break;
         case S2N_CBC:
-            POSIX_GUARD(cipher_suite->record_alg->cipher->io.cbc.encrypt(session_key, iv, en, en));
+            RESULT_GUARD_POSIX(cipher_suite->record_alg->cipher->io.cbc.encrypt(session_key, iv, en, en));
 
             /* Copy the last encrypted block to be the next IV */
             if (conn->actual_protocol_version < S2N_TLS11) {
-                POSIX_ENSURE_GTE(en->size, block_size);
-                POSIX_CHECKED_MEMCPY(implicit_iv, en->data + en->size - block_size, block_size);
+                RESULT_ENSURE_GTE(en->size, block_size);
+                RESULT_CHECKED_MEMCPY(implicit_iv, en->data + en->size - block_size, block_size);
             }
             break;
         case S2N_AEAD:
-            POSIX_GUARD(cipher_suite->record_alg->cipher->io.aead.encrypt(session_key, iv, aad, en, en));
+            RESULT_GUARD_POSIX(cipher_suite->record_alg->cipher->io.aead.encrypt(session_key, iv, aad, en, en));
             break;
         case S2N_COMPOSITE:
             /* This will: compute mac, append padding, append padding length, and encrypt */
-            POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.encrypt(session_key, iv, en, en));
+            RESULT_GUARD_POSIX(cipher_suite->record_alg->cipher->io.comp.encrypt(session_key, iv, en, en));
 
             /* Copy the last encrypted block to be the next IV */
-            POSIX_ENSURE_GTE(en->size, block_size);
-            POSIX_CHECKED_MEMCPY(implicit_iv, en->data + en->size - block_size, block_size);
+            RESULT_ENSURE_GTE(en->size, block_size);
+            RESULT_CHECKED_MEMCPY(implicit_iv, en->data + en->size - block_size, block_size);
             break;
         default:
-            POSIX_BAIL(S2N_ERR_CIPHER_TYPE);
+            RESULT_BAIL(S2N_ERR_CIPHER_TYPE);
             break;
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_record_write_mac(struct s2n_connection *conn, struct s2n_blob *record_header,
@@ -633,7 +633,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* Do the encryption */
     struct s2n_blob en = { .size = encrypted_length, .data = s2n_stuffer_raw_write(&record_stuffer, encrypted_length) };
-    POSIX_GUARD(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
+    POSIX_GUARD_RESULT(s2n_record_encrypt(conn, cipher_suite, session_key, &iv, &aad, &en, implicit_iv, block_size));
 
     /* Sync the out stuffer write cursor with the record stuffer. */
     POSIX_GUARD(s2n_stuffer_skip_write(&conn->out, s2n_stuffer_data_available(&record_stuffer)));

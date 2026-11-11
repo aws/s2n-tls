@@ -173,21 +173,21 @@ S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s
     return S2N_RESULT_OK;
 }
 
-static int s2n_kem_check_kem_compatibility(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *candidate_kem,
+static S2N_RESULT s2n_kem_check_kem_compatibility(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_kem *candidate_kem,
         uint8_t *kem_is_compatible)
 {
     const struct s2n_iana_to_kem *compatible_kems = NULL;
-    POSIX_GUARD(s2n_cipher_suite_to_kem(iana_value, &compatible_kems));
+    RESULT_GUARD_POSIX(s2n_cipher_suite_to_kem(iana_value, &compatible_kems));
 
     for (uint8_t i = 0; i < compatible_kems->kem_count; i++) {
         if (candidate_kem->kem_extension_id == compatible_kems->kems[i]->kem_extension_id) {
             *kem_is_compatible = 1;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
 
     *kem_is_compatible = 0;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], struct s2n_blob *client_kem_ids,
@@ -204,7 +204,7 @@ int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_S
         const struct s2n_kem *candidate_server_kem = (server_kem_pref_list[i]);
 
         uint8_t server_kem_is_compatible = 0;
-        POSIX_GUARD(s2n_kem_check_kem_compatibility(iana_value, candidate_server_kem, &server_kem_is_compatible));
+        POSIX_GUARD_RESULT(s2n_kem_check_kem_compatibility(iana_value, candidate_server_kem, &server_kem_is_compatible));
 
         if (!server_kem_is_compatible) {
             continue;
@@ -231,7 +231,7 @@ int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHE
 {
     for (uint8_t i = 0; i < num_server_supported_kems; i++) {
         uint8_t kem_is_compatible = 0;
-        POSIX_GUARD(s2n_kem_check_kem_compatibility(iana_value, server_kem_pref_list[i], &kem_is_compatible));
+        POSIX_GUARD_RESULT(s2n_kem_check_kem_compatibility(iana_value, server_kem_pref_list[i], &kem_is_compatible));
         if (kem_is_compatible) {
             *chosen_kem = server_kem_pref_list[i];
             return S2N_SUCCESS;
@@ -242,20 +242,20 @@ int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHE
     POSIX_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_kem_free(struct s2n_kem_params *kem_params)
+S2N_RESULT s2n_kem_free(struct s2n_kem_params *kem_params)
 {
     if (kem_params != NULL) {
-        POSIX_GUARD(s2n_free_or_wipe(&kem_params->private_key));
-        POSIX_GUARD(s2n_free_or_wipe(&kem_params->public_key));
-        POSIX_GUARD(s2n_free_or_wipe(&kem_params->shared_secret));
+        RESULT_GUARD_POSIX(s2n_free_or_wipe(&kem_params->private_key));
+        RESULT_GUARD_POSIX(s2n_free_or_wipe(&kem_params->public_key));
+        RESULT_GUARD_POSIX(s2n_free_or_wipe(&kem_params->shared_secret));
     }
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params)
 {
     if (kem_group_params != NULL) {
-        POSIX_GUARD(s2n_kem_free(&kem_group_params->kem_params));
+        POSIX_GUARD_RESULT(s2n_kem_free(&kem_group_params->kem_params));
         POSIX_GUARD(s2n_ecc_evp_params_free(&kem_group_params->ecc_params));
     }
     return S2N_SUCCESS;
@@ -273,7 +273,7 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
     POSIX_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem)
+S2N_RESULT s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem)
 {
     for (size_t i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *iana_to_kem = &kem_mapping[i];
@@ -282,26 +282,26 @@ int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_ke
             const struct s2n_kem *candidate_kem = iana_to_kem->kems[j];
             if (candidate_kem->kem_extension_id == kem_id) {
                 *kem = candidate_kem;
-                return S2N_SUCCESS;
+                return S2N_RESULT_OK;
             }
         }
     }
 
-    POSIX_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
+    RESULT_BAIL(S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 }
 
-int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params)
+S2N_RESULT s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params)
 {
-    POSIX_ENSURE_REF(out);
-    POSIX_ENSURE_REF(kem_params);
-    POSIX_ENSURE_REF(kem_params->kem);
+    RESULT_ENSURE_REF(out);
+    RESULT_ENSURE_REF(kem_params);
+    RESULT_ENSURE_REF(kem_params->kem);
 
     const struct s2n_kem *kem = kem_params->kem;
 
     /* We don't need to store the public key after sending it.
      * We write it directly to *out. */
     kem_params->public_key.data = s2n_stuffer_raw_write(out, kem->public_key_length);
-    POSIX_ENSURE_REF(kem_params->public_key.data);
+    RESULT_ENSURE_REF(kem_params->public_key.data);
     kem_params->public_key.size = kem->public_key_length;
 
     /* Saves the private key in kem_params */
@@ -315,9 +315,9 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
     kem_params->public_key.size = 0;
 
     /* only error after we have cleaned up public_key to no longer reference *out */
-    POSIX_GUARD_RESULT(keypair_result);
+    RESULT_GUARD(keypair_result);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params)
@@ -400,20 +400,20 @@ bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
     return available;
 }
 
-int s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found)
+S2N_RESULT s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found)
 {
-    POSIX_ENSURE_REF(out);
-    POSIX_ENSURE_REF(found);
+    RESULT_ENSURE_REF(out);
+    RESULT_ENSURE_REF(found);
     *found = false;
 
     for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
         const struct s2n_kem_group *kem_group = ALL_SUPPORTED_KEM_GROUPS[i];
-        POSIX_ENSURE_REF(kem_group);
+        RESULT_ENSURE_REF(kem_group);
         if (kem_group->iana_id == iana_id) {
             *out = kem_group;
             *found = true;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }

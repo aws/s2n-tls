@@ -55,13 +55,13 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-        EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, client_conn, &stuffer));
+        EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, client_conn, &stuffer));
         EXPECT_FALSE(client_conn->ems_negotiated);
 
         EXPECT_SUCCESS(s2n_extension_list_recv(S2N_EXTENSION_LIST_CLIENT_HELLO, server_conn, &stuffer));
         EXPECT_TRUE(server_conn->ems_negotiated);
 
-        EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, server_conn, &stuffer));
+        EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, server_conn, &stuffer));
         EXPECT_SUCCESS(s2n_extension_list_recv(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, client_conn, &stuffer));
         EXPECT_TRUE(client_conn->ems_negotiated);
 

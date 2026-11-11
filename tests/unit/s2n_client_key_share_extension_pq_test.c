@@ -73,7 +73,7 @@ int main()
                 conn->security_policy_override = &security_policy_all;
 
                 const struct s2n_kem_preferences *kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                EXPECT_OK(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
                 EXPECT_EQUAL(kem_pref->tls13_kem_group_count, S2N_KEM_GROUPS_COUNT);
 
@@ -144,7 +144,7 @@ int main()
                         EXPECT_NOT_NULL(ecc_pref);
 
                         const struct s2n_kem_preferences *kem_pref = NULL;
-                        EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                        EXPECT_OK(s2n_connection_get_kem_preferences(conn, &kem_pref));
                         EXPECT_NOT_NULL(kem_pref);
                         EXPECT_EQUAL(kem_pref->tls13_kem_group_count, S2N_KEM_GROUPS_COUNT);
                         EXPECT_EQUAL(test_kem_groups[0], kem_pref->tls13_kem_groups[0]);
@@ -234,7 +234,7 @@ int main()
                         EXPECT_NOT_NULL(ecc_pref);
 
                         const struct s2n_kem_preferences *kem_pref = NULL;
-                        EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                        EXPECT_OK(s2n_connection_get_kem_preferences(conn, &kem_pref));
                         EXPECT_NOT_NULL(kem_pref);
 
                         /* This is for pre-HRR set up: force the client to generate its default key share. */
@@ -324,7 +324,7 @@ int main()
                         EXPECT_NOT_NULL(ecc_preferences);
 
                         const struct s2n_kem_preferences *kem_pref = NULL;
-                        EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                        EXPECT_OK(s2n_connection_get_kem_preferences(conn, &kem_pref));
                         EXPECT_NOT_NULL(kem_pref);
 
                         struct s2n_stuffer init_extension = { 0 }, retry_extension = { 0 };
@@ -339,8 +339,8 @@ int main()
 
                         /* Setup the client to have received a HelloRetryRequest */
                         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-                        EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
-                        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+                        EXPECT_OK(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
+                        EXPECT_OK(s2n_set_connection_hello_retry_flags(conn));
                         conn->early_data_state = S2N_EARLY_DATA_REJECTED;
 
                         EXPECT_SUCCESS(s2n_client_key_share_extension.send(conn, &retry_extension));
@@ -544,7 +544,7 @@ int main()
                         /* Mirrors s2n_server_key_share_recv_ecc, which records the server's curve
                          * and clears the client's PQ group.
                          */
-                        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+                        EXPECT_OK(s2n_set_connection_hello_retry_flags(conn));
                         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
                         conn->kex_params.server_kem_group_params.kem_group = NULL;
                         conn->kex_params.client_kem_group_params.kem_group = NULL;
@@ -598,7 +598,7 @@ int main()
                         /* Mirrors s2n_server_key_share_recv_pq, which records the server's PQ
                          * group and leaves no classical curve selected.
                          */
-                        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
+                        EXPECT_OK(s2n_set_connection_hello_retry_flags(conn));
                         conn->kex_params.server_kem_group_params.kem_group = &s2n_secp256r1_mlkem_768;
                         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
 
@@ -665,7 +665,7 @@ int main()
                 EXPECT_NULL(received_ecc_params->evp_pkey);
 
                 const struct s2n_kem_preferences *server_kem_pref = NULL;
-                EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
+                EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
                 EXPECT_NOT_NULL(server_kem_pref);
 
                 struct s2n_kem_group_params *received_pq_params = &server_conn->kex_params.client_kem_group_params;
@@ -755,7 +755,7 @@ int main()
                         EXPECT_TRUE(s2n_public_ecc_keys_are_equal(received_ecc_params, sent_ecc_params));
 
                         const struct s2n_kem_preferences *server_kem_pref = NULL;
-                        EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
+                        EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &server_kem_pref));
                         EXPECT_NOT_NULL(server_kem_pref);
 
                         /* Client should have sent only the first PQ key share, server should have accepted it;
@@ -798,7 +798,7 @@ int main()
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+                    EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
                     EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &groups_available));
                     EXPECT_TRUE(groups_available >= 2);
@@ -865,7 +865,7 @@ int main()
                     }
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+                    EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
                     EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &groups_available));
                     EXPECT_TRUE(groups_available >= 2);
@@ -926,7 +926,7 @@ int main()
                     }
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+                    EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
                     EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &groups_available));
                     EXPECT_TRUE(groups_available >= 2);
@@ -979,14 +979,14 @@ int main()
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;
-                    EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+                    EXPECT_OK(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
 
                     struct s2n_stuffer key_share_extension = { 0 };
                     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 8192));
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+                    EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
                     EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &groups_available));
                     EXPECT_TRUE(groups_available >= 2);
@@ -1050,14 +1050,14 @@ int main()
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;
-                    EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+                    EXPECT_OK(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
 
                     struct s2n_stuffer key_share_extension = { 0 };
                     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 8192));
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
+                    EXPECT_OK(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
                     EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &groups_available));
                     EXPECT_TRUE(groups_available >= 2);
@@ -1163,7 +1163,7 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
 
     if (kem_group_params->kem_group->send_kem_first) {
         kem_params->kem = kem_group->kem;
-        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+        POSIX_GUARD_RESULT(s2n_kem_send_public_key(out, kem_params));
 
         POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
         POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
@@ -1172,7 +1172,7 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
         POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
 
         kem_params->kem = kem_group->kem;
-        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+        POSIX_GUARD_RESULT(s2n_kem_send_public_key(out, kem_params));
     }
 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));

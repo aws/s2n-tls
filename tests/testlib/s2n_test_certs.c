@@ -28,19 +28,19 @@
 
 #define S2N_TEST_CERT_CHAIN_LIST_MAX_SKIPPED 5
 
-int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
+S2N_RESULT s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file)
 {
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
 
-    POSIX_GUARD(s2n_read_test_pem(cert_chain_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    POSIX_GUARD(s2n_read_test_pem(private_key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    RESULT_GUARD_POSIX(s2n_read_test_pem(cert_chain_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    RESULT_GUARD_POSIX(s2n_read_test_pem(private_key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
 
-    POSIX_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
-    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
+    RESULT_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_test_cert_permutation_load_server_chain_from_name(
@@ -64,21 +64,21 @@ S2N_RESULT s2n_test_cert_permutation_load_server_chain_from_name(
     return S2N_RESULT_OK;
 }
 
-int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
+S2N_RESULT s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
         const char *type, const char *signature, const char *size, const char *digest)
 {
     char name_buffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
     snprintf(name_buffer, S2N_MAX_TEST_PEM_PATH_LENGTH,
             "%s_%s_%s_%s", type, signature, size, digest);
-    POSIX_GUARD_RESULT(s2n_test_cert_permutation_load_server_chain_from_name(chain_and_key, name_buffer));
-    return S2N_SUCCESS;
+    RESULT_GUARD(s2n_test_cert_permutation_load_server_chain_from_name(chain_and_key, name_buffer));
+    return S2N_RESULT_OK;
 }
 
-int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
+S2N_RESULT s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
         const char *size, const char *digest)
 {
     sprintf(output, "../pems/permutations/%s_%s_%s_%s/ca-cert.pem", type, signature, size, digest);
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_test_cert_permutation_get_server_chain_path(char *output, const char *type,
@@ -150,7 +150,7 @@ S2N_RESULT s2n_test_cert_chain_data_from_pem_data(struct s2n_connection *conn, u
             s2n_cert_chain_and_key_ptr_free);
     RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_public_pem_bytes(chain_and_key, pem_data, pem_data_len));
 
-    RESULT_GUARD_POSIX(s2n_send_cert_chain(conn, &certificate_message_stuffer, chain_and_key));
+    RESULT_GUARD(s2n_send_cert_chain(conn, &certificate_message_stuffer, chain_and_key));
 
     /* Skip the cert chain length */
     RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&certificate_message_stuffer, 3));

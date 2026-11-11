@@ -528,7 +528,7 @@ int main(int argc, char **argv)
         };
         EXPECT_SUCCESS(s2n_blob_init(&server_in.blob,
                 sslv2_client_hello_bytes, sizeof(sslv2_client_hello_bytes)));
-        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&server_in, server));
+        EXPECT_OK(s2n_connection_set_recv_io_stuffer(&server_in, server));
 
         /* Read message one byte at a time */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;

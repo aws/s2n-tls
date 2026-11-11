@@ -101,9 +101,9 @@ int main(int argc, char **argv)
         struct s2n_config *config_with_certs = NULL;
         EXPECT_NOT_NULL(config_with_certs = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_certs, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_certs));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config_with_certs));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_certs, chain_and_key));
 
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         /* Server writes to fd and client reads from fd */
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, io_pair.server));
@@ -122,8 +122,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, S2N_DEFAULT_RECORD_LENGTH));
 
         /* Client writes to stuffer and server reads from stuffer */
-        EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&stuffer, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&stuffer, server_conn));
+        EXPECT_OK(s2n_connection_set_send_io_stuffer(&stuffer, client_conn));
+        EXPECT_OK(s2n_connection_set_recv_io_stuffer(&stuffer, server_conn));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 

@@ -40,7 +40,7 @@
 #define HELLO_RETRY_MSG_NO  1
 #define SERVER_HELLO_MSG_NO 5
 
-int s2n_parse_client_hello(struct s2n_connection *conn);
+S2N_RESULT s2n_parse_client_hello(struct s2n_connection *conn);
 
 static int s2n_client_hello_cb_with_get_server_name(struct s2n_connection *conn, void *ctx)
 {
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
             server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+            EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Server sends HelloRetryMessage */
             EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
                 conn->security_policy_override = &test_security_policy;
 
                 const struct s2n_kem_preferences *kem_pref = NULL;
-                POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                POSIX_GUARD_RESULT(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
 
                 conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
                     conn->security_policy_override = &test_security_policy;
 
                     const struct s2n_kem_preferences *kem_pref = NULL;
-                    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+                    POSIX_GUARD_RESULT(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
                     const struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
         /* Server receives ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+        EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
         server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
@@ -423,7 +423,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -448,7 +448,7 @@ int main(int argc, char **argv)
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -488,7 +488,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -581,11 +581,11 @@ int main(int argc, char **argv)
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
         EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+        EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
         /* Server HelloRetryRequest 1 */
         EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+        EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
@@ -657,7 +657,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         /* A Hello Retry Request has been processed */
-        EXPECT_SUCCESS(s2n_set_hello_retry_required(client_conn));
+        EXPECT_OK(s2n_set_hello_retry_required(client_conn));
         client_conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
         client_conn->server_protocol_version = S2N_TLS13;
         client_conn->handshake.handshake_type |= NEGOTIATED;
@@ -691,7 +691,7 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
@@ -713,8 +713,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -742,8 +742,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -778,8 +778,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -811,8 +811,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -845,8 +845,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path. */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -887,8 +887,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             struct s2n_security_policy test_policy = security_policy_test_tls13_retry;
             struct s2n_cipher_suite *test_cipher_suites[] = {
@@ -949,8 +949,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             struct s2n_security_policy test_policy = security_policy_test_tls13_retry;
             struct s2n_cipher_suite *test_cipher_suites[] = {
@@ -1002,8 +1002,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path. */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1068,8 +1068,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             struct s2n_security_policy test_policy = security_policy_test_tls13_retry;
             test_policy.minimum_protocol_version = S2N_TLS10;
@@ -1119,8 +1119,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path. */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1139,7 +1139,7 @@ int main(int argc, char **argv)
                     s2n_stuffer_data_available(&client_conn->handshake.io)));
 
             /* Parse the ClientHello, but don't process the extensions yet. */
-            EXPECT_SUCCESS(s2n_parse_client_hello(server_conn));
+            EXPECT_OK(s2n_parse_client_hello(server_conn));
             server_conn->client_hello.parsed = true;
 
             uint8_t extension_data[3] = { 0 };
@@ -1186,8 +1186,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1220,8 +1220,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1254,8 +1254,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1302,8 +1302,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry_with_pq;
@@ -1318,7 +1318,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
             EXPECT_SUCCESS(s2n_connection_append_protocol_preference(client_conn, apn, sizeof(apn)));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
             client_conn->config->npn_supported = true;
             if (tls13_tickets) {
                 EXPECT_OK(s2n_append_test_psk_with_early_data(client_conn, 1, &s2n_tls13_aes_256_gcm_sha384));
@@ -1334,7 +1334,7 @@ int main(int argc, char **argv)
 
             /* All ClientHello extensions must be present (except very specific exceptions)  */
             s2n_extension_type_list *extensions = NULL;
-            EXPECT_SUCCESS(s2n_extension_type_list_get(S2N_EXTENSION_LIST_CLIENT_HELLO, &extensions));
+            EXPECT_OK(s2n_extension_type_list_get(S2N_EXTENSION_LIST_CLIENT_HELLO, &extensions));
             for (size_t i = 0; i < extensions->count; i++) {
                 uint16_t iana = extensions->extension_types[i]->iana_value;
 
@@ -1419,8 +1419,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cb));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Setup server name and client hello callback */
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, server_name));
@@ -1451,7 +1451,7 @@ int main(int argc, char **argv)
      **/
     {
         s2n_extension_type_list *hello_retry_extension_types = 0;
-        POSIX_GUARD(s2n_extension_type_list_get(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, &hello_retry_extension_types));
+        POSIX_GUARD_RESULT(s2n_extension_type_list_get(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, &hello_retry_extension_types));
 
         for (int i = 0; i < hello_retry_extension_types->count; ++i) {
             const s2n_extension_type *const extension_type = hello_retry_extension_types->extension_types[i];
@@ -1481,7 +1481,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
@@ -1503,8 +1503,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1516,7 +1516,7 @@ int main(int argc, char **argv)
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+            EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Force the server to send an erroneous legacy protocol version in the HelloRetryRequest message */
             server_conn->actual_protocol_version = S2N_TLS11;
@@ -1547,8 +1547,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1560,7 +1560,7 @@ int main(int argc, char **argv)
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+            EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Set a session id that's different from the client hello */
             POSIX_CHECKED_MEMSET(&server_conn->session_id, 0, S2N_TLS_SESSION_ID_MAX_LEN);
@@ -1600,8 +1600,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1637,8 +1637,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Force the HRR path */
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1650,11 +1650,11 @@ int main(int argc, char **argv)
 
             /* Server receives ClientHello 1 */
             EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-            EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+            EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
             /* Server sends HelloRetryRequest */
             POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-            EXPECT_SUCCESS(s2n_server_hello_write_message(server_conn));
+            EXPECT_OK(s2n_server_hello_write_message(server_conn));
 
             /* Overwrite compression method to 1 */
             struct s2n_stuffer *io = &server_conn->handshake.io;
@@ -1662,7 +1662,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(io, 1));
 
             /* Write the extensions */
-            EXPECT_SUCCESS(s2n_server_extensions_send(server_conn, &server_conn->handshake.io));
+            EXPECT_OK(s2n_server_extensions_send(server_conn, &server_conn->handshake.io));
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
             EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
@@ -1683,7 +1683,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
@@ -1703,8 +1703,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1717,10 +1717,10 @@ int main(int argc, char **argv)
 
         /* Server receives ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+        EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
         POSIX_CHECKED_MEMCPY(server_conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
-        POSIX_GUARD(s2n_server_hello_write_message(server_conn));
+        POSIX_GUARD_RESULT(s2n_server_hello_write_message(server_conn));
         struct s2n_stuffer_reservation total_extensions_size = { 0 };
         POSIX_GUARD(s2n_stuffer_reserve_uint16(&server_conn->handshake.io, &total_extensions_size));
 
@@ -1767,7 +1767,7 @@ int main(int argc, char **argv)
         };
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -1786,8 +1786,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry_temp;
@@ -1820,7 +1820,7 @@ int main(int argc, char **argv)
       **/
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -1839,8 +1839,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;
@@ -1893,7 +1893,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
@@ -1914,8 +1914,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry_temp;
@@ -1927,7 +1927,7 @@ int main(int argc, char **argv)
 
         /* Server receives ClientHello 1 */
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
-        EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(server_conn));
+        EXPECT_OK(s2n_set_connection_hello_retry_flags(server_conn));
 
         /* Server sends HelloRetryRequest */
         EXPECT_SUCCESS(s2n_server_hello_retry_send(server_conn));
@@ -1957,7 +1957,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
@@ -1980,8 +1980,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Force the HRR path */
         client_conn->security_policy_override = &security_policy_test_tls13_retry;

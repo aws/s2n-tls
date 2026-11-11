@@ -87,12 +87,12 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&chain_and_key,
                     test_cases[i].cert_type, test_cases[i].cert_sig,
                     test_cases[i].cert_size, test_cases[i].cert_digest));
 
             char ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
-            EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(ca_path,
+            EXPECT_OK(s2n_test_cert_permutation_get_ca_path(ca_path,
                     test_cases[i].cert_type, test_cases[i].cert_sig,
                     test_cases[i].cert_size, test_cases[i].cert_digest));
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(mldsa_test_cases); i++) {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     mldsa_test_cases[i].cert_path, mldsa_test_cases[i].key_path));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
@@ -190,11 +190,11 @@ int main(int argc, char **argv)
         /* Set up a handshake with an RSA 2048 cert (output = "rsa2048", 8 bytes with null) */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&chain_and_key,
                 "rsae", "pkcs", "2048", "sha256"));
 
         char ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
-        EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(ca_path, "rsae", "pkcs", "2048", "sha256"));
+        EXPECT_OK(s2n_test_cert_permutation_get_ca_path(ca_path, "rsae", "pkcs", "2048", "sha256"));
 
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_config);
@@ -274,19 +274,19 @@ int main(int argc, char **argv)
          * so we can distinguish which cert the API returns */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *server_chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&server_chain,
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&server_chain,
                 "rsae", "pkcs", "2048", "sha256"));
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&client_chain,
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&client_chain,
                 "ec", "ecdsa", "p256", "sha256"));
 
         char server_ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
-        EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(server_ca_path, "rsae", "pkcs", "2048", "sha256"));
+        EXPECT_OK(s2n_test_cert_permutation_get_ca_path(server_ca_path, "rsae", "pkcs", "2048", "sha256"));
 
         char client_ca_path[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
-        EXPECT_SUCCESS(s2n_test_cert_permutation_get_ca_path(client_ca_path, "ec", "ecdsa", "p256", "sha256"));
+        EXPECT_OK(s2n_test_cert_permutation_get_ca_path(client_ca_path, "ec", "ecdsa", "p256", "sha256"));
 
         /* Server config: RSA cert, trusts client's ECDSA CA, requires client auth */
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);

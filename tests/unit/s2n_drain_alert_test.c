@@ -97,7 +97,7 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     struct s2n_test_io_pair io_pair;
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
     EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));

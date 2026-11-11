@@ -366,12 +366,12 @@ int main()
         {
             struct s2n_connection conn = { 0 };
 
-            EXPECT_FAILURE(s2n_extension_is_missing(NULL, &conn));
-            EXPECT_FAILURE(s2n_extension_is_missing(&test_extension_type, NULL));
+            EXPECT_ERROR(s2n_extension_is_missing(NULL, &conn));
+            EXPECT_ERROR(s2n_extension_is_missing(&test_extension_type, NULL));
 
             s2n_extension_type extension_type_with_null_if_missing = test_extension_type;
             extension_type_with_null_if_missing.if_missing = NULL;
-            EXPECT_FAILURE(s2n_extension_is_missing(&extension_type_with_null_if_missing, &conn));
+            EXPECT_ERROR(s2n_extension_is_missing(&extension_type_with_null_if_missing, &conn));
         };
 
         /* Test no-op if_missing */
@@ -382,13 +382,13 @@ int main()
             extension_type_with_noop_if_missing.if_missing = s2n_extension_noop_if_missing;
 
             extension_type_with_noop_if_missing.is_response = false;
-            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
+            EXPECT_OK(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
 
             extension_type_with_noop_if_missing.is_response = true;
-            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
+            EXPECT_OK(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
 
             S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
-            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
+            EXPECT_OK(s2n_extension_is_missing(&extension_type_with_noop_if_missing, &conn));
         };
 
         /* Test error if_missing */
@@ -400,17 +400,17 @@ int main()
 
             /* Should fail for a request */
             extension_type_with_error_if_missing.is_response = false;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
+            EXPECT_ERROR_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
                     S2N_ERR_MISSING_EXTENSION);
 
             /* Should succeed for a response without a corresponding request.
              * We don't expect to receive the response, so it isn't considered missing. */
             extension_type_with_error_if_missing.is_response = true;
-            EXPECT_SUCCESS(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn));
+            EXPECT_OK(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn));
 
             /* Should fail for a response with a corresponding request */
             S2N_CBIT_SET(conn.extension_requests_sent, test_extension_id);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
+            EXPECT_ERROR_WITH_ERRNO(s2n_extension_is_missing(&extension_type_with_error_if_missing, &conn),
                     S2N_ERR_MISSING_EXTENSION);
         };
     };
@@ -435,7 +435,7 @@ int main()
             conn.actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_extension_recv(&test_extension_type_with_min, &conn, NULL));
             EXPECT_SUCCESS(s2n_extension_send(&test_extension_type_with_min, &conn, NULL));
-            EXPECT_SUCCESS(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
+            EXPECT_OK(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
         };
 
         /* Meets minimum.
@@ -444,7 +444,7 @@ int main()
             conn.actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE(s2n_extension_recv(&test_extension_type_with_min, &conn, NULL));
             EXPECT_FAILURE(s2n_extension_send(&test_extension_type_with_min, &conn, NULL));
-            EXPECT_FAILURE(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
+            EXPECT_ERROR(s2n_extension_is_missing(&test_extension_type_with_min, &conn));
         };
 
         /* Ensure that no extension type sets nonzero minimum_version < S2N_TLS13.
@@ -455,7 +455,7 @@ int main()
             s2n_extension_type_list *list = NULL;
             const s2n_extension_type *type = NULL;
             for (s2n_extension_list_id list_i = 0; list_i < S2N_EXTENSION_LIST_IDS_COUNT; list_i++) {
-                EXPECT_SUCCESS(s2n_extension_type_list_get(list_i, &list));
+                EXPECT_OK(s2n_extension_type_list_get(list_i, &list));
                 EXPECT_NOT_NULL(list);
                 for (size_t ext_i = 0; ext_i < list->count; ext_i++) {
                     type = list->extension_types[ext_i];
@@ -467,12 +467,12 @@ int main()
         /* Functional test: minimum-TLS1.3 extensions only used for TLS1.3 */
         {
             struct s2n_cert_chain_and_key *cert_chain = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&cert_chain,
                     S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
             struct s2n_config *test_all_config = s2n_config_new();
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(test_all_config, cert_chain));
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(test_all_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(test_all_config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(test_all_config, "test_all"));
 
             uint16_t key_shares_id = s2n_extension_iana_value_to_id(TLS_EXTENSION_KEY_SHARE);
@@ -488,8 +488,8 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_set_config(server_conn, test_all_config));
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
                 /* All expected CLIENT_HELLO extensions sent and received */
                 EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
@@ -516,8 +516,8 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_set_config(server_conn, test_all_config));
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
                 /* No expected CLIENT_HELLO extensions sent and received */
                 EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
@@ -545,8 +545,8 @@ int main()
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
                 /* Expected CLIENT_HELLO extensions sent, but not received */
                 EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));

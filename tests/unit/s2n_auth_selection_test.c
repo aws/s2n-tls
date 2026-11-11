@@ -66,11 +66,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_cert_chain_and_key *rsa_cert_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
 
     struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
     struct s2n_config *no_certs_config = s2n_config_new();
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
     struct s2n_config *rsa_pss_cert_config = s2n_config_new();
 
 #if RSA_PSS_CERTS_SUPPORTED
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
             S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(rsa_pss_cert_config, rsa_pss_cert_chain));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(all_certs_config, rsa_pss_cert_chain));
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
             test_conn->actual_protocol_version = S2N_TLS13;
 
             struct s2n_cert_chain_and_key *ecdsa_cert_chain_for_other_curve = NULL;
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain_for_other_curve,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain_for_other_curve,
                     S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
 
             struct s2n_config *ecdsa_cert_config_for_other_curve = s2n_config_new();
@@ -277,24 +277,24 @@ int main(int argc, char **argv)
 
         /* RSA auth type */
         conn->secure->cipher_suite = RSA_AUTH_CIPHER_SUITE;
-        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA));
-        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA_PSS));
-        EXPECT_FAILURE(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_ECDSA));
-        EXPECT_FAILURE(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
+        EXPECT_OK(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA));
+        EXPECT_OK(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA_PSS));
+        EXPECT_ERROR(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_ECDSA));
+        EXPECT_ERROR(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
 
         /* ECDSA auth type */
         conn->secure->cipher_suite = ECDSA_AUTH_CIPHER_SUITE;
-        EXPECT_FAILURE(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA));
-        EXPECT_FAILURE(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA_PSS));
-        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_ECDSA));
-        EXPECT_FAILURE(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
+        EXPECT_ERROR(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA));
+        EXPECT_ERROR(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA_PSS));
+        EXPECT_OK(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_ECDSA));
+        EXPECT_ERROR(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
 
         /* No auth type */
         conn->secure->cipher_suite = NO_AUTH_CIPHER_SUITE;
-        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA));
-        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA_PSS));
-        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_ECDSA));
-        EXPECT_SUCCESS(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
+        EXPECT_OK(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA));
+        EXPECT_OK(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_RSA_PSS));
+        EXPECT_OK(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_ECDSA));
+        EXPECT_OK(s2n_is_cert_type_valid_for_auth(conn, S2N_PKEY_TYPE_UNKNOWN));
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

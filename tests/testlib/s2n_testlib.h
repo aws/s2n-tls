@@ -34,9 +34,9 @@ S2N_RESULT s2n_blob_alloc_from_hex_with_whitespace(struct s2n_blob *bytes_out, c
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 
-int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn);
-int s2n_connection_set_recv_io_stuffer(struct s2n_stuffer *input, struct s2n_connection *conn);
-int s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_recv_io_stuffer(struct s2n_stuffer *input, struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_connection *conn);
 
 struct s2n_test_io_stuffer_pair {
     struct s2n_stuffer client_in;
@@ -52,13 +52,13 @@ struct s2n_test_io_pair {
     int server;
 };
 int s2n_io_pair_init(struct s2n_test_io_pair *io_pair);
-int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair);
+S2N_RESULT s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair);
 int s2n_io_pair_close(struct s2n_test_io_pair *io_pair);
 int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close);
 int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close, int how);
 
 int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_pair *io_pair);
-int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
+S2N_RESULT s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
         struct s2n_test_io_pair *io_pair);
 
 int s2n_fd_set_blocking(int fd);
@@ -77,11 +77,11 @@ int s2n_fd_set_non_blocking(int fd);
     #define s2n_test_recv(fd, buf, len) read(fd, buf, len)
 #endif
 
-int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
-int s2n_connection_mark_extension_received(struct s2n_connection *conn, uint16_t iana_value);
-int s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_t iana_value);
-int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
-int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
+S2N_RESULT s2n_set_connection_hello_retry_flags(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_mark_extension_received(struct s2n_connection *conn, uint16_t iana_value);
+S2N_RESULT s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_t iana_value);
+S2N_RESULT s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn);
 S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn);
 S2N_RESULT s2n_connection_set_test_message_type(struct s2n_connection *conn, message_type_t expected_message_type);
@@ -222,7 +222,7 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 /* Read a cert given a path into pem_out */
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
 int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size);
-int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
+S2N_RESULT s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
 
 #define S2N_TEST_CERT_CHAIN_LIST_MAX 19
@@ -254,10 +254,10 @@ S2N_CLEANUP_RESULT s2n_test_cert_chains_free(struct s2n_test_cert_chain_list *ch
  * @note The OpenSSL FIPS module requires the key size for RSA certs to be greater than or equal to 1024 bits.
  * See https://github.com/aws/s2n-tls/issues/4651 for more information.
  */
-int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
+S2N_RESULT s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
         const char *type, const char *signature, const char *size, const char *digest);
 
-int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
+S2N_RESULT s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
         const char *size, const char *digest);
 S2N_RESULT s2n_test_cert_permutation_get_server_chain_path(char *output, const char *type,
         const char *signature, const char *size, const char *digest);
@@ -315,9 +315,9 @@ extern const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_
 #define EXPECT_PARSED_EXTENSION_LIST_EMPTY(list)     EXPECT_BYTEARRAY_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
 #define EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(list) EXPECT_BYTEARRAY_NOT_EQUAL(list.parsed_extensions, EMPTY_PARSED_EXTENSIONS, sizeof(EMPTY_PARSED_EXTENSIONS))
 
-int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
-int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
-int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params);
+S2N_RESULT s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
+S2N_RESULT s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
+S2N_RESULT s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params);
 
 S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
 

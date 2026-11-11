@@ -43,7 +43,7 @@
 #define COMPRESSION_METHODS     0x00, 0x01, 0x02, 0x03, 0x04
 #define COMPRESSION_METHODS_LEN 0x05
 
-int s2n_parse_client_hello(struct s2n_connection *conn);
+S2N_RESULT s2n_parse_client_hello(struct s2n_connection *conn);
 S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension);
 
@@ -54,9 +54,9 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
@@ -590,7 +590,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_cases[i].security_policy));
 
                 EXPECT_SUCCESS(s2n_client_hello_send(conn));
-                EXPECT_SUCCESS(s2n_parse_client_hello(conn));
+                EXPECT_OK(s2n_parse_client_hello(conn));
 
                 struct s2n_blob *cipher_suites = &conn->client_hello.cipher_suites;
                 EXPECT_TRUE(cipher_suites->size > 0);
@@ -628,7 +628,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
                 EXPECT_SUCCESS(s2n_client_hello_send(conn));
-                EXPECT_SUCCESS(s2n_parse_client_hello(conn));
+                EXPECT_OK(s2n_parse_client_hello(conn));
 
                 struct s2n_blob *cipher_suites = &conn->client_hello.cipher_suites;
                 EXPECT_TRUE(cipher_suites->size > 0);
@@ -846,7 +846,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
@@ -1046,7 +1046,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS12;
@@ -1405,7 +1405,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         /* Security policy must allow cipher suite hard coded into client hello */
@@ -1472,7 +1472,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(client_cipher_suites[0]->available);
 
         struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
         char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
@@ -1486,7 +1486,7 @@ int main(int argc, char **argv)
         server_config->security_policy = &security_policy_20190214;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
         client_config->security_policy = &client_security_policy;
 
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -1502,7 +1502,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -1547,7 +1547,7 @@ int main(int argc, char **argv)
         /* Mock having some data in the client hello */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 100));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_BAD_MESSAGE);
+        EXPECT_ERROR_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_BAD_MESSAGE);
     };
 
     /* Test s2n_client_hello_parse_message

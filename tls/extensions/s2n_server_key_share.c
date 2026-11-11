@@ -35,104 +35,104 @@ const s2n_extension_type s2n_server_key_share_extension = {
     .if_missing = s2n_extension_noop_if_missing,
 };
 
-static int s2n_server_key_share_send_hybrid_partial_ecc(struct s2n_connection *conn, struct s2n_stuffer *out)
+static S2N_RESULT s2n_server_key_share_send_hybrid_partial_ecc(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(out);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(out);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
 
     struct s2n_ecc_evp_params *server_ecc_params = &server_kem_group_params->ecc_params;
-    POSIX_ENSURE_REF(server_ecc_params->negotiated_curve);
+    RESULT_ENSURE_REF(server_ecc_params->negotiated_curve);
 
-    POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(server_ecc_params));
-    POSIX_GUARD(s2n_ecc_evp_write_params_point(server_ecc_params, out));
+    RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(server_ecc_params));
+    RESULT_GUARD_POSIX(s2n_ecc_evp_write_params_point(server_ecc_params, out));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_server_key_share_generate_pq(struct s2n_connection *conn, struct s2n_stuffer *out)
+static S2N_RESULT s2n_server_key_share_generate_pq(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    POSIX_ENSURE_REF(out);
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(out);
+    RESULT_ENSURE_REF(conn);
 
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
+    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
-    POSIX_ENSURE_REF(client_kem_params->public_key.data);
+    RESULT_ENSURE_REF(client_kem_params->public_key.data);
 
-    POSIX_ENSURE_REF(server_kem_group_params->kem_group);
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, server_kem_group_params->kem_group->iana_id));
+    RESULT_ENSURE_REF(server_kem_group_params->kem_group);
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, server_kem_group_params->kem_group->iana_id));
 
     struct s2n_stuffer_reservation total_share_size = { 0 };
-    POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(out, &total_share_size));
 
     /* s2n_kem_send_ciphertext() will generate the PQ shared secret and use
      * the client's public key to encapsulate; the PQ shared secret will be
      * stored in client_kem_params, and will be used during the shared
      * secret derivation. */
     if (server_kem_group_params->kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
-        POSIX_GUARD(s2n_kem_send_ciphertext(out, client_kem_params));
+        RESULT_GUARD_POSIX(s2n_kem_send_ciphertext(out, client_kem_params));
     } else { /* Hybrid PQ */
         if (server_kem_group_params->kem_group->send_kem_first) {
-            POSIX_GUARD(s2n_kem_send_ciphertext(out, client_kem_params));
-            POSIX_GUARD(s2n_server_key_share_send_hybrid_partial_ecc(conn, out));
+            RESULT_GUARD_POSIX(s2n_kem_send_ciphertext(out, client_kem_params));
+            RESULT_GUARD(s2n_server_key_share_send_hybrid_partial_ecc(conn, out));
         } else {
-            POSIX_GUARD(s2n_server_key_share_send_hybrid_partial_ecc(conn, out));
-            POSIX_GUARD(s2n_kem_send_ciphertext(out, client_kem_params));
+            RESULT_GUARD(s2n_server_key_share_send_hybrid_partial_ecc(conn, out));
+            RESULT_GUARD_POSIX(s2n_kem_send_ciphertext(out, client_kem_params));
         }
     }
 
-    POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&total_share_size));
+    return S2N_RESULT_OK;
 }
 
 /* Check that client has sent a corresponding key share for the server's KEM group */
-int s2n_server_key_share_send_check_pq(struct s2n_connection *conn)
+S2N_RESULT s2n_server_key_share_send_check_pq(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
+    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
-    POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_group);
-    POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_params.kem);
+    RESULT_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_group);
+    RESULT_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_params.kem);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    POSIX_ENSURE_REF(kem_pref);
+    RESULT_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    RESULT_ENSURE_REF(kem_pref);
 
     const struct s2n_kem_group *server_kem_group = conn->kex_params.server_kem_group_params.kem_group;
-    POSIX_ENSURE(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, server_kem_group->iana_id),
+    RESULT_ENSURE(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, server_kem_group->iana_id),
             S2N_ERR_KEM_UNSUPPORTED_PARAMS);
 
     struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
-    POSIX_ENSURE(client_params->kem_group == server_kem_group, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_params->kem_group == server_kem_group, S2N_ERR_BAD_KEY_SHARE);
 
-    POSIX_ENSURE(client_params->kem_params.kem == server_kem_group->kem, S2N_ERR_BAD_KEY_SHARE);
-    POSIX_ENSURE(client_params->kem_params.public_key.size == server_kem_group->kem->public_key_length, S2N_ERR_BAD_KEY_SHARE);
-    POSIX_ENSURE(client_params->kem_params.public_key.data != NULL, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_params->kem_params.kem == server_kem_group->kem, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_params->kem_params.public_key.size == server_kem_group->kem->public_key_length, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_params->kem_params.public_key.data != NULL, S2N_ERR_BAD_KEY_SHARE);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* Check that client has sent a corresponding key share for the server's EC curve */
-int s2n_server_key_share_send_check_ecdhe(struct s2n_connection *conn)
+S2N_RESULT s2n_server_key_share_send_check_ecdhe(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    RESULT_ENSURE_REF(ecc_pref);
 
     const struct s2n_ecc_named_curve *server_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
-    POSIX_ENSURE_REF(server_curve);
+    RESULT_ENSURE_REF(server_curve);
 
     struct s2n_ecc_evp_params *client_params = &conn->kex_params.client_ecc_evp_params;
-    POSIX_ENSURE(client_params->negotiated_curve == server_curve, S2N_ERR_BAD_KEY_SHARE);
-    POSIX_ENSURE(client_params->evp_pkey != NULL, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_params->negotiated_curve == server_curve, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_params->evp_pkey != NULL, S2N_ERR_BAD_KEY_SHARE);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -161,11 +161,11 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
     }
 
     if (curve != NULL) {
-        POSIX_GUARD(s2n_server_key_share_send_check_ecdhe(conn));
+        POSIX_GUARD_RESULT(s2n_server_key_share_send_check_ecdhe(conn));
         POSIX_GUARD(s2n_ecdhe_parameters_send(&conn->kex_params.server_ecc_evp_params, out));
     } else {
-        POSIX_GUARD(s2n_server_key_share_send_check_pq(conn));
-        POSIX_GUARD(s2n_server_key_share_generate_pq(conn, out));
+        POSIX_GUARD_RESULT(s2n_server_key_share_send_check_pq(conn));
+        POSIX_GUARD_RESULT(s2n_server_key_share_generate_pq(conn, out));
     }
 
     return S2N_SUCCESS;
@@ -191,23 +191,23 @@ static int s2n_server_key_share_recv_hybrid_partial_ecc(struct s2n_connection *c
     return S2N_SUCCESS;
 }
 
-static int s2n_server_key_share_recv_pq(struct s2n_connection *conn, uint16_t named_group_iana,
+static S2N_RESULT s2n_server_key_share_recv_pq(struct s2n_connection *conn, uint16_t named_group_iana,
         struct s2n_stuffer *extension)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(extension);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(extension);
 
     /* If PQ is disabled, the client should not have sent any PQ IDs
      * in the supported_groups list of the initial ClientHello */
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    POSIX_ENSURE_REF(kem_pref);
+    RESULT_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    RESULT_ENSURE_REF(kem_pref);
 
     /* This check should have been done higher up, but including it here as well for extra defense.
      * Uses S2N_ERR_ECDHE_UNSUPPORTED_CURVE for backward compatibility. */
-    POSIX_ENSURE(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group_iana), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    RESULT_ENSURE(s2n_kem_preferences_includes_tls13_kem_group(kem_pref, named_group_iana), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     size_t kem_group_index = 0;
     bool kem_group_found = false;
@@ -219,7 +219,7 @@ static int s2n_server_key_share_recv_pq(struct s2n_connection *conn, uint16_t na
             break;
         }
     }
-    POSIX_ENSURE(kem_group_found, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+    RESULT_ENSURE(kem_group_found, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     server_kem_group_params->kem_group = kem_pref->tls13_kem_groups[kem_group_index];
@@ -230,33 +230,33 @@ static int s2n_server_key_share_recv_pq(struct s2n_connection *conn, uint16_t na
      * appropriate KEM group params above, then exit early so that the client can
      * generate the correct key share. */
     if (s2n_is_hello_retry_message(conn)) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* Ensure that the server's key share corresponds with a key share previously sent by the client */
     struct s2n_kem_group_params *client_kem_group_params = &conn->kex_params.client_kem_group_params;
-    POSIX_ENSURE(client_kem_group_params->kem_params.private_key.data, S2N_ERR_BAD_KEY_SHARE);
-    POSIX_ENSURE(client_kem_group_params->kem_group == server_kem_group_params->kem_group, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_kem_group_params->kem_params.private_key.data, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_ENSURE(client_kem_group_params->kem_group == server_kem_group_params->kem_group, S2N_ERR_BAD_KEY_SHARE);
 
     uint16_t actual_hybrid_share_size = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &actual_hybrid_share_size));
-    POSIX_ENSURE(s2n_stuffer_data_available(extension) == actual_hybrid_share_size, S2N_ERR_BAD_KEY_SHARE);
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &actual_hybrid_share_size));
+    RESULT_ENSURE(s2n_stuffer_data_available(extension) == actual_hybrid_share_size, S2N_ERR_BAD_KEY_SHARE);
 
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
 
     if (server_kem_group_params->kem_group->curve == &s2n_ecc_curve_none) { /* Pure PQ */
-        POSIX_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+        RESULT_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
     } else { /* Hybrid PQ */
         if (!server_kem_group_params->kem_group->send_kem_first) {
-            POSIX_ENSURE(s2n_server_key_share_recv_hybrid_partial_ecc(conn, extension) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
-            POSIX_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+            RESULT_ENSURE(s2n_server_key_share_recv_hybrid_partial_ecc(conn, extension) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+            RESULT_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
         } else {
-            POSIX_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
-            POSIX_ENSURE(s2n_server_key_share_recv_hybrid_partial_ecc(conn, extension) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+            RESULT_ENSURE(s2n_kem_recv_ciphertext(extension, client_kem_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+            RESULT_ENSURE(s2n_server_key_share_recv_hybrid_partial_ecc(conn, extension) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
         }
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t named_group_iana,
@@ -351,7 +351,7 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &negotiated_named_group_iana));
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    POSIX_GUARD_RESULT(s2n_connection_get_kem_preferences(conn, &kem_pref));
     POSIX_ENSURE_REF(kem_pref);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -361,7 +361,7 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     if (s2n_ecc_preferences_includes_curve(ecc_pref, negotiated_named_group_iana)) {
         POSIX_GUARD(s2n_server_key_share_recv_ecc(conn, negotiated_named_group_iana, extension));
     } else if (s2n_kem_preferences_includes_tls13_kem_group(kem_pref, negotiated_named_group_iana)) {
-        POSIX_GUARD(s2n_server_key_share_recv_pq(conn, negotiated_named_group_iana, extension));
+        POSIX_GUARD_RESULT(s2n_server_key_share_recv_pq(conn, negotiated_named_group_iana, extension));
     } else {
         POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     }
@@ -370,9 +370,9 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
 }
 
 /* Selects highest priority mutually supported key share, or indicates need for HRR */
-int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
+S2N_RESULT s2n_extensions_server_key_share_select(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     /* Our most preferred mutually supported KeyShares that are negotiable in 1-RTT */
     const struct s2n_ecc_named_curve *client_curve = conn->kex_params.client_ecc_evp_params.negotiated_curve;
@@ -389,21 +389,21 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
      * groups; key negotiation is not possible and the handshake should be aborted
      * without sending HRR. (The case of both being non-NULL should never occur, and
      * is an error.) */
-    POSIX_ENSURE((server_curve == NULL) != (server_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
+    RESULT_ENSURE((server_curve == NULL) != (server_kem_group == NULL), S2N_ERR_INVALID_SUPPORTED_GROUP_STATE);
 
     const struct s2n_security_policy *policy = NULL;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &policy));
-    POSIX_ENSURE_REF(policy);
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &policy));
+    RESULT_ENSURE_REF(policy);
 
     /* Option 1: Select the best mutually supported PQ KEM Group that can be negotiated in 1-RTT */
     if (client_kem_group != NULL) {
-        POSIX_ENSURE_REF(conn->kex_params.client_kem_group_params.kem_params.kem);
+        RESULT_ENSURE_REF(conn->kex_params.client_kem_group_params.kem_params.kem);
 
         conn->kex_params.server_kem_group_params.kem_group = conn->kex_params.client_kem_group_params.kem_group;
         conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve;
         conn->kex_params.server_kem_group_params.kem_params.kem = conn->kex_params.client_kem_group_params.kem_params.kem;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* Option 2: Otherwise, if any PQ KEM Groups can be negotiated in 2-RTT's select that one. This ensures that
@@ -414,8 +414,8 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     if (server_kem_group != NULL) {
         /* Null out any available ECC curves so that they won't be sent in the ClientHelloRetry */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
-        POSIX_GUARD(s2n_set_hello_retry_required(conn));
-        return S2N_SUCCESS;
+        RESULT_GUARD(s2n_set_hello_retry_required(conn));
+        return S2N_RESULT_OK;
     }
 
     /* Check if there are any strongly preferred ECC groups worth performing a 2-RTT upgrade for.
@@ -451,8 +451,8 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
     if (matched_strongly_preferred_iana && need_hrr_for_strongly_preferred_group) {
         conn->kex_params.server_kem_group_params.kem_group = NULL;
         conn->kex_params.server_ecc_evp_params.negotiated_curve = strongly_preferred_curve;
-        POSIX_GUARD(s2n_set_hello_retry_required(conn));
-        return S2N_SUCCESS;
+        RESULT_GUARD(s2n_set_hello_retry_required(conn));
+        return S2N_RESULT_OK;
     }
 
     /* Option 4: Otherwise, if there is a mutually supported classical ECDHE-only group can be negotiated in 1-RTT, select that one */
@@ -461,13 +461,13 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         conn->kex_params.server_kem_group_params.kem_group = NULL;
         conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = NULL;
         conn->kex_params.server_kem_group_params.kem_params.kem = NULL;
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* Option 5: Server and client have at least 1 mutually supported group, but the client did not send key shares for
      * any of them. Send a HelloRetryRequest indicating the server's preference. */
-    POSIX_GUARD(s2n_set_hello_retry_required(conn));
-    return S2N_SUCCESS;
+    RESULT_GUARD(s2n_set_hello_retry_required(conn));
+    return S2N_RESULT_OK;
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */

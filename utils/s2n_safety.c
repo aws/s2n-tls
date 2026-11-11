@@ -166,10 +166,10 @@ int s2n_in_unit_test_set(bool is_unit)
     return S2N_SUCCESS;
 }
 
-int s2n_in_integ_test_set(bool is_integ)
+S2N_RESULT s2n_in_integ_test_set(bool is_integ)
 {
     s2n_in_integ_test_value = is_integ;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 bool s2n_in_unit_test()

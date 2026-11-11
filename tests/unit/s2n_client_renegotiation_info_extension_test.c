@@ -18,7 +18,7 @@
 #include "tls/extensions/s2n_client_renegotiation_info.h"
 #include "tls/s2n_tls.h"
 
-int s2n_parse_client_hello(struct s2n_connection *conn);
+S2N_RESULT s2n_parse_client_hello(struct s2n_connection *conn);
 
 int main(int argc, char **argv)
 {
@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     const uint8_t client_verify_data[] = "client verify data";
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
-        EXPECT_SUCCESS(s2n_parse_client_hello(server_conn));
+        EXPECT_OK(s2n_parse_client_hello(server_conn));
 
         /* Expect TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
         bool found_renegotiation_info_scsv = false;
@@ -190,8 +190,8 @@ int main(int argc, char **argv)
         /* Process the extensions on the server */
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
-        EXPECT_SUCCESS(s2n_parse_client_hello(server_conn));
-        EXPECT_SUCCESS(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, server_conn,
+        EXPECT_OK(s2n_parse_client_hello(server_conn));
+        EXPECT_OK(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, server_conn,
                 &server_conn->client_hello.extensions));
 
         /* Expect secure renegotiation to still be false: no extension received */
@@ -217,8 +217,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
                 s2n_stuffer_data_available(&client_conn->handshake.io)));
-        EXPECT_SUCCESS(s2n_parse_client_hello(server_conn));
-        EXPECT_SUCCESS(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, server_conn,
+        EXPECT_OK(s2n_parse_client_hello(server_conn));
+        EXPECT_OK(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, server_conn,
                 &server_conn->client_hello.extensions));
 
         /* Expect secure renegotiation to be true: extension received */
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
             conn->handshake.finished_len = sizeof(client_verify_data);
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
-            EXPECT_SUCCESS(s2n_parse_client_hello(conn));
+            EXPECT_OK(s2n_parse_client_hello(conn));
 
             /* Expect TLS_EMPTY_RENEGOTIATION_INFO_SCSV */
             bool found_renegotiation_info_scsv = false;

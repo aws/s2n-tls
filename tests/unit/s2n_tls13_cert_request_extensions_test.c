@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
         /* Write 0 length request context https://tools.ietf.org/html/rfc8446#section-4.3.2 */
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&client_conn->handshake.io, 0));
-        EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, client_conn, &client_conn->handshake.io));
+        EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, client_conn, &client_conn->handshake.io));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_req_recv(client_conn), S2N_ERR_MISSING_EXTENSION);
 

@@ -41,9 +41,9 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
     return 0;
 }
 
-int s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *output)
+S2N_RESULT s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *output)
 {
-    POSIX_ENSURE_REF(sequence_number);
+    RESULT_ENSURE_REF(sequence_number);
 
     uint8_t shift = 0;
     *output = 0;
@@ -52,5 +52,5 @@ int s2n_sequence_number_to_uint64(struct s2n_blob *sequence_number, uint64_t *ou
         *output += ((uint64_t) sequence_number->data[i - 1]) << shift;
         shift += SEQUENCE_NUMBER_POWER;
     }
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }

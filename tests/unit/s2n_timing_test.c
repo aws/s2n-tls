@@ -72,7 +72,7 @@ static int setup_tls13_config(struct s2n_config **server_config_out,
         struct s2n_cert_chain_and_key **chain_out)
 {
     struct s2n_cert_chain_and_key *chain = NULL;
-    POSIX_GUARD(s2n_test_cert_chain_and_key_new(&chain,
+    POSIX_GUARD_RESULT(s2n_test_cert_chain_and_key_new(&chain,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     struct s2n_config *server_config = s2n_config_new();

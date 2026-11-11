@@ -26,7 +26,7 @@ static S2N_RESULT s2n_test_get_seq_num(struct s2n_connection *conn, uint64_t *se
 {
     struct s2n_blob seq_num = { 0 };
     RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, seq_num_out));
+    RESULT_GUARD(s2n_sequence_number_to_uint64(&seq_num, seq_num_out));
     return S2N_RESULT_OK;
 }
 
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         conn->ktls_send_enabled = true;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
         conn->ktls_send_enabled = true;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         int write_fd = io_pair.server;
         int read_fd = io_pair.client;
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, write_fd));
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
         conn->ktls_send_enabled = true;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         int write_fd = io_pair.server;
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, write_fd));
 
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         conn->ktls_send_enabled = true;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         int write_fd = io_pair.server;
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, write_fd));
 
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
         conn->ktls_send_enabled = true;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         int write_fd = io_pair.server;
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, write_fd));
 
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, io_pair.server));
 
         /* Test: The sequence number starts at 0 */

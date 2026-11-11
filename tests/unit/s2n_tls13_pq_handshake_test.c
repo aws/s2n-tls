@@ -158,8 +158,8 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     POSIX_GUARD(s2n_stuffer_growable_alloc(&client_to_server, 2048));
     POSIX_GUARD(s2n_stuffer_growable_alloc(&server_to_client, 2048));
 
-    POSIX_GUARD(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-    POSIX_GUARD(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+    POSIX_GUARD_RESULT(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+    POSIX_GUARD_RESULT(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
     client_conn->security_policy_override = client_sec_policy;
     server_conn->security_policy_override = server_sec_policy;

@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        POSIX_GUARD(s2n_io_pair_init_non_blocking(&io_pair));
+        POSIX_GUARD_RESULT(s2n_io_pair_init_non_blocking(&io_pair));
         POSIX_GUARD(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         /* This should NEVER fail with an error related to blocked IO. */

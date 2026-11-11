@@ -510,7 +510,7 @@ int main(int argc, char **argv)
             uint8_t hash_value_data[SHA256_DIGEST_LENGTH];
             EXPECT_SUCCESS(s2n_blob_init(&hash_value, hash_value_data, sizeof(hash_value_data)));
 
-            EXPECT_SUCCESS(s2n_psk_calculate_binder_hash(conn, S2N_HMAC_SHA256, &client_hello_prefix, &hash_value));
+            EXPECT_OK(s2n_psk_calculate_binder_hash(conn, S2N_HMAC_SHA256, &client_hello_prefix, &hash_value));
             S2N_BLOB_EXPECT_EQUAL(hash_value, binder_hash);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));

@@ -30,7 +30,7 @@ S2N_RESULT s2n_test_pkeys_init(struct s2n_test_pkeys *pkeys,
 {
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
-    RESULT_GUARD_POSIX(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    RESULT_GUARD(s2n_test_cert_chain_and_key_new(&chain_and_key,
             cert_chain_file, private_key_file));
 
     /* Take ownership of the private key */
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
                 continue;
             }
 
-            EXPECT_SUCCESS(s2n_pkey_match(
+            EXPECT_OK(s2n_pkey_match(
                     &test_pkeys[pkey_i].pub_key,
                     test_pkeys[pkey_i].priv_key));
 
@@ -113,10 +113,10 @@ int main(int argc, char **argv)
                     continue;
                 }
 
-                EXPECT_FAILURE_WITH_ERRNO(
+                EXPECT_ERROR_WITH_ERRNO(
                         s2n_pkey_match(&test_pkeys[pkey_i].pub_key, other_pkeys[other_i].priv_key),
                         S2N_ERR_KEY_MISMATCH);
-                EXPECT_FAILURE_WITH_ERRNO(
+                EXPECT_ERROR_WITH_ERRNO(
                         s2n_pkey_match(&other_pkeys[other_i].pub_key, test_pkeys[pkey_i].priv_key),
                         S2N_ERR_KEY_MISMATCH);
             }

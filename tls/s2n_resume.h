@@ -82,8 +82,8 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct
 S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_stuffer *from);
 S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config);
 int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index);
-int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index);
-int s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key);
+S2N_RESULT s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index);
+S2N_RESULT s2n_config_store_ticket_key(struct s2n_config *config, struct s2n_ticket_key *key);
 
 typedef enum {
     S2N_STATE_WITH_SESSION_ID = 0,

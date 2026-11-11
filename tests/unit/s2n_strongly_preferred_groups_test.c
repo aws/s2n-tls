@@ -51,7 +51,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < security_policy->strongly_preferred_groups->count; i++) {
             const struct s2n_kem_group *kem_group = NULL;
             bool found_kem_group = false;
-            EXPECT_SUCCESS(s2n_find_kem_group_from_iana_id(
+            EXPECT_OK(s2n_find_kem_group_from_iana_id(
                     security_policy->strongly_preferred_groups->iana_ids[i], &kem_group, &found_kem_group));
             if (found_kem_group) {
                 fprintf(stderr, "Error with Security Policy: %s\n", policy_name);

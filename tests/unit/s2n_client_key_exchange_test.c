@@ -303,7 +303,7 @@ int main(int argc, char **argv)
     for (size_t pkey_test_mode = 0; pkey_test_mode < S2N_PKEY_TEST_COUNT; pkey_test_mode++) {
         /* We must use an RSA cert so that we can test RSA kex */
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_cert_chain = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         struct s2n_pkey *rsa_private_key = s2n_cert_chain_and_key_get_private_key(rsa_cert_chain);
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
         client_config->security_policy = &test_rsa_policy;
 
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
@@ -362,8 +362,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
 
@@ -401,8 +401,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_negotiate_test_server_and_client(server, client), expected_error);
             expected_source_str = s2n_strerror_source(s2n_errno);
@@ -436,8 +436,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             if (version == S2N_TLS12) {
                 EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
@@ -473,8 +473,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             if (size == S2N_TLS_SECRET_LEN) {
                 EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
@@ -515,8 +515,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             EXPECT_FAILURE_WITH_ERRNO_NO_RESET(s2n_negotiate_test_server_and_client(server, client), expected_error);
             EXPECT_STRING_EQUAL(s2n_strerror_source(s2n_errno), expected_source_str);

@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* Test that we ignore Warning Alerts in S2N_ALERT_IGNORE_WARNINGS mode in TLS1.2 */
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_alert_behavior(client_config, S2N_ALERT_IGNORE_WARNINGS));
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         /* Set up the callback to send warning alerts after receiving ClientHello */
         struct alert_ctx warning_alert = { .write_fd = io_pair.server, .invoked = 0, .count = 2, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME };
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_alert_behavior(client_config, S2N_ALERT_IGNORE_WARNINGS));
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         /* Set up the callback to send a fatal alert after receiving ClientHello */
         struct alert_ctx fatal_alert = { .write_fd = io_pair.server, .invoked = 0, .count = 1, .level = TLS_ALERT_LEVEL_FATAL, .code = TLS_ALERT_UNRECOGNIZED_NAME };
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_alert_behavior(client_config, S2N_ALERT_FAIL_ON_WARNINGS));
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         /* Set up the callback to send a warning alert after receiving ClientHello */
         struct alert_ctx warning_alert = { .write_fd = io_pair.server, .invoked = 0, .count = 1, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME };

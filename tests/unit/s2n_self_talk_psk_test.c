@@ -165,21 +165,21 @@ int main(int argc, char **argv)
     struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
 
     /* Setup config with certificates set */
     struct s2n_config *config_with_certs = NULL;
     EXPECT_NOT_NULL(config_with_certs = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_certs, "default_tls13"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_certs));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(config_with_certs));
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
             S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_certs, chain_and_key));
 
     /* Create nonblocking pipes */
     struct s2n_test_io_pair io_pair = { 0 };
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
     /* Basic PSK without callback function, without certificates and client auth not set */
     {

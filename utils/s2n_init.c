@@ -57,7 +57,7 @@ int s2n_init(void)
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
 
     if (getenv("S2N_INTEG_TEST")) {
-        POSIX_GUARD(s2n_in_integ_test_set(true));
+        POSIX_GUARD_RESULT(s2n_in_integ_test_set(true));
     }
 
     /* Should run before any init method that calls libcrypto methods
@@ -72,10 +72,10 @@ int s2n_init(void)
     POSIX_GUARD(s2n_fips_init());
     POSIX_GUARD_RESULT(s2n_rand_init());
     POSIX_GUARD_RESULT(s2n_hash_algorithms_init());
-    POSIX_GUARD(s2n_cipher_suites_init());
+    POSIX_GUARD_RESULT(s2n_cipher_suites_init());
     POSIX_GUARD(s2n_security_policies_init());
-    POSIX_GUARD(s2n_config_defaults_init());
-    POSIX_GUARD(s2n_extension_type_init());
+    POSIX_GUARD_RESULT(s2n_config_defaults_init());
+    POSIX_GUARD_RESULT(s2n_extension_type_init());
     POSIX_GUARD_RESULT(s2n_tls13_empty_transcripts_init());
     POSIX_GUARD_RESULT(s2n_atomic_init());
 

@@ -429,18 +429,18 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello)
     RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->compression_methods, compression_methods, compression_methods_len));
 
     /* extensions */
-    RESULT_GUARD_POSIX(s2n_extension_list_parse(in, &client_hello->extensions));
+    RESULT_GUARD(s2n_extension_list_parse(in, &client_hello->extensions));
 
     return S2N_RESULT_OK;
 }
 
-int s2n_parse_client_hello(struct s2n_connection *conn)
+S2N_RESULT s2n_parse_client_hello(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     /* SSLv2 ClientHellos are not allowed during a HelloRetryRequest */
     if (s2n_is_hello_retry_handshake(conn)) {
-        POSIX_ENSURE(!conn->client_hello.sslv2, S2N_ERR_BAD_MESSAGE);
+        RESULT_ENSURE(!conn->client_hello.sslv2, S2N_ERR_BAD_MESSAGE);
     }
 
     /* If a retry, move the old version of the client hello
@@ -451,22 +451,22 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 
     /* Save the client random before clearing for retry validation */
     uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-    POSIX_CHECKED_MEMCPY(previous_client_random, conn->client_hello.random,
+    RESULT_CHECKED_MEMCPY(previous_client_random, conn->client_hello.random,
             S2N_TLS_RANDOM_DATA_LEN);
 
     if (s2n_is_hello_retry_handshake(conn)) {
-        POSIX_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
+        RESULT_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
     }
 
-    POSIX_GUARD(s2n_collect_client_hello(&conn->client_hello, &conn->handshake.io));
+    RESULT_GUARD_POSIX(s2n_collect_client_hello(&conn->client_hello, &conn->handshake.io));
 
     if (conn->client_hello.sslv2) {
-        POSIX_GUARD(s2n_sslv2_client_hello_parse(conn));
-        return S2N_SUCCESS;
+        RESULT_GUARD_POSIX(s2n_sslv2_client_hello_parse(conn));
+        return S2N_RESULT_OK;
     }
 
     /* Parse raw, collected client hello */
-    POSIX_GUARD_RESULT(s2n_client_hello_parse_raw(&conn->client_hello));
+    RESULT_GUARD(s2n_client_hello_parse_raw(&conn->client_hello));
 
     /* Protocol version in the ClientHello is fixed at 0x0303(TLS 1.2) for
      * future versions of TLS. Therefore, we will negotiate down if a client sends
@@ -476,11 +476,11 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 
     /* Copy the session id to the connection. */
     conn->session_id_len = conn->client_hello.session_id.size;
-    POSIX_CHECKED_MEMCPY(conn->session_id, conn->client_hello.session_id.data, conn->session_id_len);
+    RESULT_CHECKED_MEMCPY(conn->session_id, conn->client_hello.session_id.data, conn->session_id_len);
 
-    POSIX_GUARD_RESULT(s2n_client_hello_verify_for_retry(conn,
+    RESULT_GUARD(s2n_client_hello_verify_for_retry(conn,
             &previous_hello_retry, &conn->client_hello, previous_client_random));
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **result,
@@ -525,18 +525,18 @@ struct s2n_client_hello *s2n_client_hello_parse_message(const uint8_t *raw_messa
     return result;
 }
 
-int s2n_process_client_hello(struct s2n_connection *conn)
+S2N_RESULT s2n_process_client_hello(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     /* Client hello is parsed and config is finalized.
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
     struct s2n_client_hello *client_hello = &conn->client_hello;
 
     const struct s2n_security_policy *security_policy = NULL;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
 
     if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->server_protocol_version = S2N_MIN(conn->server_protocol_version, S2N_TLS12);
@@ -559,8 +559,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
      *
      */
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    RESULT_ENSURE_REF(ecc_pref);
 
     if (ecc_pref->count == 0) {
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
@@ -571,11 +571,11 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     }
 
-    POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &conn->client_hello.extensions));
+    RESULT_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &conn->client_hello.extensions));
 
     /* After parsing extensions, select a curve and corresponding keyshare to use */
     if (conn->actual_protocol_version >= S2N_TLS13) {
-        POSIX_GUARD(s2n_extensions_server_key_share_select(conn));
+        RESULT_GUARD(s2n_extensions_server_key_share_select(conn));
     }
 
     /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
@@ -584,27 +584,27 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     }
 
     if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
-        POSIX_GUARD(s2n_queue_reader_unsupported_protocol_version_alert(conn));
-        POSIX_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        RESULT_GUARD_POSIX(s2n_queue_reader_unsupported_protocol_version_alert(conn));
+        RESULT_BAIL(S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
     if (s2n_connection_is_quic_enabled(conn)) {
-        POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        RESULT_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
     }
 
     /* Find potential certificate matches before we choose the cipher. */
-    POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
+    RESULT_GUARD_POSIX(s2n_conn_find_name_matching_certs(conn));
 
     /* Save the previous cipher suite */
     uint8_t previous_cipher_suite_iana[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
-    POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
+    RESULT_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
     /* Now choose the ciphers we have certs for. */
     if (conn->client_hello.sslv2) {
-        POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data,
+        RESULT_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data,
                 client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
     } else {
-        POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data,
+        RESULT_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data,
                 client_hello->cipher_suites.size / 2));
     }
 
@@ -617,24 +617,24 @@ int s2n_process_client_hello(struct s2n_connection *conn)
          *# the server selects the cipher suite as the first step in the
          *# negotiation, then this will happen automatically).
          **/
-        POSIX_ENSURE(s2n_constant_time_equals(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value,
-                             S2N_TLS_CIPHER_SUITE_LEN),
+        RESULT_ENSURE(s2n_constant_time_equals(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value,
+                              S2N_TLS_CIPHER_SUITE_LEN),
                 S2N_ERR_BAD_MESSAGE);
     }
 
     /* If we're using a PSK, we don't need to choose a signature algorithm or certificate,
      * because no additional auth is required. */
     if (conn->psk_params.chosen_psk != NULL) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* And set the signature and hash algorithm used for key exchange signatures */
-    POSIX_GUARD_RESULT(s2n_signature_algorithm_select(conn));
+    RESULT_GUARD(s2n_signature_algorithm_select(conn));
 
     /* And finally, set the certs specified by the final auth + sig_alg combo. */
-    POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
+    RESULT_GUARD_POSIX(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_client_hello_process_cb_response(struct s2n_connection *conn, int rc)
@@ -659,7 +659,7 @@ static S2N_RESULT s2n_client_hello_process_cb_response(struct s2n_connection *co
     }
 fail:
     /* rc < 0 */
-    RESULT_GUARD_POSIX(s2n_queue_reader_handshake_failure_alert(conn));
+    RESULT_GUARD(s2n_queue_reader_handshake_failure_alert(conn));
     RESULT_BAIL(S2N_ERR_CANCELLED);
 }
 
@@ -669,7 +669,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Only parse the ClientHello once */
     if (!conn->client_hello.parsed) {
-        POSIX_GUARD(s2n_parse_client_hello(conn));
+        POSIX_GUARD_RESULT(s2n_parse_client_hello(conn));
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.parsed = true;
     }
@@ -696,7 +696,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         }
     }
 
-    POSIX_GUARD(s2n_process_client_hello(conn));
+    POSIX_GUARD_RESULT(s2n_process_client_hello(conn));
 
     return 0;
 }
@@ -800,7 +800,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_write_uint8(out, 0));
 
     /* Write the extensions */
-    POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, out));
+    POSIX_GUARD_RESULT(s2n_extension_list_send(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, out));
 
     /* Once the message is complete, finish calculating the PSK binders.
      *

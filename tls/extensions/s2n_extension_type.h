@@ -81,7 +81,7 @@ extern const s2n_extension_type_id s2n_unsupported_extension;
 
 int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *out);
 int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_connection *conn, struct s2n_stuffer *in);
-int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2n_connection *conn);
+S2N_RESULT s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2n_connection *conn);
 
 /* Map from TLS IANA value to internal s2n id.
  * All possible IANA values is a large space, so using an internal id gives us more
@@ -89,7 +89,7 @@ int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2
 int s2n_extension_supported_iana_value_to_id(const uint16_t iana_value, s2n_extension_type_id *internal_id);
 
 /* Initializer */
-int s2n_extension_type_init();
+S2N_RESULT s2n_extension_type_init();
 
 /* Common implementations for send */
 int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *out);

@@ -204,7 +204,7 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
     POSIX_GUARD(s2n_hash_update(&message_hash, unsigned_content.blob.data,
             s2n_stuffer_data_available(&unsigned_content)));
 
-    POSIX_GUARD(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg,
+    POSIX_GUARD_RESULT(s2n_async_pkey_verify(conn, chosen_sig_scheme->sig_alg,
             &message_hash, &signed_content));
 
     return 0;

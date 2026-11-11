@@ -341,7 +341,7 @@ int main(int argc, char **argv)
         /* Safety */
         EXPECT_FAILURE_WITH_ERRNO(s2n_queue_reader_unsupported_protocol_version_alert(NULL),
                 S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_queue_reader_handshake_failure_alert(NULL),
+        EXPECT_ERROR_WITH_ERRNO(s2n_queue_reader_handshake_failure_alert(NULL),
                 S2N_ERR_NULL);
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -353,12 +353,12 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->reader_alert_out, S2N_TLS_ALERT_PROTOCOL_VERSION);
 
         /* New alert not queued if alert already set */
-        EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
+        EXPECT_OK(s2n_queue_reader_handshake_failure_alert(conn));
         EXPECT_EQUAL(conn->reader_alert_out, S2N_TLS_ALERT_PROTOCOL_VERSION);
 
         /* New alert queued if old alert cleared */
         conn->reader_alert_out = 0;
-        EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
+        EXPECT_OK(s2n_queue_reader_handshake_failure_alert(conn));
         EXPECT_EQUAL(conn->reader_alert_out, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
     };
 

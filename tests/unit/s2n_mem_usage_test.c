@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
     /* Skip the test unless specifically enabled.
      * This test is too unreliable to run in all customer environments.
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_after_allocation, -1);
 
     for (size_t i = 0; i < connectionsToUse; i++) {
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(clients[i], servers[i], &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(clients[i], servers[i], &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[i], clients[i]));
     }
