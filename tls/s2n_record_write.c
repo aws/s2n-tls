@@ -69,6 +69,94 @@ static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t 
     return S2N_RESULT_OK;
 }
 
+/* s2n_record_max_write_size() pessimistically assumes the worst case overhead allowed
+ * by the TLS RFCs (1024 bytes for TLS1.2, 255 bytes for TLS1.3) instead of the actual
+ * overhead of the cipher suite that was negotiated for the connection. That worst case
+ * overhead is much larger than the overhead of any cipher suite that s2n-tls actually
+ * supports, so relying on it to decide whether a configured send buffer is "too small"
+ * for a record unnecessarily and significantly shrinks the fragment size.
+ *
+ * Once a connection has completed its handshake and negotiated a real cipher suite, we
+ * can calculate the actual overhead of a record instead: the record header, the actual
+ * MAC/tag and IV sizes for the negotiated cipher, and -- for block ciphers -- the worst
+ * case padding of one full block.
+ */
+static S2N_RESULT s2n_record_actual_max_write_size(struct s2n_connection *conn, uint16_t max_fragment_size,
+        uint16_t *max_record_size)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_MUT(max_record_size);
+
+    uint16_t overhead = 0;
+    RESULT_GUARD(s2n_tls_record_overhead(conn, &overhead));
+
+    const struct s2n_crypto_parameters *active = conn->mode == S2N_CLIENT ? conn->client : conn->server;
+    const struct s2n_cipher *cipher = active->cipher_suite->record_alg->cipher;
+    if (cipher->type == S2N_CBC) {
+        /* Worst case padding adds up to one full block. */
+        overhead += cipher->io.cbc.block_size;
+    } else if (cipher->type == S2N_COMPOSITE) {
+        /* Unlike the CBC case above, s2n_tls_record_overhead() does not include the
+         * composite cipher's MAC size or padding length byte -- those are computed
+         * dynamically, together with the padding itself, at record write time.
+         * Account for them explicitly here, matching s2n_record_min_write_payload_size().
+         */
+        overhead += cipher->io.comp.mac_key_size;
+        overhead += 1; /* Padding length byte */
+        /* Worst case padding adds up to one full block. */
+        overhead += cipher->io.comp.block_size;
+    }
+
+    const int is_tls13_record = active->cipher_suite->record_alg->flags & S2N_TLS13_RECORD_AEAD_NONCE;
+    if (is_tls13_record) {
+        overhead += S2N_TLS_CONTENT_TYPE_LENGTH;
+    }
+
+    *max_record_size = max_fragment_size + overhead + S2N_TLS_RECORD_HEADER_LENGTH;
+    return S2N_RESULT_OK;
+}
+
+/* This is the effective max record size for a given fragment size: the pessimistic,
+ * RFC worst-case size unless/until a cipher suite has actually been negotiated AND a
+ * custom send buffer has been configured, in which case it is the (much smaller)
+ * actual overhead of that cipher suite instead.
+ *
+ * The actual-overhead calculation is intentionally scoped to only apply when a custom
+ * send buffer is configured: it exists purely to avoid unnecessarily shrinking the
+ * fragment size to fit a small send buffer (see https://github.com/aws/s2n-tls/issues/6059).
+ * Leaving default (no custom send buffer) buffer allocation on the pessimistic,
+ * RFC-worst-case sizing avoids changing behavior or memory usage for the overwhelming
+ * majority of connections, and avoids relying on the actual-overhead calculation being
+ * precise to the byte for every cipher suite s2n-tls supports.
+ *
+ * This must be used consistently everywhere a "max record size" is needed to decide
+ * how much of a configured send buffer is available for record payload, or the
+ * buffer may end up sized inconsistently with the fragment size that was calculated
+ * for it.
+ */
+static S2N_RESULT s2n_record_effective_max_write_size(struct s2n_connection *conn, uint16_t max_fragment_size,
+        uint16_t *max_record_size)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+    RESULT_ENSURE_MUT(max_record_size);
+
+    RESULT_GUARD(s2n_record_max_write_size(conn, max_fragment_size, max_record_size));
+
+    /* Once a cipher suite has actually been negotiated, use its real overhead instead
+     * of the pessimistic, worst-case-allowed-by-the-RFC overhead -- but only if a
+     * custom send buffer is actually configured; otherwise, there's nothing to gain
+     * from the more precise (and more narrowly-tested) calculation.
+     */
+    if (conn->config->send_buffer_size_override != 0 && IS_NEGOTIATED(conn)) {
+        uint16_t actual_max_record_size = 0;
+        RESULT_GUARD(s2n_record_actual_max_write_size(conn, max_fragment_size, &actual_max_record_size));
+        *max_record_size = S2N_MIN(*max_record_size, actual_max_record_size);
+    }
+
+    return S2N_RESULT_OK;
+}
+
 /* This function returns maximum size of plaintext data to write for the payload.
  * Record overheads are not included here.
  */
@@ -87,7 +175,7 @@ S2N_RESULT s2n_record_max_write_payload_size(struct s2n_connection *conn, uint16
     uint32_t send_buffer_override = conn->config->send_buffer_size_override;
     if (send_buffer_override) {
         uint16_t max_record_size = 0;
-        RESULT_GUARD(s2n_record_max_write_size(conn, *max_fragment_size, &max_record_size));
+        RESULT_GUARD(s2n_record_effective_max_write_size(conn, *max_fragment_size, &max_record_size));
         if (send_buffer_override < max_record_size) {
             size_t overhead = (max_record_size - *max_fragment_size);
             RESULT_ENSURE_GT(send_buffer_override, overhead);
@@ -442,7 +530,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
          * it does NOT resize existing buffers.
          */
         uint16_t max_wire_record_size = 0;
-        POSIX_GUARD_RESULT(s2n_record_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
+        POSIX_GUARD_RESULT(s2n_record_effective_max_write_size(conn, max_write_payload_size, &max_wire_record_size));
 
         uint32_t buffer_size = S2N_MAX(conn->config->send_buffer_size_override, max_wire_record_size);
         POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->out, buffer_size));
