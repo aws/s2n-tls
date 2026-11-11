@@ -1,0 +1,46 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-9.5"
+
+# 9.5.  Pre-Shared Key Recommendations
+#
+# In the PSK and AuthPSK modes, the PSK MUST have at least 32 bytes of
+# entropy and SHOULD be of length Nh bytes or longer.  Using a PSK
+# longer than 32 bytes but shorter than Nh bytes is permitted.
+# 
+# HPKE is specified to use HKDF as its key derivation function.  HKDF
+# is not designed to slow down dictionary attacks (see [RFC5869]).
+# Thus, HPKE's PSK mechanism is not suitable for use with a low-entropy
+# password as the PSK: In scenarios in which the adversary knows the
+# KEM shared secret shared_secret and has access to an oracle that
+# distinguishes between a good and a wrong PSK, it can perform PSK-
+# recovering attacks.  This oracle can be the decryption operation on a
+# captured HPKE ciphertext or any other recipient behavior that is
+# observably different when using a wrong PSK.  The adversary knows the
+# KEM shared secret shared_secret if it knows all KEM private keys of
+# one participant.  In the PSK mode, this is trivially the case if the
+# adversary acts as the sender.
+# 
+# To recover a lower entropy PSK, an attacker in this scenario can
+# trivially perform a dictionary attack.  Given a set S of possible PSK
+# values, the attacker generates an HPKE ciphertext for each value in
+# S, and submits the resulting ciphertexts to the oracle to learn which
+# PSK is being used by the recipient.  Further, because HPKE uses AEAD
+# schemes that are not key-committing, an attacker can mount a
+# partitioning oracle attack [LGR20] that can recover the PSK from a
+# set of S possible PSK values, with |S| = m*k, in roughly m + log k
+# queries to the oracle using ciphertexts of length proportional to k,
+# the maximum message length in blocks.  (Applying the multi-collision
+# algorithm from [LGR20] requires a small adaptation to the algorithm
+# wherein the appropriate nonce is computed for each candidate key.
+# This modification adds one call to HKDF per key.  The number of
+# partitioning oracle queries remains unchanged.)  As a result, the PSK
+# must therefore be chosen with sufficient entropy so that m + log k is
+# prohibitive for attackers (e.g., 2^128).  Future specifications can
+# define new AEAD algorithms that are key-committing.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In the PSK and AuthPSK modes, the PSK MUST have at least 32 bytes of
+entropy and SHOULD be of length Nh bytes or longer.
+'''
+

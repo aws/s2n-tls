@@ -1,0 +1,45 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-9.1.1"
+
+# 9.1.1.  Key-Compromise Impersonation
+#
+# The DHKEM variants defined in this document are vulnerable to key-
+# compromise impersonation attacks [BJM97], which means that sender
+# authentication cannot be expected to hold in the Auth mode if the
+# recipient private key skR is compromised, and in the AuthPSK mode if
+# the pre-shared key and the recipient private key skR are both
+# compromised.  NaCl's box interface [NaCl] has the same issue.  At the
+# same time, this enables repudiability.
+# 
+# As shown by [ABHKLR20], key-compromise impersonation attacks are
+# generally possible on HPKE because KEM ciphertexts are not bound to
+# HPKE messages.  An adversary who knows a recipient's private key can
+# decapsulate an observed KEM ciphertext, compute the key schedule, and
+# encrypt an arbitrary message that the recipient will accept as coming
+# from the original sender.  Importantly, this is possible even with a
+# KEM that is resistant to key-compromise impersonation attacks.  As a
+# result, mitigating this issue requires fundamental changes that are
+# out of scope of this specification.
+# 
+# Applications that require resistance against key-compromise
+# impersonation SHOULD take extra steps to prevent this attack.  One
+# possibility is to produce a digital signature over (enc, ct) tuples
+# using a sender's private key -- where ct is an AEAD ciphertext
+# produced by the single-shot or multi-shot API and enc is the
+# corresponding KEM encapsulated key.
+# 
+# Given these properties, pre-shared keys strengthen both the
+# authentication and the secrecy properties in certain adversary
+# models.  One particular example in which this can be useful is a
+# hybrid quantum setting: if a non-quantum-resistant KEM used with HPKE
+# is broken by a quantum computer, the security properties are
+# preserved through the use of a pre-shared key.  As described in
+# Section 7 of [RFC8696] this assumes that the pre-shared key has not
+# been compromised.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Applications that require resistance against key-compromise
+impersonation SHOULD take extra steps to prevent this attack.
+'''
+

@@ -1,0 +1,35 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-7.1.5"
+
+# 7.1.5.  Future KEMs
+#
+# Section 9.2 lists security requirements on a KEM used within HPKE.
+# 
+# The AuthEncap() and AuthDecap() functions are OPTIONAL.  If a KEM
+# algorithm does not provide them, only the Base and PSK modes of HPKE
+# are supported.  Future specifications that define new KEMs MUST
+# indicate whether or not Auth and AuthPSK modes are supported.
+# 
+# A KEM algorithm may support different encoding algorithms, with
+# different output lengths, for KEM public keys.  Such KEM algorithms
+# MUST specify only one encoding algorithm whose output length is Npk.
+
+[[spec]]
+level = "MAY"
+quote = '''
+The AuthEncap() and AuthDecap() functions are OPTIONAL.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Future specifications that define new KEMs MUST
+indicate whether or not Auth and AuthPSK modes are supported.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Such KEM algorithms
+MUST specify only one encoding algorithm whose output length is Npk.
+'''
+
