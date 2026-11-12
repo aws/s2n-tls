@@ -16,11 +16,12 @@
 #pragma once
 
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_crypto_constants.h"
 #include "utils/s2n_blob.h"
 
 #define S2N_STATE_LIFETIME_IN_NANOS           54000000000000 /* 15 hours */
 #define S2N_TLS12_STATE_SIZE_IN_BYTES         (1 + 8 + 1 + S2N_TLS_CIPHER_SUITE_LEN + S2N_TLS_SECRET_LEN + 1)
-#define S2N_TLS13_FIXED_STATE_SIZE            21
+#define S2N_TLS13_FIXED_STATE_SIZE            29
 #define S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE 3
 
 /* This is used in session ticket validation. This controls how far in the future
@@ -95,6 +96,7 @@ typedef enum {
     S2N_SERIALIZED_FORMAT_TLS13_V1,
     S2N_SERIALIZED_FORMAT_TLS12_V2,
     S2N_SERIALIZED_FORMAT_TLS12_V3,
+    S2N_SERIALIZED_FORMAT_TLS13_V2,
 } s2n_serial_format_version;
 
 /* Used to specify the format of the ticket schema before encryption.
