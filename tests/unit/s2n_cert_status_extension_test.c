@@ -16,6 +16,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_cert_status.h"
+#include "utils/s2n_bitmap.h"
 
 const uint8_t ocsp_data[] = "OCSP DATA";
 
@@ -401,6 +402,85 @@ int main(int argc, char **argv)
             /* The server did not send an OCSP response, and the client did not receive an OCSP response */
             EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 0);
             EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 0);
+        }
+    }
+
+    /* RFC 6066 section 8 and RFC 8446 section 4.4.2.1 allow the peer to omit a requested OCSP staple. */
+    if (s2n_x509_ocsp_stapling_supported()) {
+        const struct {
+            uint8_t protocol_version;
+            s2n_mode requester_mode;
+        } test_cases[] = {
+            { S2N_TLS12, S2N_CLIENT },
+            { S2N_TLS13, S2N_CLIENT },
+            { S2N_TLS13, S2N_SERVER },
+        };
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *no_ocsp_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&no_ocsp_chain_and_key,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        EXPECT_EQUAL(no_ocsp_chain_and_key->ocsp_status.size, 0);
+
+        s2n_extension_type_id status_request_id = 0;
+        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_STATUS_REQUEST, &status_request_id));
+
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            if (test_cases[i].protocol_version == S2N_TLS13 && !s2n_is_tls13_fully_supported()) {
+                continue;
+            }
+
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_NONE));
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, no_ocsp_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(server_config, S2N_STATUS_REQUEST_NONE));
+
+            const char *cipher_preferences = test_cases[i].protocol_version == S2N_TLS12 ? "test_all_tls12" : "default_tls13";
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, cipher_preferences));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, cipher_preferences));
+
+            if (test_cases[i].requester_mode == S2N_SERVER) {
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, no_ocsp_chain_and_key));
+                EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+                EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+            }
+
+            struct s2n_config *requester_config = test_cases[i].requester_mode == S2N_CLIENT ? client_config : server_config;
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(requester_config, S2N_STATUS_REQUEST_OCSP));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_EQUAL(client_conn->actual_protocol_version, test_cases[i].protocol_version);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, test_cases[i].protocol_version);
+            EXPECT_EQUAL(s2n_connection_client_cert_used(client_conn), test_cases[i].requester_mode == S2N_SERVER);
+            EXPECT_EQUAL(s2n_connection_client_cert_used(server_conn), test_cases[i].requester_mode == S2N_SERVER);
+
+            struct s2n_connection *requester = test_cases[i].requester_mode == S2N_CLIENT ? client_conn : server_conn;
+            struct s2n_connection *peer = test_cases[i].requester_mode == S2N_CLIENT ? server_conn : client_conn;
+            EXPECT_TRUE(S2N_CBIT_TEST(requester->extension_requests_sent, status_request_id));
+            EXPECT_TRUE(S2N_CBIT_TEST(peer->extension_requests_received, status_request_id));
+            EXPECT_FALSE(S2N_CBIT_TEST(requester->extension_responses_received, status_request_id));
+
+            uint32_t response_length = UINT32_MAX;
+            EXPECT_NULL(s2n_connection_get_ocsp_response(requester, &response_length));
+            EXPECT_EQUAL(response_length, 0);
         }
     }
 
