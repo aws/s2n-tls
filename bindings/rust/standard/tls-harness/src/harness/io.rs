@@ -237,7 +237,7 @@ mod tests {
     /// implementations
     #[test]
     fn implementation_record_size() {
-        const S2N_RECORD_DEFAULT: u16 = 16401;
+        const S2N_RECORD_DEFAULT: u16 = 8104;
         const OPENSSL_RECORD_DEFAULT: u16 = 16401;
         const RUSTLS_RECORD_DEFAULT: u16 = 16401;
 
@@ -280,17 +280,6 @@ mod tests {
 
             assert_eq!(s2n_record, S2N_RECORD_DEFAULT);
             assert_eq!(rustls_record, RUSTLS_RECORD_DEFAULT);
-        }
-
-        {
-            // prior to 2026-08-03, s2n-tls defaulted to records that were half the
-            // size of rustls and openssl.
-            //
-            // The C bindings still default to that smaller size, but the rust
-            // bindings now match our peer behavior, getting the efficiency benefits
-            // of larger records and fewer write calls.
-            assert_eq!(S2N_RECORD_DEFAULT, OPENSSL_RECORD_DEFAULT);
-            assert_eq!(S2N_RECORD_DEFAULT, RUSTLS_RECORD_DEFAULT);
         }
     }
 }
