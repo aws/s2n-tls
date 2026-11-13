@@ -279,7 +279,7 @@ mod det_rand {
     //! The override is process-global, so we only do this in `tests/*` to keep it in
     //! it's own binary.
 
-    use aws_lc_sys as _;
+    use aws_lc_sys::AWSLC_thread_local_clear;
     use core::ffi::c_void;
     use std::sync::Once;
 
@@ -305,9 +305,6 @@ mod det_rand {
     extern "C" {
         #[link_name = "aws_lc_0_47_0_override_entropy_source_method_FOR_TESTING"]
         fn override_entropy_source_method_for_testing(methods: *const EntropySourceMethods);
-
-        #[link_name = "aws_lc_0_47_0_AWSLC_thread_local_clear"]
-        fn awslc_thread_local_clear() -> i32;
     }
 
     unsafe extern "C" fn initialize(_: *mut c_void) -> i32 {
@@ -340,6 +337,6 @@ mod det_rand {
             override_entropy_source_method_for_testing(&DETERMINISTIC_SOURCE)
         });
         // SAFETY: only drops AWS-LC thread-locals of this thread.
-        assert_eq!(unsafe { awslc_thread_local_clear() }, 1);
+        assert_eq!(unsafe { AWSLC_thread_local_clear() }, 1);
     }
 }
