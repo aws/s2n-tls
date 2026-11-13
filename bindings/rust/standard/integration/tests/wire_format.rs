@@ -303,10 +303,10 @@ mod det_rand {
     unsafe impl Sync for EntropySourceMethods {}
 
     extern "C" {
-        #[link_name = "aws_lc_0_42_0_override_entropy_source_method_FOR_TESTING"]
+        #[link_name = "aws_lc_0_47_0_override_entropy_source_method_FOR_TESTING"]
         fn override_entropy_source_method_for_testing(methods: *const EntropySourceMethods);
 
-        #[link_name = "aws_lc_0_42_0_AWSLC_thread_local_clear"]
+        #[link_name = "aws_lc_0_47_0_AWSLC_thread_local_clear"]
         fn awslc_thread_local_clear() -> i32;
     }
 

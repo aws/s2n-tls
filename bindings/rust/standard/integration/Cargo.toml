@@ -23,8 +23,14 @@ boringssl = ["tls-harness/boringssl"]
 [dependencies]
 s2n-tls-sys = { path = "../../extended/s2n-tls-sys", features = ["unstable-async_offload", "unstable-renegotiate"] }
 # The wire_format test links against aws-lc-sys symbols whose names contain this
-# exact version, so it has to be pinned. Update tests/wire_format/det_rand.rs together.
-aws-lc-sys = "=0.42.0"
+# exact version, so it has to be pinned. Update `det_rand` in tests/wire_format.rs
+# together.
+aws-lc-sys = "=0.47.0"
+# Cargo.lock is not checked in. Without this pin, a fresh resolve picks a newer aws-lc-rs
+# that brings its own aws-lc-sys. s2n-tls would then use that copy, and the memory and
+# wire_format tests would configure the pinned copy instead. This version must depend on
+# the aws-lc-sys version above.
+aws-lc-rs = "=1.19.0"
 
 [dev-dependencies]
 openssl = { version = "0.10", features = ["vendored"] }
