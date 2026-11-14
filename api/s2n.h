@@ -1372,6 +1372,34 @@ S2N_API extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, c
 S2N_API extern int s2n_config_require_ticket_forward_secrecy(struct s2n_config *config, bool enabled);
 
 /**
+ * Allows TLS1.3 session resumption on servers that use client authentication.
+ *
+ * By default, a TLS1.3 server with client authentication enabled
+ * (`S2N_CERT_AUTH_REQUIRED` or `S2N_CERT_AUTH_OPTIONAL`) neither issues nor accepts
+ * TLS1.3 session tickets, so every connection performs a full handshake.
+ *
+ * When enabled, such a server only issues TLS1.3 session tickets on a connection that
+ * received and verified a client certificate, or that resumed from a ticket issued under
+ * those conditions. It only accepts those tickets, and only for the same server name.
+ * Other tickets, including tickets issued by servers that do not use client authentication,
+ * are rejected and the connection falls back to a full handshake.
+ *
+ * Resumed connections do not receive a client certificate:
+ * `s2n_connection_client_cert_used()` returns 0 and no client certificate chain is available.
+ * TLS1.2 session tickets and the session ID cache remain unavailable with client authentication.
+ *
+ * See the [Session Resumption with Client Authentication](https://aws.github.io/s2n-tls/usage-guide/ch11-resumption.html)
+ * section of the usage guide for details.
+ *
+ * @note The default behavior is that resumption is not allowed with client authentication.
+ *
+ * @param config The config object being updated
+ * @param enabled Indicates if TLS1.3 session resumption is allowed with client authentication
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_set_client_auth_resumption(struct s2n_config *config, bool enabled);
+
+/**
  * Sets user defined context on the `s2n_config` object.
  *
  * @param config The configuration object being updated

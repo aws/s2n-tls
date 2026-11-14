@@ -49,6 +49,9 @@ struct s2n_psk {
      * See https://tools.ietf.org/rfc/rfc8446#section-4.6.1
      */
     uint64_t keying_material_expiration;
+    /* Set by the server when this resumption PSK was decrypted from a client auth ticket.
+     * In memory only: never serialized into a ticket. */
+    bool labeled_ticket;
 };
 S2N_RESULT s2n_psk_init(struct s2n_psk *psk, s2n_psk_type type);
 S2N_CLEANUP_RESULT s2n_psk_wipe(struct s2n_psk *psk);

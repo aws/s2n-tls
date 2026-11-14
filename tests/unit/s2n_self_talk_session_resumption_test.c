@@ -152,6 +152,137 @@ static S2N_RESULT s2n_test_negotiate(struct s2n_connection *server_conn, struct 
     return S2N_RESULT_OK;
 }
 
+/* Accepts any host name in the client certificate */
+static uint8_t s2n_test_accept_any_host(const char *host_name, size_t host_name_len, void *data)
+{
+    return 1;
+}
+
+/* Configures a TLS1.3 server with client auth that issues session tickets */
+static S2N_RESULT s2n_test_client_auth_server_config(struct s2n_config *config,
+        struct s2n_cert_chain_and_key *chain, const char *client_ca_path, s2n_cert_auth_type auth_type)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain));
+    RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_tls13"));
+    RESULT_GUARD_POSIX(s2n_config_set_verification_ca_location(config, client_ca_path, NULL));
+    RESULT_GUARD_POSIX(s2n_config_set_verify_host_callback(config, s2n_test_accept_any_host, NULL));
+    RESULT_GUARD_POSIX(s2n_config_set_client_auth_type(config, auth_type));
+    RESULT_GUARD_POSIX(s2n_config_set_session_tickets_onoff(config, true));
+    RESULT_GUARD(s2n_resumption_test_ticket_key_setup(config));
+    return S2N_RESULT_OK;
+}
+
+/* Like s2n_test_client_auth_server_config, and enables s2n_config_set_client_auth_resumption */
+static S2N_RESULT s2n_test_opt_in_server_config(struct s2n_config *config,
+        struct s2n_cert_chain_and_key *chain, const char *client_ca_path, s2n_cert_auth_type auth_type)
+{
+    RESULT_GUARD(s2n_test_client_auth_server_config(config, chain, client_ca_path, auth_type));
+    RESULT_GUARD_POSIX(s2n_config_set_client_auth_resumption(config, true));
+    return S2N_RESULT_OK;
+}
+
+/* PSK selection callback that chooses the first offered PSK that s2n accepts */
+static int s2n_test_choose_first_resumption_psk_cb(struct s2n_connection *conn, void *context,
+        struct s2n_offered_psk_list *psk_list)
+{
+    struct s2n_offered_psk offered_psk = { 0 };
+    while (s2n_offered_psk_list_has_next(psk_list)) {
+        POSIX_GUARD(s2n_offered_psk_list_next(psk_list, &offered_psk));
+        if (s2n_offered_psk_list_choose_psk(psk_list, &offered_psk) == S2N_SUCCESS) {
+            break;
+        }
+    }
+    return S2N_SUCCESS;
+}
+
+/* ClientHello callback that lowers REQUIRED client auth to OPTIONAL when a PSK is offered */
+static int s2n_test_optional_client_auth_with_psk_cb(struct s2n_connection *conn, void *ctx)
+{
+    bool has_psk = false;
+    POSIX_GUARD(s2n_client_hello_has_extension(s2n_connection_get_client_hello(conn),
+            TLS_EXTENSION_PRE_SHARED_KEY, &has_psk));
+    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+    POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &auth_type));
+    if (has_psk && auth_type == S2N_CERT_AUTH_REQUIRED) {
+        POSIX_GUARD(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL));
+    }
+    return S2N_SUCCESS;
+}
+
+/* Wipes both connections, then negotiates a TLS1.3 handshake. The client offers the session in
+ * `session` if it is not NULL, and sends `server_name` as SNI if it is not NULL. */
+static S2N_RESULT s2n_test_tls13_handshake(struct s2n_connection *client_conn,
+        struct s2n_connection *server_conn, struct s2n_test_io_pair *io_pair,
+        struct s2n_config *client_config, struct s2n_config *server_config,
+        const char *server_name, struct s2n_stuffer *session)
+{
+    RESULT_GUARD(s2n_wipe_connections(client_conn, server_conn, io_pair));
+    RESULT_GUARD_POSIX(s2n_connection_set_config(client_conn, client_config));
+    RESULT_GUARD_POSIX(s2n_connection_set_config(server_conn, server_config));
+    if (server_name != NULL) {
+        RESULT_GUARD_POSIX(s2n_set_server_name(client_conn, server_name));
+    }
+    if (session != NULL) {
+        RESULT_GUARD_POSIX(s2n_connection_set_session(client_conn, session->blob.data,
+                s2n_stuffer_data_available(session)));
+    }
+    RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+    RESULT_ENSURE_EQ(server_conn->actual_protocol_version, S2N_TLS13);
+    return S2N_RESULT_OK;
+}
+
+/* Copies the most recently received session ticket from `from`
+ * (the client's session ticket callback buffer) into `to` */
+static S2N_RESULT s2n_test_save_session(struct s2n_stuffer *from, struct s2n_stuffer *to)
+{
+    uint32_t len = s2n_stuffer_data_available(from);
+    RESULT_ENSURE_GT(len, 0);
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(to));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(from, to, len));
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(from));
+    return S2N_RESULT_OK;
+}
+
+/* Negotiates a full handshake, issues a ticket, and saves it from `session_data`
+ * (the client's session ticket callback buffer) into `ticket` */
+static S2N_RESULT s2n_test_get_ticket(struct s2n_connection *client_conn, struct s2n_connection *server_conn,
+        struct s2n_test_io_pair *io_pair, struct s2n_config *client_config, struct s2n_config *server_config,
+        const char *server_name, struct s2n_stuffer *session_data, struct s2n_stuffer *ticket)
+{
+    const struct s2n_early_data_test_case no_early_data = { 0 };
+    RESULT_GUARD(s2n_test_tls13_handshake(client_conn, server_conn, io_pair, client_config,
+            server_config, server_name, NULL));
+    RESULT_ENSURE(ARE_FULL_HANDSHAKES(client_conn, server_conn), S2N_ERR_SAFETY);
+    RESULT_GUARD(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
+    RESULT_GUARD(s2n_test_save_session(session_data, ticket));
+    return S2N_RESULT_OK;
+}
+
+/* Asserts that neither connection resumed and the server received a client certificate */
+static S2N_RESULT s2n_assert_full_client_auth_handshake(struct s2n_connection *client_conn,
+        struct s2n_connection *server_conn)
+{
+    RESULT_ENSURE(ARE_FULL_HANDSHAKES(client_conn, server_conn), S2N_ERR_SAFETY);
+    RESULT_ENSURE(IS_CLIENT_AUTH_HANDSHAKE(server_conn), S2N_ERR_SAFETY);
+    RESULT_ENSURE(!(server_conn->handshake.handshake_type & NO_CLIENT_CERT), S2N_ERR_SAFETY);
+    RESULT_ENSURE_EQ(s2n_connection_client_cert_used(server_conn), 1);
+    RESULT_ENSURE_GT(server_conn->handshake_params.client_cert_chain.size, 0);
+    return S2N_RESULT_OK;
+}
+
+/* Asserts that both connections resumed without a client certificate */
+static S2N_RESULT s2n_assert_resumed_handshake(struct s2n_connection *client_conn,
+        struct s2n_connection *server_conn)
+{
+    RESULT_ENSURE_EQ(s2n_connection_is_session_resumed(client_conn), 1);
+    RESULT_ENSURE_EQ(s2n_connection_is_session_resumed(server_conn), 1);
+    RESULT_ENSURE(!IS_CLIENT_AUTH_HANDSHAKE(server_conn), S2N_ERR_SAFETY);
+    RESULT_ENSURE_EQ(s2n_connection_client_cert_used(server_conn), 0);
+    RESULT_ENSURE_EQ(server_conn->handshake_params.client_cert_chain.size, 0);
+    return S2N_RESULT_OK;
+}
+
 static int s2n_wipe_psk_ke_ext(struct s2n_connection *conn, void *ctx)
 {
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
@@ -1264,49 +1395,36 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(mtls_server_config, true));
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(mtls_server_config));
 
+        /* Like mtls_server_config, and selects PSKs with a PSK selection callback */
+        DEFER_CLEANUP(struct s2n_config *mtls_cb_server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(mtls_cb_server_config);
+        EXPECT_OK(s2n_test_client_auth_server_config(mtls_cb_server_config, server_chain, client_ca_path,
+                S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(mtls_cb_server_config,
+                s2n_test_choose_first_resumption_psk_cb, NULL));
+
+        /* Servers with client auth that did not opt in to client auth resumption */
+        struct s2n_config *mtls_server_configs[] = { mtls_server_config, mtls_cb_server_config };
+
         /* A ticket minted without client auth cannot resume against an mTLS server. */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             EXPECT_NOT_NULL(server_conn);
-
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
-            /* Obtain a resumption ticket from the public (no client auth) server. */
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, mtls_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, public_server_config));
-            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            DEFER_CLEANUP(struct s2n_stuffer ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket, 0));
 
-            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-            EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
-            EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
-            EXPECT_TRUE(s2n_stuffer_data_available(&mtls_session_data) > 0);
-
-            /* Attempt to resume against the mTLS server using that ticket. */
-            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
-            EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
-            EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, mtls_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, mtls_server_config));
-            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
-
-            size_t session_len = s2n_stuffer_data_available(&mtls_session_data);
-            EXPECT_SUCCESS(s2n_connection_set_session(client_conn, mtls_session_data.blob.data, session_len));
-
-            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-
-            /* Ticket refused: full handshake, CertificateRequest sent, client cert used. */
-            EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
-            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
-            EXPECT_FALSE(server_conn->handshake.handshake_type & NO_CLIENT_CERT);
-            EXPECT_TRUE(server_conn->handshake_params.client_cert_chain.size > 0);
-
-            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+            for (size_t i = 0; i < s2n_array_len(mtls_server_configs); i++) {
+                EXPECT_OK(s2n_test_get_ticket(client_conn, server_conn, &io_pair, mtls_client_config,
+                        public_server_config, "localhost", &mtls_session_data, &ticket));
+                EXPECT_OK(s2n_test_tls13_handshake(client_conn, server_conn, &io_pair,
+                        mtls_client_config, mtls_server_configs[i], "localhost", &ticket));
+                EXPECT_OK(s2n_assert_full_client_auth_handshake(client_conn, server_conn));
+            }
         };
 
         /* A server with client auth does not issue tickets. */
@@ -1332,6 +1450,133 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(tickets_sent, 0);
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+        };
+
+        /* Requires client auth and opts in to client auth resumption */
+        DEFER_CLEANUP(struct s2n_config *opt_in_server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(opt_in_server_config);
+        EXPECT_OK(s2n_test_opt_in_server_config(opt_in_server_config, server_chain, client_ca_path,
+                S2N_CERT_AUTH_REQUIRED));
+
+        /* Like opt_in_server_config, and lowers client auth to OPTIONAL when a PSK is offered */
+        DEFER_CLEANUP(struct s2n_config *relaxing_server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(relaxing_server_config);
+        EXPECT_OK(s2n_test_opt_in_server_config(relaxing_server_config, server_chain, client_ca_path,
+                S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(relaxing_server_config,
+                s2n_test_optional_client_auth_with_psk_cb, NULL));
+
+        /* Like opt_in_server_config, and selects PSKs with a PSK selection callback */
+        DEFER_CLEANUP(struct s2n_config *opt_in_cb_server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(opt_in_cb_server_config);
+        EXPECT_OK(s2n_test_opt_in_server_config(opt_in_cb_server_config, server_chain, client_ca_path,
+                S2N_CERT_AUTH_REQUIRED));
+        EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(opt_in_cb_server_config,
+                s2n_test_choose_first_resumption_psk_cb, NULL));
+
+        /* With s2n_config_set_client_auth_resumption:
+         * a ticket from a server without client auth gets a full handshake,
+         * a ticket issued after a full handshake with client auth resumes,
+         * and the resumed connection issues a ticket that also resumes.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_NOT_NULL(server_conn);
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+            DEFER_CLEANUP(struct s2n_stuffer ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket, 0));
+
+            struct s2n_config *opt_in_server_configs[] = { opt_in_server_config, relaxing_server_config,
+                opt_in_cb_server_config };
+            for (size_t i = 0; i < s2n_array_len(opt_in_server_configs); i++) {
+                EXPECT_OK(s2n_test_get_ticket(client_conn, server_conn, &io_pair, mtls_client_config,
+                        public_server_config, "localhost", &mtls_session_data, &ticket));
+                EXPECT_OK(s2n_test_tls13_handshake(client_conn, server_conn, &io_pair,
+                        mtls_client_config, opt_in_server_configs[i], "localhost", &ticket));
+                EXPECT_OK(s2n_assert_full_client_auth_handshake(client_conn, server_conn));
+
+                EXPECT_OK(s2n_test_get_ticket(client_conn, server_conn, &io_pair, mtls_client_config,
+                        opt_in_server_configs[i], "localhost", &mtls_session_data, &ticket));
+                EXPECT_OK(s2n_assert_full_client_auth_handshake(client_conn, server_conn));
+
+                for (size_t resumption = 0; resumption < 2; resumption++) {
+                    EXPECT_OK(s2n_test_tls13_handshake(client_conn, server_conn, &io_pair,
+                            mtls_client_config, opt_in_server_configs[i], "localhost", &ticket));
+                    EXPECT_OK(s2n_assert_resumed_handshake(client_conn, server_conn));
+                    EXPECT_NOT_NULL(server_conn->psk_params.chosen_psk);
+                    EXPECT_TRUE(server_conn->psk_params.chosen_psk->labeled_ticket);
+
+                    EXPECT_OK(s2n_test_issue_new_session_ticket(server_conn, client_conn, &no_early_data));
+                    EXPECT_OK(s2n_test_save_session(&mtls_session_data, &ticket));
+                }
+            }
+        };
+
+        /* A client auth ticket gets a full handshake on servers with client auth that did not opt in */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_NOT_NULL(server_conn);
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+            DEFER_CLEANUP(struct s2n_stuffer ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket, 0));
+
+            EXPECT_OK(s2n_test_get_ticket(client_conn, server_conn, &io_pair, mtls_client_config,
+                    opt_in_server_config, "localhost", &mtls_session_data, &ticket));
+            for (size_t i = 0; i < s2n_array_len(mtls_server_configs); i++) {
+                EXPECT_OK(s2n_test_tls13_handshake(client_conn, server_conn, &io_pair,
+                        mtls_client_config, mtls_server_configs[i], "localhost", &ticket));
+                EXPECT_OK(s2n_assert_full_client_auth_handshake(client_conn, server_conn));
+            }
+        };
+
+        /* OPTIONAL client auth and no client certificate: no ticket is issued */
+        {
+            /* Opts in to client auth resumption with OPTIONAL client auth */
+            DEFER_CLEANUP(struct s2n_config *optional_opt_in_server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(optional_opt_in_server_config);
+            EXPECT_OK(s2n_test_opt_in_server_config(optional_opt_in_server_config, server_chain, client_ca_path,
+                    S2N_CERT_AUTH_OPTIONAL));
+
+            /* Like mtls_client_config, but without a certificate */
+            DEFER_CLEANUP(struct s2n_config *no_cert_client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(no_cert_client_config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_cert_client_config, "default_tls13"));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(no_cert_client_config, server_ca_path, NULL));
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(no_cert_client_config, S2N_CERT_AUTH_OPTIONAL));
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_cert_client_config, true));
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(no_cert_client_config,
+                    s2n_test_session_ticket_cb, &mtls_session_data));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_NOT_NULL(server_conn);
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&mtls_session_data));
+            EXPECT_OK(s2n_test_tls13_handshake(client_conn, server_conn, &io_pair,
+                    no_cert_client_config, optional_opt_in_server_config, "localhost", NULL));
+            EXPECT_TRUE(IS_CLIENT_AUTH_HANDSHAKE(server_conn));
+            EXPECT_TRUE(IS_CLIENT_AUTH_NO_CERT(server_conn));
+            EXPECT_EQUAL(s2n_connection_client_cert_used(server_conn), 0);
+
+            /* Let the client read any post-handshake messages */
+            EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(server_conn, 1));
+            uint8_t data = 1;
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_EQUAL(s2n_send(server_conn, &data, 1, &blocked), 1);
+            EXPECT_EQUAL(s2n_recv(client_conn, &data, 1, &blocked), 1);
+            EXPECT_TICKETS_SENT(server_conn, 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&mtls_session_data), 0);
         };
     };
 

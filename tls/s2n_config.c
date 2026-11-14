@@ -1112,6 +1112,15 @@ int s2n_config_require_ticket_forward_secrecy(struct s2n_config *config, bool en
     return S2N_SUCCESS;
 }
 
+int s2n_config_set_client_auth_resumption(struct s2n_config *config, bool enabled)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->client_auth_resumption = enabled;
+
+    return S2N_SUCCESS;
+}
+
 int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb)
 {
     POSIX_ENSURE_REF(config);

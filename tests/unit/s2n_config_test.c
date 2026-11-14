@@ -306,6 +306,25 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     };
 
+    /* s2n_config_set_client_auth_resumption */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_client_auth_resumption(NULL, true), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_client_auth_resumption(NULL, false), S2N_ERR_NULL);
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        /* Disabled by default */
+        EXPECT_FALSE(config->client_auth_resumption);
+
+        EXPECT_SUCCESS(s2n_config_set_client_auth_resumption(config, true));
+        EXPECT_TRUE(config->client_auth_resumption);
+
+        EXPECT_SUCCESS(s2n_config_set_client_auth_resumption(config, false));
+        EXPECT_FALSE(config->client_auth_resumption);
+    };
+
     /* s2n_config_set_context */
     /* s2n_config_get_context */
     {
