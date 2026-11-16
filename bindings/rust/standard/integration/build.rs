@@ -13,7 +13,7 @@ fn main() {
     assert!(api.contains("s2n_negotiate"));
 
     // re-export the AWS-LC version to allow us to declare internal symbols in libcrypto.
-    // 
+    //
     // This is used for access to internal methods like "override_entropy_source_method_FOR_TESTING".
     let version = std::env::vars()
         .find_map(|(key, _)| {
