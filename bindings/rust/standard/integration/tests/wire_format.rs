@@ -303,7 +303,11 @@ mod det_rand {
     unsafe impl Sync for EntropySourceMethods {}
 
     extern "C" {
-        #[link_name = "aws_lc_0_47_0_override_entropy_source_method_FOR_TESTING"]
+        // `build.rs` sets the version-specific symbol prefix, e.g. `aws_lc_0_47_0`.
+        #[link_name = concat!(
+            env!("AWS_LC_SYMBOL_PREFIX"),
+            "_override_entropy_source_method_FOR_TESTING"
+        )]
         fn override_entropy_source_method_for_testing(methods: *const EntropySourceMethods);
     }
 

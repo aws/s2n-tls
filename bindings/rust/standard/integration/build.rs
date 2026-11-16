@@ -11,4 +11,19 @@ fn main() {
     // make sure that `s2n.h` is available
     let api = std::fs::read_to_string(include_dir.join("s2n.h")).unwrap();
     assert!(api.contains("s2n_negotiate"));
+
+    // re-export the AWS-LC version to allow us to declare internal symbols in libcrypto.
+    // 
+    // This is used for access to internal methods like "override_entropy_source_method_FOR_TESTING".
+    let version = std::env::vars()
+        .find_map(|(key, _)| {
+            key.strip_prefix("DEP_AWS_LC_")?
+                .strip_suffix("_INCLUDE")
+                .map(str::to_owned)
+        })
+        .expect("missing DEP_AWS_LC_*_INCLUDE; aws-lc-sys must be a direct dependency");
+    println!(
+        "cargo:rustc-env=AWS_LC_SYMBOL_PREFIX=aws_lc_{}",
+        version.to_lowercase()
+    );
 }
