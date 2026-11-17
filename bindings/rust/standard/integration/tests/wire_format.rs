@@ -4,11 +4,11 @@
 // The deterministic randomness only reaches the aws-lc that the bindings build, and
 // the exact bytes depend on that libcrypto. Like the memory test, this is a "sensitive"
 // test: it is skipped by default and runs with `--no-default-features`.
-#![cfg(not(feature = "no-sensitive-tests"))]
+// #![cfg(not(feature = "no-sensitive-tests"))]
 
 use s2n_tls::{
     callbacks::WallClock,
-    enums::{SerializationVersion, Version},
+    enums::{SerializationVersion, Version as ProtocolVersion},
     security::Policy,
 };
 use std::{
@@ -43,16 +43,16 @@ fn fixtures_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/wire_format/fixtures")
 }
 
-fn fixture_path(version: Version, artifact: &str) -> PathBuf {
+fn fixture_path(version: ProtocolVersion, artifact: &str) -> PathBuf {
     let prefix = match version {
-        Version::TLS12 => "tls12",
-        Version::TLS13 => "tls13",
+        ProtocolVersion::TLS12 => "tls12",
+        ProtocolVersion::TLS13 => "tls13",
         _ => panic!("no fixtures for {version:?}"),
     };
     fixtures_dir().join(format!("{prefix}_{artifact}.bin"))
 }
 
-const PROTOCOL_VERSIONS: [Version; 2] = [Version::TLS12, Version::TLS13];
+const PROTOCOL_VERSIONS: [ProtocolVersion; 2] = [ProtocolVersion::TLS12, ProtocolVersion::TLS13];
 
 fn client_config(policy: &str) -> (SessionTicketStorage, S2NConfig) {
     let storage = SessionTicketStorage::default();
@@ -102,25 +102,25 @@ fn serialize(conn: &S2NConnection) -> Vec<u8> {
 /// The three serialized artifacts of a handshake: the client's session, and both
 /// peers of the connection.
 #[derive(Debug, PartialEq)]
-struct VersionedSerializedArtifacts {
-    tls_version: Version,
+struct SerializedArtifacts {
+    tls_version: ProtocolVersion,
     client_session: Vec<u8>,
     client_connection: Vec<u8>,
     server_connection: Vec<u8>,
 }
 
-impl VersionedSerializedArtifacts {
+impl SerializedArtifacts {
     /// The security policy is how the client is limited to a protocol version. 20170210
     /// has no TLS1.3 cipher suites, while 20190801 supports TLS1.0 to TLS1.3.
     fn client_policy(&self) -> &'static str {
         match self.tls_version {
-            Version::TLS12 => "20170210",
-            Version::TLS13 => "20190801",
+            ProtocolVersion::TLS12 => "20170210",
+            ProtocolVersion::TLS13 => "20190801",
             version => panic!("no client policy for {version:?}"),
         }
     }
 
-    fn from_disk(tls_version: Version) -> Self {
+    fn from_disk(tls_version: ProtocolVersion) -> Self {
         let read = |artifact| std::fs::read(fixture_path(tls_version, artifact)).unwrap();
         Self {
             tls_version,
@@ -130,9 +130,9 @@ impl VersionedSerializedArtifacts {
         }
     }
 
-    fn from_current_revision(version: Version) -> Self {
+    fn from_current_behavior(tls_version: ProtocolVersion) -> Self {
         let mut artifacts = Self {
-            tls_version: version,
+            tls_version,
             client_session: Vec::new(),
             client_connection: Vec::new(),
             server_connection: Vec::new(),
@@ -218,22 +218,22 @@ impl VersionedSerializedArtifacts {
 /// In the event that you add a new serialized connection version, expand this test
 /// to ensure that we continue to support V1.
 #[test]
-fn current_commit_writes_checked_in_artifacts() {
+fn current_behavior_writes_checked_in_artifacts() {
     for version in PROTOCOL_VERSIONS {
         // uncomment to update artifacts
-        // VersionedSerializedArtifacts::from_current_revision(version).write();
+        // SerializedArtifacts::from_current_behavior(version).write();
         assert_eq!(
-            VersionedSerializedArtifacts::from_disk(version),
-            VersionedSerializedArtifacts::from_current_revision(version),
+            SerializedArtifacts::from_disk(version),
+            SerializedArtifacts::from_current_behavior(version),
             "Either s2n-tls wire behavior changed, or serialization format changed"
         );
     }
 }
 
 #[test]
-fn current_commit_reads_all_artifacts() {
-    for version in PROTOCOL_VERSIONS {
-        VersionedSerializedArtifacts::from_disk(version).assert_readable();
+fn current_behavior_reads_all_artifacts() {
+    for protocol_version in PROTOCOL_VERSIONS {
+        SerializedArtifacts::from_disk(protocol_version).assert_readable();
     }
 }
 
@@ -241,9 +241,9 @@ fn current_commit_reads_all_artifacts() {
 /// across commits.
 #[test]
 fn deterministic_artifact() {
-    for version in PROTOCOL_VERSIONS {
-        let artifact_a = VersionedSerializedArtifacts::from_current_revision(version);
-        let artifact_b = VersionedSerializedArtifacts::from_current_revision(version);
+    for protocol_version in PROTOCOL_VERSIONS {
+        let artifact_a = SerializedArtifacts::from_current_behavior(protocol_version);
+        let artifact_b = SerializedArtifacts::from_current_behavior(protocol_version);
         assert_eq!(artifact_a, artifact_b);
     }
 }
