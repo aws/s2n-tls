@@ -4,7 +4,7 @@
 // The deterministic randomness only reaches the aws-lc that the bindings build, and
 // the exact bytes depend on that libcrypto. Like the memory test, this is a "sensitive"
 // test: it is skipped by default and runs with `--no-default-features`.
-// #![cfg(not(feature = "no-sensitive-tests"))]
+#![cfg(not(feature = "no-sensitive-tests"))]
 
 use s2n_tls::{
     callbacks::WallClock,
