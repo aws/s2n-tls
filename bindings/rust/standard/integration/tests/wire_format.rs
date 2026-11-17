@@ -1,29 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-//! Wire format stability of client sessions (which hold the server's session
-//! ticket) and serialized connections.
-//!
-//! The fixtures in `fixtures/` are produced with randomness and the clock pinned, so
-//! the same code always produces the same bytes. Two tests use them:
-//!
-//! - `current_version_reads_all_fixtures` (backwards compatibility): the current
-//!   version can resume from every checked-in client session and continue every
-//!   checked-in serialized connection. This is how a newer version is shown to read
-//!   what an older version wrote.
-//! - `current_version_writes_checked_in_fixtures` (forwards compatibility): the
-//!   current version produces exactly the bytes that are checked in. This is
-//!   deliberately strict. Anything that changes these bytes (a wire format change, but
-//!   also a change in how much randomness the handshake draws, or in the handshake
-//!   transcript) fails it, so that every such change is looked at on purpose.
-//!
-//! If the second test fails on a change that is meant to alter the wire format,
-//! regenerate with `UPDATE_FIXTURES=1 cargo test --test wire_format`.
-//!
-//! Fixtures are flat files named `tls12_<artifact>.bin` and `tls13_<artifact>.bin`.
-//!
-//! Run with `cargo test --no-default-features --features pq --test wire_format`.
-
 // The deterministic randomness only reaches the aws-lc that the bindings build, and
 // the exact bytes depend on that libcrypto. Like the memory test, this is a "sensitive"
 // test: it is skipped by default and runs with `--no-default-features`.
@@ -75,7 +52,7 @@ fn fixture_path(version: Version, artifact: &str) -> PathBuf {
     fixtures_dir().join(format!("{prefix}_{artifact}.bin"))
 }
 
-const CURRENT_VERSIONS: [Version; 2] = [Version::TLS12, Version::TLS13];
+const PROTOCOL_VERSIONS: [Version; 2] = [Version::TLS12, Version::TLS13];
 
 fn client_config(policy: &str) -> (SessionTicketStorage, S2NConfig) {
     let storage = SessionTicketStorage::default();
@@ -126,7 +103,7 @@ fn serialize(conn: &S2NConnection) -> Vec<u8> {
 /// peers of the connection.
 #[derive(Debug, PartialEq)]
 struct VersionedSerializedArtifacts {
-    version: Version,
+    tls_version: Version,
     client_session: Vec<u8>,
     client_connection: Vec<u8>,
     server_connection: Vec<u8>,
@@ -136,17 +113,17 @@ impl VersionedSerializedArtifacts {
     /// The security policy is how the client is limited to a protocol version. 20170210
     /// has no TLS1.3 cipher suites, while 20190801 supports TLS1.0 to TLS1.3.
     fn client_policy(&self) -> &'static str {
-        match self.version {
+        match self.tls_version {
             Version::TLS12 => "20170210",
             Version::TLS13 => "20190801",
             version => panic!("no client policy for {version:?}"),
         }
     }
 
-    fn from_disk(version: Version) -> Self {
-        let read = |artifact| std::fs::read(fixture_path(version, artifact)).unwrap();
+    fn from_disk(tls_version: Version) -> Self {
+        let read = |artifact| std::fs::read(fixture_path(tls_version, artifact)).unwrap();
         Self {
-            version,
+            tls_version,
             client_session: read(CLIENT_SESSION),
             client_connection: read(CLIENT_CONNECTION),
             server_connection: read(SERVER_CONNECTION),
@@ -155,7 +132,7 @@ impl VersionedSerializedArtifacts {
 
     fn from_current_revision(version: Version) -> Self {
         let mut artifacts = Self {
-            version,
+            tls_version: version,
             client_session: Vec::new(),
             client_connection: Vec::new(),
             server_connection: Vec::new(),
@@ -186,14 +163,14 @@ impl VersionedSerializedArtifacts {
     fn write(&self) {
         std::fs::create_dir_all(fixtures_dir()).unwrap();
         for (artifact, bytes) in self.files() {
-            std::fs::write(fixture_path(self.version, artifact), bytes).unwrap();
+            std::fs::write(fixture_path(self.tls_version, artifact), bytes).unwrap();
         }
     }
 
     /// Checks that the current code can resume from the client session and continue
     /// both peers of the serialized connection.
     fn assert_readable(&self) {
-        let version = self.version;
+        let version = self.tls_version;
         let (_, client_config) = client_config(self.client_policy());
         let server_config = server_config();
 
@@ -237,32 +214,37 @@ impl VersionedSerializedArtifacts {
 /// cause the resumption artifact to differ (because it incorporates the transcript hash).
 /// In this case the artifact can simply be re-generated.
 ///
-/// There should NEVER by an incompatible version bump for connection serialization.
+/// There should NEVER be an incompatible version bump for connection serialization.
 /// In the event that you add a new serialized connection version, expand this test
 /// to ensure that we continue to support V1.
 #[test]
-fn current_version_writes_checked_in_fixtures() {
-    for version in CURRENT_VERSIONS {
-        let actual = VersionedSerializedArtifacts::from_current_revision(version);
-        assert_eq!(
-            actual,
-            VersionedSerializedArtifacts::from_current_revision(version)
-        );
-
+fn current_commit_writes_checked_in_artifacts() {
+    for version in PROTOCOL_VERSIONS {
         // uncomment to update artifacts
-        // actual.write()
+        // VersionedSerializedArtifacts::from_current_revision(version).write();
         assert_eq!(
             VersionedSerializedArtifacts::from_disk(version),
-            actual,
+            VersionedSerializedArtifacts::from_current_revision(version),
             "Either s2n-tls wire behavior changed, or serialization format changed"
         );
     }
 }
 
 #[test]
-fn current_version_reads_all_fixtures() {
-    for version in CURRENT_VERSIONS {
+fn current_commit_reads_all_artifacts() {
+    for version in PROTOCOL_VERSIONS {
         VersionedSerializedArtifacts::from_disk(version).assert_readable();
+    }
+}
+
+/// we expect artifact generation to be 100% deterministic, allowing us to compare
+/// across commits.
+#[test]
+fn deterministic_artifact() {
+    for version in PROTOCOL_VERSIONS {
+        let artifact_a = VersionedSerializedArtifacts::from_current_revision(version);
+        let artifact_b = VersionedSerializedArtifacts::from_current_revision(version);
+        assert_eq!(artifact_a, artifact_b);
     }
 }
 
