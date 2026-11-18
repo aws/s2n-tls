@@ -15,6 +15,7 @@
 
 #pragma once
 
+/* secret length for legacy TLS protocols. Does not apply to TLS 1.3 */
 #define S2N_TLS_SECRET_LEN         48
 #define S2N_TLS_RANDOM_DATA_LEN    32
 #define S2N_TLS_SEQUENCE_NUM_LEN   8
