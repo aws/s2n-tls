@@ -96,6 +96,13 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
     struct s2n_stuffer base64_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&base64_stuffer, &base64__blob));
 
+    /* Base64 padding ('=') may only end the encoded data. We track it here because
+     * the data reaches s2n_stuffer_read_base64 in 64-byte chunks, so padding at the
+     * end of one chunk is otherwise followed silently by the next chunk, and because
+     * some libcryptos (e.g. OpenSSL) decode a '=' inside a chunk as zero bits.
+     */
+    uint8_t padding_chars = 0;
+
     while (1) {
         /* We need a byte... */
         POSIX_ENSURE(s2n_stuffer_data_available(pem) >= 1, S2N_ERR_STUFFER_OUT_OF_DATA);
@@ -111,6 +118,14 @@ static int s2n_stuffer_pem_read_contents(struct s2n_stuffer *pem, struct s2n_stu
         /* Skip non-base64 characters */
         if (!s2n_is_base64_char(c)) {
             continue;
+        }
+
+        /* At most two padding chars, and nothing but padding after the first one */
+        if (c == '=') {
+            padding_chars++;
+            POSIX_ENSURE(padding_chars <= 2, S2N_ERR_INVALID_BASE64);
+        } else {
+            POSIX_ENSURE(padding_chars == 0, S2N_ERR_INVALID_BASE64);
         }
 
         /* Flush base64_stuffer to asn1 stuffer if we're out of space, and reset base64_stuffer read/write pointers */

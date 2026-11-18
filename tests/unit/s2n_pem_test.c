@@ -18,6 +18,7 @@
 
 #include "api/s2n.h"
 #include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
@@ -116,6 +117,51 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(test_config, large_cert_chain_pem));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(test_config, chain));
     }
+
+    /* Base64 padding is only accepted at the end of the PEM body */
+    {
+        /* 64 base64 chars fill exactly one chunk of the PEM reader */
+        const char *valid_bodies[] = {
+            "AAAA",
+            "AAA=",
+            "AA==",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nAA==",
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==\n",
+        };
+        const char *invalid_bodies[] = {
+            /* '=' inside a group */
+            "A=AA",
+            "AA=A",
+            /* padding followed by another group in the same chunk */
+            "AA==AAAA",
+            "AAA=AAAA",
+            /* padding at the end of one chunk, followed by the next chunk */
+            "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==\nAAAA",
+            /* more than two padding chars */
+            "A===",
+        };
+#define S2N_TEST_CERT_PEM_FORMAT "-----BEGIN CERTIFICATE-----\n%s\n-----END CERTIFICATE-----\n"
+        char pem[256] = { 0 };
+
+        for (size_t i = 0; i < s2n_array_len(valid_bodies); i++) {
+            EXPECT_TRUE(snprintf(pem, sizeof(pem), S2N_TEST_CERT_PEM_FORMAT, valid_bodies[i]) < (int) sizeof(pem));
+            DEFER_CLEANUP(struct s2n_stuffer pem_in = { 0 }, s2n_stuffer_free);
+            DEFER_CLEANUP(struct s2n_stuffer der_out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&pem_in, pem));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&der_out, 0));
+            EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&pem_in, &der_out));
+        }
+
+        for (size_t i = 0; i < s2n_array_len(invalid_bodies); i++) {
+            EXPECT_TRUE(snprintf(pem, sizeof(pem), S2N_TEST_CERT_PEM_FORMAT, invalid_bodies[i]) < (int) sizeof(pem));
+            DEFER_CLEANUP(struct s2n_stuffer pem_in = { 0 }, s2n_stuffer_free);
+            DEFER_CLEANUP(struct s2n_stuffer der_out = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&pem_in, pem));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&der_out, 0));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_certificate_from_pem(&pem_in, &der_out),
+                    S2N_ERR_INVALID_BASE64);
+        }
+    };
 
     free(cert_chain_pem);
     free(private_key_pem);
