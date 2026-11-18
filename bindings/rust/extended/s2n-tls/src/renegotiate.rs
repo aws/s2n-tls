@@ -295,7 +295,7 @@ impl Connection {
     /// Corresponds to [`s2n_renegotiate`].
     pub fn poll_renegotiate(&mut self, buf: &mut [u8]) -> (Poll<Result<(), Error>>, usize) {
         let buf_len: isize = buf.len().try_into().unwrap_or(0);
-        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
+        let buf_ptr = buf.as_mut_ptr() as *mut ::libc::c_void;
         self.poll_renegotiate_raw(buf_ptr, buf_len)
     }
 
