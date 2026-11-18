@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
 
         /* Try to read the ClientHello, which hasn't been written yet */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -61,8 +61,8 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
 
         /* Write the ClientHello */
         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
@@ -102,8 +102,8 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
 
         /* Write the ClientHello */
         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));

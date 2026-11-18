@@ -373,28 +373,28 @@ int s2n_free(struct s2n_blob *b)
     /* To avoid memory leaks, don't exit the function until the memory
        has been freed */
     int zero_rc = s2n_blob_zero(b);
-    POSIX_GUARD(s2n_free_without_wipe(b));
+    POSIX_GUARD_RESULT(s2n_free_without_wipe(b));
     return zero_rc;
 }
 
-int s2n_free_without_wipe(struct s2n_blob *b)
+S2N_RESULT s2n_free_without_wipe(struct s2n_blob *b)
 {
-    POSIX_PRECONDITION(s2n_blob_validate(b));
+    RESULT_PRECONDITION(s2n_blob_validate(b));
 
-    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    POSIX_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
+    RESULT_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    RESULT_ENSURE(s2n_blob_is_growable(b), S2N_ERR_FREE_STATIC_BLOB);
 
     if (b->data) {
         void *data = b->data;
         uint32_t allocated = b->allocated;
         /* Set data point to NULL first to prevent potential double-free on s2n_mem_free_cb error path */
         *b = (struct s2n_blob){ 0 };
-        POSIX_ENSURE(s2n_mem_free_cb(data, allocated) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
+        RESULT_ENSURE(s2n_mem_free_cb(data, allocated) >= S2N_SUCCESS, S2N_ERR_CANCELLED);
     }
 
     *b = (struct s2n_blob){ 0 };
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_free_or_wipe(struct s2n_blob *b)
@@ -402,7 +402,7 @@ int s2n_free_or_wipe(struct s2n_blob *b)
     POSIX_ENSURE_REF(b);
     int zero_rc = s2n_blob_zero(b);
     if (b->allocated) {
-        POSIX_GUARD(s2n_free_without_wipe(b));
+        POSIX_GUARD_RESULT(s2n_free_without_wipe(b));
     }
     return zero_rc;
 }

@@ -104,28 +104,28 @@ static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 }
 
 /* The connection will read/write to/from a stuffer, instead of sockets */
-int s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn)
+S2N_RESULT s2n_connection_set_io_stuffers(struct s2n_stuffer *input, struct s2n_stuffer *output, struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_connection_set_recv_io_stuffer(input, conn));
-    POSIX_GUARD(s2n_connection_set_send_io_stuffer(output, conn));
+    RESULT_GUARD(s2n_connection_set_recv_io_stuffer(input, conn));
+    RESULT_GUARD(s2n_connection_set_send_io_stuffer(output, conn));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_connection_set_recv_io_stuffer(struct s2n_stuffer *input, struct s2n_connection *conn)
+S2N_RESULT s2n_connection_set_recv_io_stuffer(struct s2n_stuffer *input, struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_connection_set_recv_cb(conn, &buffer_read));
-    POSIX_GUARD(s2n_connection_set_recv_ctx(conn, input));
+    RESULT_GUARD_POSIX(s2n_connection_set_recv_cb(conn, &buffer_read));
+    RESULT_GUARD_POSIX(s2n_connection_set_recv_ctx(conn, input));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_connection *conn)
+S2N_RESULT s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_connection *conn)
 {
-    POSIX_GUARD(s2n_connection_set_send_cb(conn, &buffer_write));
-    POSIX_GUARD(s2n_connection_set_send_ctx(conn, output));
+    RESULT_GUARD_POSIX(s2n_connection_set_send_cb(conn, &buffer_write));
+    RESULT_GUARD_POSIX(s2n_connection_set_send_ctx(conn, output));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_io_stuffer_pair_init(struct s2n_test_io_stuffer_pair *io_pair)
@@ -148,8 +148,8 @@ S2N_RESULT s2n_connections_set_io_stuffer_pair(struct s2n_connection *client, st
         struct s2n_test_io_stuffer_pair *io_pair)
 {
     RESULT_ENSURE_REF(io_pair);
-    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&io_pair->client_in, &io_pair->server_in, client));
-    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&io_pair->server_in, &io_pair->client_in, server));
+    RESULT_GUARD(s2n_connection_set_io_stuffers(&io_pair->client_in, &io_pair->server_in, client));
+    RESULT_GUARD(s2n_connection_set_io_stuffers(&io_pair->server_in, &io_pair->client_in, server));
     return S2N_RESULT_OK;
 }
 
@@ -198,14 +198,14 @@ int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
     return 0;
 }
 
-int s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair)
+S2N_RESULT s2n_io_pair_init_non_blocking(struct s2n_test_io_pair *io_pair)
 {
-    POSIX_GUARD(s2n_io_pair_init(io_pair));
+    RESULT_GUARD_POSIX(s2n_io_pair_init(io_pair));
 
-    POSIX_GUARD(s2n_fd_set_non_blocking(io_pair->client));
-    POSIX_GUARD(s2n_fd_set_non_blocking(io_pair->server));
+    RESULT_GUARD_POSIX(s2n_fd_set_non_blocking(io_pair->client));
+    RESULT_GUARD_POSIX(s2n_fd_set_non_blocking(io_pair->server));
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 #ifdef _WIN32
@@ -269,12 +269,12 @@ int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_p
     return 0;
 }
 
-int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
+S2N_RESULT s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
         struct s2n_test_io_pair *io_pair)
 {
-    POSIX_GUARD(s2n_connection_set_io_pair(client, io_pair));
-    POSIX_GUARD(s2n_connection_set_io_pair(server, io_pair));
-    return 0;
+    RESULT_GUARD_POSIX(s2n_connection_set_io_pair(client, io_pair));
+    RESULT_GUARD_POSIX(s2n_connection_set_io_pair(server, io_pair));
+    return S2N_RESULT_OK;
 }
 
 int s2n_io_pair_close(struct s2n_test_io_pair *io_pair)
@@ -359,25 +359,25 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker)
     printf("\n");
 }
 
-int s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
+S2N_RESULT s2n_set_connection_hello_retry_flags(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     conn->handshake.message_number = 1;
     conn->handshake.handshake_type = NEGOTIATED | HELLO_RETRY_REQUEST | FULL_HANDSHAKE;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version)
+S2N_RESULT s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     conn->server_protocol_version = version;
     conn->client_protocol_version = version;
     conn->actual_protocol_version = version;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int mock_time(void *data, uint64_t *nanoseconds)
@@ -436,7 +436,7 @@ S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn)
     }
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    RESULT_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     RESULT_ENSURE_REF(kem_pref);
 
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {

@@ -42,18 +42,18 @@ S2N_RESULT s2n_connection_set_early_data_state(struct s2n_connection *conn, s2n_
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_set_early_data_expected(struct s2n_connection *conn)
+S2N_RESULT s2n_connection_set_early_data_expected(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
     conn->early_data_expected = true;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_connection_set_end_of_early_data(struct s2n_connection *conn)
+S2N_RESULT s2n_connection_set_end_of_early_data(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
     conn->early_data_expected = false;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)

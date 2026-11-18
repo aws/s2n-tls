@@ -82,7 +82,7 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer);
  * This should only be used in scenarios where the data is encrypted or has been
  * cleared with `s2n_stuffer_erase_and_read`. In most cases, prefer `s2n_stuffer_free`.
  */
-int S2N_RESULT_MUST_USE s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer);
+S2N_RESULT s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer);
 int S2N_RESULT_MUST_USE s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
 int S2N_RESULT_MUST_USE s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
 int S2N_RESULT_MUST_USE s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
@@ -201,7 +201,7 @@ int S2N_RESULT_MUST_USE s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuff
         const uint32_t max, uint32_t *skipped);
 int S2N_RESULT_MUST_USE s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target);
 int S2N_RESULT_MUST_USE s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
-int S2N_RESULT_MUST_USE s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);
+S2N_RESULT s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);
 
 /* Stuffer versions of sprintf methods, except:
  * - They write bytes, not strings. They do not write a final '\0'. Unfortunately,

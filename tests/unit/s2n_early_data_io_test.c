@@ -37,8 +37,8 @@ static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_
     EXPECT_SUCCESS(s2n_connection_set_blinding(*server_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(*server_conn, "default_tls13"));
 
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(io_pair));
-    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(io_pair));
+    EXPECT_OK(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
 
     return S2N_RESULT_OK;
 }
@@ -76,12 +76,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_psk_configure_early_data(test_psk_to_reject, TEST_MAX_EARLY_DATA_SIZE, 0x13, 0x03));
 
     struct s2n_cert_chain_and_key *cert_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&cert_chain,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     struct s2n_config *config_with_cert = s2n_config_new();
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cert, cert_chain));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_cert));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(config_with_cert));
 
     /* Test s2n_negotiate with early data */
     {
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "test_all_tls12"));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
@@ -174,8 +174,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     END_OF_EARLY_DATA));
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_EARLY_DATA);
             }
 
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             EXPECT_TRUE(WITH_EARLY_DATA(client_conn));
@@ -222,8 +222,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             /* Blocks on processing the ClientHello */
             EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_offered_early_data_accept(async_early_data));
 
             /* Finish early data */
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             EXPECT_TRUE(WITH_EARLY_DATA(client_conn));
@@ -265,8 +265,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_without_early_data));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -301,8 +301,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             /* Blocks on processing the ClientHello */
             EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
@@ -339,8 +339,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_to_reject));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     SERVER_HELLO));
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS_S2N_SEND(client_conn, test_data, sizeof(test_data), &blocked);
             EXPECT_SUCCESS_S2N_SEND(client_conn, test_data, sizeof(test_data), &blocked);
 
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
@@ -377,8 +377,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_to_reject));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     SERVER_HELLO));
@@ -394,7 +394,7 @@ int main(int argc, char **argv)
             client_conn->early_data_bytes = 0;
             EXPECT_SUCCESS_S2N_SEND(client_conn, test_data, sizeof(test_data), &blocked);
 
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                     S2N_ERR_MAX_EARLY_DATA_SIZE);
 
@@ -417,8 +417,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -447,7 +447,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
 
             struct s2n_test_io_pair io_pair = { 0 };
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
             /* We run this multiple times because if the early data is incorrectly processed as a normal,
              * unencrypted record, it is usually just ignored anyway because the record type is unknown.
@@ -466,12 +466,12 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
                 EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+                EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
                 EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
                 EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-                EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-                EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+                EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+                EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
                 client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -481,7 +481,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS_S2N_SEND(client_conn, test_data, sizeof(test_data), &blocked);
 
-                EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+                EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
                 EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
                 EXPECT_FALSE(WITH_EARLY_DATA(client_conn));
@@ -509,8 +509,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cert));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_with_cert));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -542,8 +542,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
@@ -582,7 +582,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS_S2N_SEND(client_conn, test_data, sizeof(test_data), &blocked);
 
             /* Can't send early data after end of early data indicated */
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_FAILURE_WITH_ERRNO(s2n_send(client_conn, NULL, 0, &blocked), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
 
             /* Continue the handshake */
@@ -606,8 +606,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
@@ -619,7 +619,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS_S2N_SEND(client_conn, test_data, sizeof(test_data), &blocked);
 
             /* Can't send early data after end of early data indicated */
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_FAILURE_WITH_ERRNO(s2n_send(client_conn, NULL, 0, &blocked), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
 
             /* Continue the handshake */
@@ -644,8 +644,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             /* Configure the connection to use stuffers instead of fds.
              * This will let us block the send.
@@ -654,8 +654,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer client_out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_in, &client_out, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_out, &client_in, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&client_in, &client_out, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&client_out, &client_in, server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             const uint8_t large_test_data[TEST_MAX_EARLY_DATA_SIZE] = "hello";
@@ -694,8 +694,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             uint8_t test_buffer[TEST_MAX_EARLY_DATA_SIZE] = { 0 };
@@ -743,7 +743,7 @@ int main(int argc, char **argv)
                     (test_data + 2), (sizeof(test_data) - 2));
 
             /* Can't recv after END_OF_EARLY_DATA */
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, CLIENT_FINISHED));
             EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, test_buffer, 0, &blocked), S2N_ERR_EARLY_DATA_NOT_ALLOWED);
 
@@ -762,8 +762,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             uint8_t test_buffer[TEST_MAX_EARLY_DATA_SIZE] = { 0 };
@@ -771,7 +771,7 @@ int main(int argc, char **argv)
                     END_OF_EARLY_DATA));
 
             /* Client sends the EndOfEarlyData handshake message */
-            EXPECT_SUCCESS(s2n_connection_set_end_of_early_data(client_conn));
+            EXPECT_OK(s2n_connection_set_end_of_early_data(client_conn));
             EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
 
             /* Server fails to read the EndOfEarlyData handshake message via s2n_recv.
@@ -795,8 +795,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_early_data_expected(server_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(client_conn));
+            EXPECT_OK(s2n_connection_set_early_data_expected(server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             const uint8_t large_test_data[TEST_MAX_EARLY_DATA_SIZE] = "hello";

@@ -26,7 +26,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-int s2n_sslv2_record_header_parse(
+S2N_RESULT s2n_sslv2_record_header_parse(
         struct s2n_connection *conn,
         uint8_t *record_type,
         uint8_t *client_protocol_version,
@@ -34,10 +34,10 @@ int s2n_sslv2_record_header_parse(
 {
     struct s2n_stuffer *header_in = &conn->header_in;
 
-    POSIX_ENSURE(s2n_stuffer_data_available(header_in) >= S2N_TLS_RECORD_HEADER_LENGTH,
+    RESULT_ENSURE(s2n_stuffer_data_available(header_in) >= S2N_TLS_RECORD_HEADER_LENGTH,
             S2N_ERR_BAD_MESSAGE);
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(header_in, fragment_length));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(header_in, fragment_length));
 
     /* The first bit of the SSLv2 message would usually indicate whether the
      * length is 2 bytes long or 3 bytes long.
@@ -56,7 +56,7 @@ int s2n_sslv2_record_header_parse(
      *#    The highest bit MUST be 1; the remaining bits contain the length
      *#    of the following data in bytes.
      */
-    POSIX_ENSURE(*fragment_length & S2N_TLS_SSLV2_HEADER_FLAG_UINT16, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(*fragment_length & S2N_TLS_SSLV2_HEADER_FLAG_UINT16, S2N_ERR_BAD_MESSAGE);
     *fragment_length ^= S2N_TLS_SSLV2_HEADER_FLAG_UINT16;
 
     /* We read 5 bytes into header_in because we expected a standard, non-SSLv2 record header
@@ -65,7 +65,7 @@ int s2n_sslv2_record_header_parse(
      * read so that we will only attempt to read the remainder of the payload on
      * our next call to conn->recv.
      */
-    POSIX_ENSURE(*fragment_length >= s2n_stuffer_data_available(header_in), S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(*fragment_length >= s2n_stuffer_data_available(header_in), S2N_ERR_BAD_MESSAGE);
     *fragment_length -= s2n_stuffer_data_available(header_in);
 
     /* By reading 5 bytes for a standard header we have also read the first
@@ -76,7 +76,7 @@ int s2n_sslv2_record_header_parse(
      * This is always '1', matching the ClientHello msg_type used by later
      * handshake messages.
      */
-    POSIX_GUARD(s2n_stuffer_read_uint8(header_in, record_type));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(header_in, record_type));
 
     /*
      * The second field of an SSLv2 ClientHello is the version.
@@ -86,11 +86,11 @@ int s2n_sslv2_record_header_parse(
      * See s2n_sslv2_client_hello_parse.
      */
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-    POSIX_GUARD(s2n_stuffer_read_bytes(header_in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(header_in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
     *client_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
 
-    POSIX_GUARD(s2n_stuffer_reread(header_in));
-    return 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(header_in));
+    return S2N_RESULT_OK;
 }
 
 /**

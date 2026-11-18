@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&out, client_conn));
+            EXPECT_OK(s2n_connection_set_send_io_stuffer(&out, client_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&out, server_conn));
+            EXPECT_OK(s2n_connection_set_send_io_stuffer(&out, server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_shutdown_send(server_conn, &blocked));

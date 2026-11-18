@@ -113,8 +113,8 @@ int main(int argc, char **argv)
             client->client_protocol_version = version;
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
             bool handshake_success =
                     (s2n_negotiate_test_server_and_client(server, client) == S2N_SUCCESS);

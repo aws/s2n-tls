@@ -33,12 +33,12 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
+S2N_RESULT s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
-    POSIX_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(cert);
     cert->pkey_type = pkey_type;
-    POSIX_GUARD_RESULT(s2n_pkey_setup_for_type(&cert->public_key, pkey_type));
-    return 0;
+    RESULT_GUARD(s2n_pkey_setup_for_type(&cert->public_key, pkey_type));
+    return S2N_RESULT_OK;
 }
 
 int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, struct s2n_stuffer *chain_in_stuffer)
@@ -81,76 +81,76 @@ int s2n_cert_chain_and_key_set_cert_chain_from_stuffer(struct s2n_cert_chain_and
     return s2n_create_cert_chain_from_stuffer(cert_and_key->cert_chain, chain_in_stuffer);
 }
 
-int s2n_cert_chain_and_key_set_cert_chain_bytes(struct s2n_cert_chain_and_key *cert_and_key, uint8_t *cert_chain_pem, uint32_t cert_chain_len)
+S2N_RESULT s2n_cert_chain_and_key_set_cert_chain_bytes(struct s2n_cert_chain_and_key *cert_and_key, uint8_t *cert_chain_pem, uint32_t cert_chain_len)
 {
     DEFER_CLEANUP(struct s2n_stuffer chain_in_stuffer = { 0 }, s2n_stuffer_free);
 
-    POSIX_GUARD(s2n_stuffer_init_ro_from_string(&chain_in_stuffer, cert_chain_pem, cert_chain_len));
-    POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain_from_stuffer(cert_and_key, &chain_in_stuffer));
+    RESULT_GUARD(s2n_stuffer_init_ro_from_string(&chain_in_stuffer, cert_chain_pem, cert_chain_len));
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_set_cert_chain_from_stuffer(cert_and_key, &chain_in_stuffer));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_cert_chain_and_key_set_cert_chain(struct s2n_cert_chain_and_key *cert_and_key, const char *cert_chain_pem)
+S2N_RESULT s2n_cert_chain_and_key_set_cert_chain(struct s2n_cert_chain_and_key *cert_and_key, const char *cert_chain_pem)
 {
     DEFER_CLEANUP(struct s2n_stuffer chain_in_stuffer = { 0 }, s2n_stuffer_free);
 
     /* Turn the chain into a stuffer */
-    POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
-    POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain_from_stuffer(cert_and_key, &chain_in_stuffer));
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc_ro_from_string(&chain_in_stuffer, cert_chain_pem));
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_set_cert_chain_from_stuffer(cert_and_key, &chain_in_stuffer));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key,
+S2N_RESULT s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key,
         struct s2n_stuffer *key_in_stuffer, struct s2n_stuffer *key_out_stuffer)
 {
-    POSIX_ENSURE_REF(cert_and_key);
-    POSIX_ENSURE_REF(cert_and_key->private_key);
+    RESULT_ENSURE_REF(cert_and_key);
+    RESULT_ENSURE_REF(cert_and_key->private_key);
 
     struct s2n_blob key_blob = { 0 };
 
-    POSIX_GUARD(s2n_pkey_zero_init(cert_and_key->private_key));
+    RESULT_GUARD_POSIX(s2n_pkey_zero_init(cert_and_key->private_key));
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
     int type_hint = 0;
-    POSIX_GUARD(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer, &type_hint));
+    RESULT_GUARD_POSIX(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer, &type_hint));
     key_blob.size = s2n_stuffer_data_available(key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(key_out_stuffer, key_blob.size);
-    POSIX_ENSURE_REF(key_blob.data);
+    RESULT_ENSURE_REF(key_blob.data);
 
-    POSIX_GUARD_RESULT(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type_hint));
-    return S2N_SUCCESS;
+    RESULT_GUARD(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type_hint));
+    return S2N_RESULT_OK;
 }
 
-int s2n_cert_chain_and_key_set_private_key_bytes(struct s2n_cert_chain_and_key *cert_and_key, uint8_t *private_key_pem, uint32_t private_key_len)
+S2N_RESULT s2n_cert_chain_and_key_set_private_key_bytes(struct s2n_cert_chain_and_key *cert_and_key, uint8_t *private_key_pem, uint32_t private_key_len)
 {
     DEFER_CLEANUP(struct s2n_stuffer key_in_stuffer = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer key_out_stuffer = { 0 }, s2n_stuffer_free);
 
     /* Put the private key pem in a stuffer */
-    POSIX_GUARD(s2n_stuffer_init_ro_from_string(&key_in_stuffer, private_key_pem, private_key_len));
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, private_key_len));
+    RESULT_GUARD(s2n_stuffer_init_ro_from_string(&key_in_stuffer, private_key_pem, private_key_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&key_out_stuffer, private_key_len));
 
-    POSIX_GUARD(s2n_cert_chain_and_key_set_private_key_from_stuffer(cert_and_key, &key_in_stuffer, &key_out_stuffer));
+    RESULT_GUARD(s2n_cert_chain_and_key_set_private_key_from_stuffer(cert_and_key, &key_in_stuffer, &key_out_stuffer));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_cert_chain_and_key_set_private_key(struct s2n_cert_chain_and_key *cert_and_key, const char *private_key_pem)
+S2N_RESULT s2n_cert_chain_and_key_set_private_key(struct s2n_cert_chain_and_key *cert_and_key, const char *private_key_pem)
 {
-    POSIX_ENSURE_REF(private_key_pem);
+    RESULT_ENSURE_REF(private_key_pem);
 
     DEFER_CLEANUP(struct s2n_stuffer key_in_stuffer = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer key_out_stuffer = { 0 }, s2n_stuffer_free);
 
     /* Put the private key pem in a stuffer */
-    POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
-    POSIX_GUARD(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc_ro_from_string(&key_in_stuffer, private_key_pem));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&key_out_stuffer, strlen(private_key_pem)));
 
-    POSIX_GUARD(s2n_cert_chain_and_key_set_private_key_from_stuffer(cert_and_key, &key_in_stuffer, &key_out_stuffer));
+    RESULT_GUARD(s2n_cert_chain_and_key_set_private_key_from_stuffer(cert_and_key, &key_in_stuffer, &key_out_stuffer));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_cert_chain_and_key_set_ocsp_data(struct s2n_cert_chain_and_key *chain_and_key, const uint8_t *data, uint32_t length)
@@ -328,66 +328,66 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
     return 0;
 }
 
-static int s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain_and_key, X509 *cert)
+static S2N_RESULT s2n_cert_chain_and_key_set_names(struct s2n_cert_chain_and_key *chain_and_key, X509 *cert)
 {
-    POSIX_GUARD(s2n_cert_chain_and_key_load_sans(chain_and_key, cert));
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_sans(chain_and_key, cert));
     /* For current use cases, we *could* avoid populating the common names if any sans were loaded in
      * s2n_cert_chain_and_key_load_sans. Let's unconditionally populate this field to avoid surprises
      * in the future.
      */
-    POSIX_GUARD(s2n_cert_chain_and_key_load_cns(chain_and_key, cert));
-    return 0;
+    RESULT_GUARD_POSIX(s2n_cert_chain_and_key_load_cns(chain_and_key, cert));
+    return S2N_RESULT_OK;
 }
 
-int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
+S2N_RESULT s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
 {
-    POSIX_ENSURE_REF(chain_and_key);
-    POSIX_ENSURE_REF(chain_and_key->cert_chain);
-    POSIX_ENSURE_REF(chain_and_key->cert_chain->head);
-    POSIX_ENSURE_REF(chain_and_key->private_key);
+    RESULT_ENSURE_REF(chain_and_key);
+    RESULT_ENSURE_REF(chain_and_key->cert_chain);
+    RESULT_ENSURE_REF(chain_and_key->cert_chain->head);
+    RESULT_ENSURE_REF(chain_and_key->private_key);
     struct s2n_cert *head = chain_and_key->cert_chain->head;
 
     DEFER_CLEANUP(X509 *leaf_cert = NULL, X509_free_pointer);
-    POSIX_GUARD_RESULT(s2n_openssl_x509_parse(&head->raw, &leaf_cert));
-    POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(leaf_cert, &head->info));
+    RESULT_GUARD(s2n_openssl_x509_parse(&head->raw, &leaf_cert));
+    RESULT_GUARD(s2n_openssl_x509_get_cert_info(leaf_cert, &head->info));
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD_RESULT(s2n_pkey_from_x509(leaf_cert, &public_key, &pkey_type));
+    RESULT_GUARD(s2n_pkey_from_x509(leaf_cert, &public_key, &pkey_type));
 
-    POSIX_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-    POSIX_GUARD(s2n_cert_set_cert_type(head, pkey_type));
+    RESULT_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    RESULT_GUARD(s2n_cert_set_cert_type(head, pkey_type));
 
     /* Validate the leaf cert's public key matches the provided private key */
     if (s2n_pkey_check_key_exists(chain_and_key->private_key) == S2N_SUCCESS) {
-        POSIX_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
+        RESULT_GUARD(s2n_pkey_match(&public_key, chain_and_key->private_key));
     }
 
     /* Populate name information from the SAN/CN for the leaf certificate */
-    POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, leaf_cert));
+    RESULT_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, leaf_cert));
 
     /* populate libcrypto nid's required for cert restrictions */
     struct s2n_cert *current = head->next;
     while (current != NULL) {
         DEFER_CLEANUP(X509 *parsed_cert = NULL, X509_free_pointer);
-        POSIX_GUARD_RESULT(s2n_openssl_x509_parse(&current->raw, &parsed_cert));
-        POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(parsed_cert, &current->info));
+        RESULT_GUARD(s2n_openssl_x509_parse(&current->raw, &parsed_cert));
+        RESULT_GUARD(s2n_openssl_x509_get_cert_info(parsed_cert, &current->info));
 
         current = current->next;
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key, const char *chain_pem, const char *private_key_pem)
 {
     POSIX_ENSURE_REF(chain_and_key);
 
-    POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, chain_pem));
-    POSIX_GUARD(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, chain_pem));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
 
-    POSIX_GUARD(s2n_cert_chain_and_key_load(chain_and_key));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_load(chain_and_key));
 
     return S2N_SUCCESS;
 }
@@ -395,8 +395,8 @@ int s2n_cert_chain_and_key_load_pem(struct s2n_cert_chain_and_key *chain_and_key
 int s2n_cert_chain_and_key_load_public_pem_bytes(struct s2n_cert_chain_and_key *chain_and_key, uint8_t *chain_pem, uint32_t chain_pem_len)
 {
     POSIX_ENSURE_REF(chain_and_key);
-    POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain_bytes(chain_and_key, chain_pem, chain_pem_len));
-    POSIX_GUARD(s2n_cert_chain_and_key_load(chain_and_key));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_set_cert_chain_bytes(chain_and_key, chain_pem, chain_pem_len));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_load(chain_and_key));
     return S2N_SUCCESS;
 }
 
@@ -405,10 +405,10 @@ int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_and_key *chain_a
 {
     POSIX_ENSURE_REF(chain_and_key);
 
-    POSIX_GUARD(s2n_cert_chain_and_key_set_cert_chain_bytes(chain_and_key, chain_pem, chain_pem_len));
-    POSIX_GUARD(s2n_cert_chain_and_key_set_private_key_bytes(chain_and_key, private_key_pem, private_key_pem_len));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_set_cert_chain_bytes(chain_and_key, chain_pem, chain_pem_len));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_set_private_key_bytes(chain_and_key, private_key_pem, private_key_pem_len));
 
-    POSIX_GUARD(s2n_cert_chain_and_key_load(chain_and_key));
+    POSIX_GUARD_RESULT(s2n_cert_chain_and_key_load(chain_and_key));
 
     return S2N_SUCCESS;
 }
@@ -498,25 +498,25 @@ int s2n_cert_chain_free(struct s2n_cert_chain *cert_chain)
     return S2N_SUCCESS;
 }
 
-int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key)
+S2N_RESULT s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, struct s2n_cert_chain_and_key *chain_and_key)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(out);
-    POSIX_ENSURE_REF(chain_and_key);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(out);
+    RESULT_ENSURE_REF(chain_and_key);
     struct s2n_cert_chain *chain = chain_and_key->cert_chain;
-    POSIX_ENSURE_REF(chain);
+    RESULT_ENSURE_REF(chain);
     struct s2n_cert *cur_cert = chain->head;
-    POSIX_ENSURE_REF(cur_cert);
+    RESULT_ENSURE_REF(cur_cert);
 
     struct s2n_stuffer_reservation cert_chain_size = { 0 };
-    POSIX_GUARD(s2n_stuffer_reserve_uint24(out, &cert_chain_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint24(out, &cert_chain_size));
 
     /* Send certs and extensions (in TLS 1.3) */
     bool first_entry = true;
     while (cur_cert) {
-        POSIX_ENSURE_REF(cur_cert);
-        POSIX_GUARD(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
-        POSIX_GUARD(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
+        RESULT_ENSURE_REF(cur_cert);
+        RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(out, cur_cert->raw.size));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(out, cur_cert->raw.data, cur_cert->raw.size));
 
         /* According to https://tools.ietf.org/html/rfc8446#section-4.4.2,
          * If an extension applies to the entire chain, it SHOULD be included in
@@ -525,25 +525,25 @@ int s2n_send_cert_chain(struct s2n_connection *conn, struct s2n_stuffer *out, st
          * entries, only the first matter to use here */
         if (conn->actual_protocol_version >= S2N_TLS13) {
             if (first_entry) {
-                POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, out));
+                RESULT_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, out));
                 first_entry = false;
             } else {
-                POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, out));
+                RESULT_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, out));
             }
         }
         cur_cert = cur_cert->next;
     }
 
-    POSIX_GUARD(s2n_stuffer_write_vector_size(&cert_chain_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&cert_chain_size));
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-int s2n_send_empty_cert_chain(struct s2n_stuffer *out)
+S2N_RESULT s2n_send_empty_cert_chain(struct s2n_stuffer *out)
 {
-    POSIX_ENSURE_REF(out);
-    POSIX_GUARD(s2n_stuffer_write_uint24(out, 0));
-    return 0;
+    RESULT_ENSURE_REF(out);
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(out, 0));
+    return S2N_RESULT_OK;
 }
 
 static int s2n_does_cert_san_match_hostname(const struct s2n_cert_chain_and_key *chain_and_key, const struct s2n_blob *dns_name)
@@ -706,7 +706,7 @@ static int s2n_asn1_string_free(ASN1_STRING **data)
     return S2N_SUCCESS;
 }
 
-static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len)
+static S2N_RESULT s2n_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len)
 {
     DEFER_CLEANUP(ASN1_STRING *asn1_str = NULL, s2n_asn1_string_free);
     /* Note that d2i_ASN1_UTF8STRING increments *der_in to the byte following the parsed data.
@@ -716,28 +716,28 @@ static int s2n_utf8_string_from_extension_data(const uint8_t *extension_data, ui
      */
     const uint8_t *asn1_str_data = extension_data;
     asn1_str = d2i_ASN1_UTF8STRING(NULL, (const unsigned char **) (void *) &asn1_str_data, extension_len);
-    POSIX_ENSURE(asn1_str != NULL, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
+    RESULT_ENSURE(asn1_str != NULL, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
     /* ASN1_STRING_type() returns the type of `asn1_str`, using standard constants such as V_ASN1_OCTET_STRING.
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_type.html.
      */
     int type = ASN1_STRING_type(asn1_str);
-    POSIX_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
+    RESULT_ENSURE(type == V_ASN1_UTF8STRING, S2N_ERR_INVALID_X509_EXTENSION_TYPE);
 
     int len = ASN1_STRING_length(asn1_str);
-    POSIX_ENSURE_GTE(len, 0);
+    RESULT_ENSURE_GTE(len, 0);
     if (out_data != NULL) {
-        POSIX_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        RESULT_ENSURE((int64_t) *out_len >= (int64_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
         /* ASN1_STRING_get0_data(x) returns an internal pointer to the data of
          * x. Since this is an internal pointer it should not be freed or
          * modified in any way.
          * Ref: https://docs.openssl.org/master/man3/ASN1_STRING_length/
          */
         const unsigned char *internal_data = S2N_ASN1_STRING_DATA(asn1_str);
-        POSIX_ENSURE_REF(internal_data);
-        POSIX_CHECKED_MEMCPY(out_data, internal_data, len);
+        RESULT_ENSURE_REF(internal_data);
+        RESULT_CHECKED_MEMCPY(out_data, internal_data, len);
     }
     *out_len = len;
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len)
@@ -746,7 +746,7 @@ int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension
     POSIX_ENSURE_GT(extension_len, 0);
     POSIX_ENSURE_REF(utf8_str_len);
 
-    POSIX_GUARD(s2n_utf8_string_from_extension_data(extension_data, extension_len, NULL, utf8_str_len));
+    POSIX_GUARD_RESULT(s2n_utf8_string_from_extension_data(extension_data, extension_len, NULL, utf8_str_len));
 
     return S2N_SUCCESS;
 }
@@ -758,15 +758,15 @@ int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, 
     POSIX_ENSURE_REF(out_data);
     POSIX_ENSURE_REF(out_len);
 
-    POSIX_GUARD(s2n_utf8_string_from_extension_data(extension_data, extension_len, out_data, out_len));
+    POSIX_GUARD_RESULT(s2n_utf8_string_from_extension_data(extension_data, extension_len, out_data, out_len));
 
     return S2N_SUCCESS;
 }
 
-static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
+static S2N_RESULT s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
         uint8_t *ext_value, uint32_t *ext_value_len, bool *critical)
 {
-    POSIX_ENSURE_REF(cert->raw.data);
+    RESULT_ENSURE_REF(cert->raw.data);
     /* Obtain the openssl x509 cert from the ASN1 DER certificate input.
      * Note that d2i_X509 increments *der_in to the byte following the parsed data.
      * Using a temporary variable is mandatory to prevent memory free-ing errors.
@@ -776,14 +776,14 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
     uint8_t *der_in = cert->raw.data;
     DEFER_CLEANUP(X509 *x509_cert = d2i_X509(NULL, (const unsigned char **) (void *) &der_in, cert->raw.size),
             X509_free_pointer);
-    POSIX_ENSURE_REF(x509_cert);
+    RESULT_ENSURE_REF(x509_cert);
 
     /* Retrieve the number of x509 extensions present in the certificate
      * X509_get_ext_count returns the number of extensions in the x509 certificate.
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext_count.html.
      */
     int ext_count_value = X509_get_ext_count(x509_cert);
-    POSIX_ENSURE_GT(ext_count_value, 0);
+    RESULT_ENSURE_GT(ext_count_value, 0);
     size_t ext_count = (size_t) ext_count_value;
 
     /* OBJ_txt2obj() converts the input text string into an ASN1_OBJECT structure.
@@ -792,7 +792,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_txt2obj.html.
      */
     DEFER_CLEANUP(ASN1_OBJECT *asn1_obj_in = OBJ_txt2obj((const char *) oid, 0), s2n_asn1_obj_free);
-    POSIX_ENSURE_REF(asn1_obj_in);
+    RESULT_ENSURE_REF(asn1_obj_in);
 
     for (size_t loc = 0; loc < ext_count; loc++) {
         S2N_X509_CONST ASN1_OCTET_STRING *asn1_str = NULL;
@@ -805,7 +805,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext.html.
          */
         S2N_X509_CONST X509_EXTENSION *x509_ext = X509_get_ext(x509_cert, loc);
-        POSIX_ENSURE_REF(x509_ext);
+        RESULT_ENSURE_REF(x509_ext);
 
         /* Retrieve the extension object/OID/extnId.
          * X509_EXTENSION_get_object() returns the extension type of `x509_ext` as an ASN1_OBJECT pointer.
@@ -813,7 +813,7 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_object.html.
          */
         S2N_X509_CONST ASN1_OBJECT *asn1_obj = X509_EXTENSION_get_object(x509_ext);
-        POSIX_ENSURE_REF(asn1_obj);
+        RESULT_ENSURE_REF(asn1_obj);
 
         /* OBJ_cmp() compares two ASN1_OBJECT objects. If the two are identical 0 is returned.
          * Ref: https://www.openssl.org/docs/man1.1.0/man3/OBJ_cmp.html.
@@ -827,22 +827,22 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
              * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_EXTENSION_get_data.html.
              */
             asn1_str = X509_EXTENSION_get_data(x509_ext);
-            POSIX_ENSURE_REF(asn1_str);
+            RESULT_ENSURE_REF(asn1_str);
             /* ASN1_STRING_length() returns the length of the content of `asn1_str`.
             * Ref: https://www.openssl.org/docs/man1.1.0/man3/ASN1_STRING_length.html.
             */
             int len = ASN1_STRING_length(asn1_str);
-            POSIX_ENSURE_GTE(len, 0);
+            RESULT_ENSURE_GTE(len, 0);
             if (ext_value != NULL) {
-                POSIX_ENSURE(*ext_value_len >= (uint32_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+                RESULT_ENSURE(*ext_value_len >= (uint32_t) len, S2N_ERR_INSUFFICIENT_MEM_SIZE);
                 /* ASN1_STRING_get0_data(x) returns an internal pointer to the data of
                  * x. Since this is an internal pointer it should not be freed or
                  * modified in any way.
                  * Ref: https://docs.openssl.org/master/man3/ASN1_STRING_length/
                  */
                 const unsigned char *internal_data = S2N_ASN1_STRING_DATA(asn1_str);
-                POSIX_ENSURE_REF(internal_data);
-                POSIX_CHECKED_MEMCPY(ext_value, internal_data, len);
+                RESULT_ENSURE_REF(internal_data);
+                RESULT_CHECKED_MEMCPY(ext_value, internal_data, len);
             }
             if (critical != NULL) {
                 /* Retrieve the x509 extension's critical value.
@@ -853,11 +853,11 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
                 *critical = X509_EXTENSION_get_critical(x509_ext);
             }
             *ext_value_len = len;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
 
-    POSIX_BAIL(S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
+    RESULT_BAIL(S2N_ERR_X509_EXTENSION_VALUE_NOT_FOUND);
 }
 
 int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t *ext_value_len)
@@ -866,7 +866,7 @@ int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_
     POSIX_ENSURE_REF(oid);
     POSIX_ENSURE_REF(ext_value_len);
 
-    POSIX_GUARD(s2n_parse_x509_extension(cert, oid, NULL, ext_value_len, NULL));
+    POSIX_GUARD_RESULT(s2n_parse_x509_extension(cert, oid, NULL, ext_value_len, NULL));
 
     return S2N_SUCCESS;
 }
@@ -880,7 +880,7 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
     POSIX_ENSURE_REF(ext_value_len);
     POSIX_ENSURE_REF(critical);
 
-    POSIX_GUARD(s2n_parse_x509_extension(cert, oid, ext_value, ext_value_len, critical));
+    POSIX_GUARD_RESULT(s2n_parse_x509_extension(cert, oid, ext_value, ext_value_len, critical));
 
     return S2N_SUCCESS;
 }

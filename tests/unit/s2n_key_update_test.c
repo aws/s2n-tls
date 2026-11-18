@@ -28,8 +28,8 @@
 
 #define LOWEST_BYTE (S2N_TLS_SEQUENCE_NUM_LEN - 1)
 
-int s2n_key_update_write(struct s2n_blob *out);
-int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
+S2N_RESULT s2n_key_update_write(struct s2n_blob *out);
+S2N_RESULT s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 
 static S2N_RESULT s2n_write_uint64(uint64_t input, uint8_t *output)
 {
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&key_update_stuffer, &key_update_blob));
 
             /* Write key update message */
-            EXPECT_SUCCESS(s2n_key_update_write(&key_update_blob));
+            EXPECT_OK(s2n_key_update_write(&key_update_blob));
 
             /* Move stuffer write cursor to correct position */
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&key_update_stuffer, S2N_KEY_UPDATE_MESSAGE_SIZE));
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_key_update_recv(conn, &input));
             EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_KTLS_KEYUPDATE);
+            EXPECT_ERROR_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_KTLS_KEYUPDATE);
 
             /* Succeeds if only sending with ktls and no update requested:
              * No kernel key update would be required.
@@ -335,12 +335,12 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
             EXPECT_SUCCESS(s2n_connection_request_key_update(client_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
 
             s2n_blocked_status blocked = 0;
-            EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
+            EXPECT_OK(s2n_key_update_send(client_conn, &blocked));
 
             EXPECT_EQUAL(s2n_atomic_flag_test(&client_conn->key_update_pending), false);
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure->client_sequence_number, zeroed_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
@@ -362,13 +362,13 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
             s2n_atomic_flag_clear(&client_conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(record_limit, client_conn->secure->client_sequence_number));
 
             s2n_blocked_status blocked = 0;
-            EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
+            EXPECT_OK(s2n_key_update_send(client_conn, &blocked));
 
             EXPECT_EQUAL(s2n_atomic_flag_test(&client_conn->key_update_pending), false);
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure->client_sequence_number, zeroed_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
@@ -391,14 +391,14 @@ int main(int argc, char **argv)
             /* Setup io */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Key update both pending and required by record limit */
             s2n_atomic_flag_set(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(record_limit, conn->secure->client_sequence_number));
 
             s2n_blocked_status blocked = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_SAFETY);
 
             /* Sequence number not reset and no KeyUpdate sent */
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secure->client_sequence_number,
@@ -418,14 +418,14 @@ int main(int argc, char **argv)
             /* Setup io */
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
             client_conn->secure->client_sequence_number[LOWEST_BYTE] = 1;
             expected_sequence_number[LOWEST_BYTE] = 1;
             s2n_atomic_flag_clear(&client_conn->key_update_pending);
 
             s2n_blocked_status blocked = 0;
-            EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
+            EXPECT_OK(s2n_key_update_send(client_conn, &blocked));
 
             EXPECT_EQUAL(s2n_atomic_flag_test(&client_conn->key_update_pending), false);
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure->client_sequence_number, expected_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
@@ -450,7 +450,7 @@ int main(int argc, char **argv)
             /* Setup io */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
             struct s2n_blob sequence_number = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number,
@@ -460,7 +460,7 @@ int main(int argc, char **argv)
             uint64_t key_update_seq_num = 0;
             for (uint64_t i = start; i <= UINT64_MAX; i++) {
                 s2n_blocked_status blocked = 0;
-                EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
+                EXPECT_OK(s2n_key_update_send(client_conn, &blocked));
 
                 if (s2n_stuffer_data_available(&stuffer) > 0) {
                     key_update_seq_num = i;
@@ -488,7 +488,7 @@ int main(int argc, char **argv)
             /* Setup io */
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
             struct s2n_blob sequence_number = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number,
@@ -498,7 +498,7 @@ int main(int argc, char **argv)
             uint64_t key_update_seq_num = 0;
             for (uint64_t i = start; i <= UINT64_MAX; i++) {
                 s2n_blocked_status blocked = 0;
-                EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
+                EXPECT_OK(s2n_key_update_send(client_conn, &blocked));
 
                 if (s2n_stuffer_data_available(&stuffer) > 0) {
                     key_update_seq_num = i;
@@ -521,7 +521,7 @@ int main(int argc, char **argv)
 
             /* Passes if no KeyUpdate required */
             s2n_blocked_status blocked = 0;
-            EXPECT_SUCCESS(s2n_key_update_send(conn, &blocked));
+            EXPECT_OK(s2n_key_update_send(conn, &blocked));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Set encryption limit */
@@ -530,7 +530,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_write_uint64(record_limit, conn->secure->client_sequence_number));
 
             /* Fails if KeyUpdate required */
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_key_update_send(conn, &blocked),
                     S2N_ERR_KTLS_KEYUPDATE);
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
@@ -553,36 +553,36 @@ int main(int argc, char **argv)
             /* Not at limit yet: no records sent */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(0, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Not at limit yet: 2 records less than limit */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(record_limit - 2, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* 1 record less than limit */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(record_limit - 1, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Limit */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(record_limit, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Don't reset the key_update_pending flag if already set */
             EXPECT_OK(s2n_write_uint64(0, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Over limit */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(record_limit + 1, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
         };
 
@@ -599,30 +599,30 @@ int main(int argc, char **argv)
             /* Not at limit yet: no records sent */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(0, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Not at limit yet: 2 records less than limit */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(UINT64_MAX - 2, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* 1 record less than limit */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(UINT64_MAX - 1, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Limit */
             s2n_atomic_flag_clear(&conn->key_update_pending);
             EXPECT_OK(s2n_write_uint64(UINT64_MAX, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Don't reset the key_update_pending flag if already set */
             EXPECT_OK(s2n_write_uint64(0, sequence_number_bytes));
-            EXPECT_SUCCESS(s2n_check_record_limit(conn, &sequence_number));
+            EXPECT_OK(s2n_check_record_limit(conn, &sequence_number));
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Over limit not possible: limit is maximum value */
@@ -651,13 +651,13 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Sanity check: send buffer just large enough for KeyUpdate record */
             config->send_buffer_size_override = key_update_record_size;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             s2n_atomic_flag_set(&conn->key_update_pending);
-            EXPECT_SUCCESS(s2n_key_update_send(conn, &blocked));
+            EXPECT_OK(s2n_key_update_send(conn, &blocked));
 
             EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
 
@@ -665,7 +665,7 @@ int main(int argc, char **argv)
             config->send_buffer_size_override = key_update_record_size - 1;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             s2n_atomic_flag_set(&conn->key_update_pending);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            EXPECT_ERROR_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
         };
     };
 

@@ -32,7 +32,7 @@
 #define OK_SEND_RESULT { .result = INT_MAX }
 /* clang-format on */
 
-int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
+S2N_RESULT s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size);
 
 struct s2n_send_result {
@@ -402,7 +402,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
             s2n_atomic_flag_set(&conn->key_update_pending);
-            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+            EXPECT_OK(s2n_post_handshake_send(conn, &blocked));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
             key_update_size = context.bytes_sent;
         };
@@ -431,7 +431,7 @@ int main(int argc, char **argv)
         /* Set the sequence number so that a KeyUpdate triggers after one more record. */
         uint64_t initial_seq_num = limit - 1;
         EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
-        EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
+        EXPECT_OK(s2n_check_record_limit(conn, &seq_num_blob));
         EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
         /* Send */
@@ -512,7 +512,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
             s2n_atomic_flag_set(&conn->key_update_pending);
-            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+            EXPECT_OK(s2n_post_handshake_send(conn, &blocked));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
             key_update_size = context.bytes_sent;
         }
@@ -549,7 +549,7 @@ int main(int argc, char **argv)
         /* Set the sequence number so that a KeyUpdate triggers after one more record. */
         uint64_t initial_seq_num = limit - 1;
         EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
-        EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
+        EXPECT_OK(s2n_check_record_limit(conn, &seq_num_blob));
         EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
         /* Send until all data written */

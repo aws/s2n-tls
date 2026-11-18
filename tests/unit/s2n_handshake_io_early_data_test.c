@@ -69,7 +69,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, S2N_DEFAULT_RECORD_LENGTH));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, bad_record, sizeof(bad_record)));
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, S2N_DEFAULT_RECORD_LENGTH));
-                EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+                EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
 
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&io_stuffer, bad_record, sizeof(bad_record)));
 

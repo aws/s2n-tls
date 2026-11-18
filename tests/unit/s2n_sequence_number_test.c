@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
-            EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
+            EXPECT_OK(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, 0);
         };
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
-            EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
+            EXPECT_OK(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, 1);
         };
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
                 sequence_number.data[i] = UINT8_MAX;
             }
 
-            EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
+            EXPECT_OK(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, 18446744073709551615U);
         };
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
-            EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
+            EXPECT_OK(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
             EXPECT_EQUAL(output, S2N_TLS13_AES_GCM_MAXIMUM_RECORD_NUMBER);
         };
@@ -99,7 +99,7 @@ int main(int argc, char **argv)
 
             /* Use s2n_sequence_number_to_uint64 to convert back */
             uint64_t output = 0;
-            EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&stuffer_blob, &output));
+            EXPECT_OK(s2n_sequence_number_to_uint64(&stuffer_blob, &output));
 
             EXPECT_EQUAL(input, output);
         };

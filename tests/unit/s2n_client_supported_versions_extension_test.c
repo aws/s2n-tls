@@ -400,7 +400,7 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN,
                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
@@ -419,8 +419,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_cert));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         struct s2n_stuffer *hello_stuffer = NULL;
         hello_stuffer = &client_conn->handshake.io;

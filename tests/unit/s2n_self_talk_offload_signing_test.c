@@ -128,7 +128,7 @@ static S2N_RESULT s2n_do_test_handshake(struct s2n_config *config, struct s2n_ce
     RESULT_GUARD_POSIX(s2n_connection_set_config(server_conn, config));
 
     struct s2n_test_io_pair io_pair = { 0 };
-    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(&io_pair));
+    RESULT_GUARD(s2n_io_pair_init_non_blocking(&io_pair));
     RESULT_GUARD_POSIX(s2n_connection_set_io_pair(client_conn, &io_pair));
     RESULT_GUARD_POSIX(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -176,11 +176,11 @@ int main(int argc, char **argv)
      */
 
     struct s2n_cert_chain_and_key *ecdsa_complete_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_complete_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_complete_chain,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     struct s2n_cert_chain_and_key *rsa_complete_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_complete_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_complete_chain,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* Create cert chains with only public certificates.
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_cert_only_chain));
         EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, s2n_test_async_pkey_cb));
 
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_only_chain));
         EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, s2n_test_async_pkey_cb));
 

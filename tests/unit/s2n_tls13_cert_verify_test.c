@@ -70,10 +70,10 @@ S2N_RESULT s2n_cert_verify_connection_setup_and_send(
     s2n_pkey_type pkey_type = { 0 };
     if (verifying_conn->mode == S2N_CLIENT) {
         EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, cert));
-        EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
+        EXPECT_OK(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
     } else {
         EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, cert));
-        EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.client_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
+        EXPECT_OK(s2n_pkey_match(&verifying_conn->handshake_params.client_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
     }
 
     /* Hash initialization */
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
             struct s2n_tls13_cert_verify_test server_parameters = test_server_parameters[param_idx];
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain, server_parameters.cert_file,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&cert_chain, server_parameters.cert_file,
                     server_parameters.key_file));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -312,8 +312,8 @@ int main(int argc, char **argv)
                 client_conn->security_policy_override = &client_policy;
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
                 /* Send the CertificateVerify message. */
                 EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,

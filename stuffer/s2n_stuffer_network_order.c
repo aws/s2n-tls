@@ -164,18 +164,18 @@ int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u)
     return s2n_stuffer_write_network_order(stuffer, u, sizeof(u));
 }
 
-static int length_matches_value_check(uint32_t value, uint8_t length)
+static S2N_RESULT length_matches_value_check(uint32_t value, uint8_t length)
 {
     /* Value is represented as a uint32_t, so shouldn't be assumed larger */
-    POSIX_ENSURE(length <= sizeof(uint32_t), S2N_ERR_SIZE_MISMATCH);
+    RESULT_ENSURE(length <= sizeof(uint32_t), S2N_ERR_SIZE_MISMATCH);
 
     if (length < sizeof(uint32_t)) {
         /* Value should be less than the maximum for its length */
         const uint32_t size_max = 1 << (length * 8);
-        POSIX_ENSURE(value < size_max, S2N_ERR_SIZE_MISMATCH);
+        RESULT_ENSURE(value < size_max, S2N_ERR_SIZE_MISMATCH);
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_stuffer_write_reservation_impl(struct s2n_stuffer_reservation *reservation, const uint32_t u)
@@ -183,7 +183,7 @@ static int s2n_stuffer_write_reservation_impl(struct s2n_stuffer_reservation *re
     reservation->stuffer->write_cursor = reservation->write_cursor;
     POSIX_PRECONDITION(s2n_stuffer_validate(reservation->stuffer));
 
-    POSIX_GUARD(length_matches_value_check(u, reservation->length));
+    POSIX_GUARD_RESULT(length_matches_value_check(u, reservation->length));
     POSIX_GUARD(s2n_stuffer_write_network_order(reservation->stuffer, u, reservation->length));
     POSIX_POSTCONDITION(s2n_stuffer_validate(reservation->stuffer));
     return S2N_SUCCESS;

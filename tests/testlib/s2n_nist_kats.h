@@ -23,6 +23,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include "utils/s2n_result.h"
+
 #define MAX_MARKER_LEN 50
 #define NUM_OF_KATS    100
 
@@ -66,7 +68,7 @@ static inline int FindMarker(FILE *infile, const char *marker)
  * ALLOW TO READ HEXADECIMAL ENTRY (KEYS, DATA, TEXT, etc.)
  */
 
-static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *str)
+static inline S2N_RESULT ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *str)
 {
     int ch;
     int started = 0;
@@ -74,13 +76,13 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
 
     if (0 == len) {
         buf[0] = 0x00;
-        return 0;
+        return S2N_RESULT_OK;
     }
 
     memset(buf, 0x00, len);
 
     if (FindMarker(infile, str) == -1) {
-        return -1;
+        return S2N_RESULT_ERROR;
     }
 
     while ((ch = fgetc(infile)) != EOF) {
@@ -112,5 +114,5 @@ static inline int ReadHex(FILE *infile, uint8_t *buf, uint32_t len, const char *
         buf[len - 1] = (buf[len - 1] << 4) | ich;
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }

@@ -108,18 +108,18 @@ int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_S
 int s2n_choose_kem_without_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
         const struct s2n_kem *server_kem_pref_list[], const uint8_t num_server_supported_kems,
         const struct s2n_kem **chosen_kem);
-int s2n_kem_free(struct s2n_kem_params *kem_params);
+S2N_RESULT s2n_kem_free(struct s2n_kem_params *kem_params);
 int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params);
 int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN],
         const struct s2n_iana_to_kem **supported_params);
-int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem);
-int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
+S2N_RESULT s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem);
+S2N_RESULT s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 bool s2n_kem_is_available(const struct s2n_kem *kem);
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
-int s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found);
+S2N_RESULT s2n_find_kem_group_from_iana_id(uint16_t iana_id, const struct s2n_kem_group **out, bool *found);
 
 /* mlkem768 */
 #define S2N_MLKEM_768_PUBLIC_KEY_BYTES    1184

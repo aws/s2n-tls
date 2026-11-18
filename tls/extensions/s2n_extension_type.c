@@ -31,7 +31,7 @@
 const s2n_extension_type_id s2n_unsupported_extension = S2N_SUPPORTED_EXTENSIONS_COUNT;
 s2n_extension_type_id s2n_extension_ianas_to_ids[S2N_MAX_INDEXED_EXTENSION_IANA];
 
-int s2n_extension_type_init()
+S2N_RESULT s2n_extension_type_init()
 {
     /* Initialize to s2n_unsupported_extension */
     for (size_t i = 0; i < S2N_MAX_INDEXED_EXTENSION_IANA; i++) {
@@ -46,7 +46,7 @@ int s2n_extension_type_init()
         }
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* Convert the IANA value (which ranges from 0->65535) to an id with a more
@@ -187,28 +187,28 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     return S2N_SUCCESS;
 }
 
-int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2n_connection *conn)
+S2N_RESULT s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(extension_type);
-    POSIX_ENSURE_REF(extension_type->if_missing);
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(extension_type);
+    RESULT_ENSURE_REF(extension_type->if_missing);
+    RESULT_ENSURE_REF(conn);
 
     s2n_extension_type_id extension_id = 0;
-    POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
+    RESULT_GUARD_POSIX(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not consider an extension missing if we did not send a request */
     if (extension_type->is_response && !S2N_CBIT_TEST(conn->extension_requests_sent, extension_id)) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* Do not consider an extension missing if it is not valid for the protocol version */
     if (extension_type->minimum_version > conn->actual_protocol_version) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
-    POSIX_GUARD(extension_type->if_missing(conn));
+    RESULT_GUARD_POSIX(extension_type->if_missing(conn));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_extension_send_unimplemented(struct s2n_connection *conn, struct s2n_stuffer *out)

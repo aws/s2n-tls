@@ -210,13 +210,13 @@ int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data, ssize_
     POSIX_ENSURE_REF(conn);
 
     /* Calling this method indicates that we expect early data. */
-    POSIX_GUARD(s2n_connection_set_early_data_expected(conn));
+    POSIX_GUARD_RESULT(s2n_connection_set_early_data_expected(conn));
 
     s2n_result result = s2n_send_early_data_impl(conn, data, data_len, data_sent, blocked);
 
     /* Unless s2n_send_early_data is called again (undoing this), we are done sending early data.
      * If s2n_negotiate is called next, we could send the EndOfEarlyData message. */
-    POSIX_GUARD(s2n_connection_set_end_of_early_data(conn));
+    POSIX_GUARD_RESULT(s2n_connection_set_end_of_early_data(conn));
 
     POSIX_GUARD_RESULT(result);
     return S2N_SUCCESS;
@@ -264,12 +264,12 @@ int s2n_recv_early_data(struct s2n_connection *conn, uint8_t *data, ssize_t max_
         ssize_t *data_received, s2n_blocked_status *blocked)
 {
     /* Calling this method indicates that we expect early data. */
-    POSIX_GUARD(s2n_connection_set_early_data_expected(conn));
+    POSIX_GUARD_RESULT(s2n_connection_set_early_data_expected(conn));
 
     s2n_result result = s2n_recv_early_data_impl(conn, data, max_data_len, data_received, blocked);
 
     /* Unless s2n_recv_early_data is called again (undoing this), we are done accepting early data. */
-    POSIX_GUARD(s2n_connection_set_end_of_early_data(conn));
+    POSIX_GUARD_RESULT(s2n_connection_set_end_of_early_data(conn));
 
     POSIX_GUARD_RESULT(result);
     return S2N_SUCCESS;

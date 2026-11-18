@@ -343,10 +343,10 @@ int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *c
     return S2N_SUCCESS;
 }
 
-int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
+S2N_RESULT s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
 {
-    POSIX_GUARD_RESULT(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
-    return S2N_SUCCESS;
+    RESULT_GUARD(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
@@ -359,7 +359,7 @@ S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
      *# handshake_failure alert.
      **/
     if (s2n_connection_get_protocol_version(conn) == S2N_SSLv3) {
-        RESULT_GUARD_POSIX(s2n_queue_reader_handshake_failure_alert(conn));
+        RESULT_GUARD(s2n_queue_reader_handshake_failure_alert(conn));
         RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
     }
 

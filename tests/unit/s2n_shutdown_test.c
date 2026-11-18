@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
         /* Setup output, but no input. We expect no reads. */
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
+        EXPECT_OK(s2n_connection_set_send_io_stuffer(&output, conn));
 
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
         /* Queue reader alert */
-        EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
+        EXPECT_OK(s2n_queue_reader_handshake_failure_alert(conn));
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify state prior to alert */
         EXPECT_FALSE(s2n_handshake_is_complete(conn));
@@ -226,7 +226,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify state prior to alert */
         EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
@@ -258,7 +258,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify state prior to alert */
         EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
@@ -296,7 +296,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify s2n_shutdown is waiting for a close_notify */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO_BLOCKED);
@@ -386,7 +386,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Receive a malformed record.
          * We want reading this record to leave our IO in a bad state.
@@ -587,8 +587,8 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_skip_handshake(client_conn));
 
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* The client's first shutdown attempt blocks on the server's close_notify */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -652,7 +652,7 @@ int main(int argc, char **argv)
              * attempts to read.
              */
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
+            EXPECT_OK(s2n_connection_set_send_io_stuffer(&output, conn));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
             /* s2n_shutdown also doesn't attempt to read unless we skip the
@@ -682,7 +682,7 @@ int main(int argc, char **argv)
              * That will cause writes to block.
              */
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
+            EXPECT_OK(s2n_connection_set_send_io_stuffer(&output, conn));
 
             /* All attempts to shutdown should block */
             for (size_t i = 0; i < 5; i++) {
@@ -733,7 +733,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
             /* Successful half-close.
              * Subsequent calls are no-ops.
@@ -784,7 +784,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
             /* Successful half-close */
             EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
@@ -792,7 +792,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(conn->alert_sent);
 
             /* Queue a local fatal alert */
-            EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
+            EXPECT_OK(s2n_queue_reader_handshake_failure_alert(conn));
 
             /* Full close is no-op */
             EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
@@ -813,7 +813,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, conn));
 
             /* Successful half-close */
             EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));

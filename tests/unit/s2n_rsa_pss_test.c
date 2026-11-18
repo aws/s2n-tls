@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(pkey_type, S2N_PKEY_TYPE_RSA_PSS);
 
         /* Sign and Verify a Random Value to ensure that Public and Private Key Matches */
-        EXPECT_SUCCESS(s2n_pkey_match(&public_key, chain_and_key->private_key));
+        EXPECT_OK(s2n_pkey_match(&public_key, chain_and_key->private_key));
 
         /* Release Resources */
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
@@ -144,13 +144,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_CA_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
 
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, cert_chain_pem));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, cert_chain_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
 
         /* Parse the leaf cert for the public key and certificate type */
         EXPECT_OK(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
         EXPECT_NOT_EQUAL(pkey_type, S2N_PKEY_TYPE_UNKNOWN);
-        EXPECT_SUCCESS(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
+        EXPECT_OK(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
         struct s2n_pkey *private_key = chain_and_key->private_key;
         {
@@ -220,10 +220,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(root_chain_and_key = s2n_cert_chain_and_key_new());
         EXPECT_NOT_NULL(leaf_chain_and_key = s2n_cert_chain_and_key_new());
 
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_cert_chain(root_chain_and_key, root_cert_chain_pem));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_private_key(root_chain_and_key, root_private_key_pem));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_cert_chain(leaf_chain_and_key, leaf_cert_chain_pem));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_private_key(leaf_chain_and_key, leaf_private_key_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_cert_chain(root_chain_and_key, root_cert_chain_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_private_key(root_chain_and_key, root_private_key_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_cert_chain(leaf_chain_and_key, leaf_cert_chain_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_private_key(leaf_chain_and_key, leaf_private_key_pem));
 
         /* Parse the cert for the public key and certificate type */
         EXPECT_OK(s2n_asn1der_to_public_key_and_type(&root_public_key, &root_pkey_type, &root_chain_and_key->cert_chain->head->raw));
@@ -231,8 +231,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(root_pkey_type, S2N_PKEY_TYPE_UNKNOWN);
         EXPECT_NOT_EQUAL(leaf_pkey_type, S2N_PKEY_TYPE_UNKNOWN);
 
-        EXPECT_SUCCESS(s2n_cert_set_cert_type(root_chain_and_key->cert_chain->head, root_pkey_type));
-        EXPECT_SUCCESS(s2n_cert_set_cert_type(leaf_chain_and_key->cert_chain->head, leaf_pkey_type));
+        EXPECT_OK(s2n_cert_set_cert_type(root_chain_and_key->cert_chain->head, root_pkey_type));
+        EXPECT_OK(s2n_cert_set_cert_type(leaf_chain_and_key->cert_chain->head, leaf_pkey_type));
 
         struct s2n_pkey *root_private_key = root_chain_and_key->private_key;
         struct s2n_pkey *leaf_private_key = leaf_chain_and_key->private_key;
@@ -300,13 +300,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_PSS_2048_SHA256_CA_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
 
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, cert_chain_pem));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, cert_chain_pem));
+        EXPECT_OK(s2n_cert_chain_and_key_set_private_key(chain_and_key, private_key_pem));
 
         /* Parse the leaf cert for the public key and certificate type */
         EXPECT_OK(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &chain_and_key->cert_chain->head->raw));
         EXPECT_NOT_EQUAL(pkey_type, S2N_PKEY_TYPE_UNKNOWN);
-        EXPECT_SUCCESS(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
+        EXPECT_OK(s2n_cert_set_cert_type(chain_and_key->cert_chain->head, pkey_type));
 
         struct s2n_pkey *private_key = chain_and_key->private_key;
         {

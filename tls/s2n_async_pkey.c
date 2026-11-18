@@ -482,18 +482,18 @@ S2N_RESULT s2n_async_pkey_sign_free(struct s2n_async_pkey_op *op)
     return S2N_RESULT_OK;
 }
 
-int s2n_async_pkey_op_set_validation_mode(struct s2n_async_pkey_op *op, s2n_async_pkey_validation_mode mode)
+S2N_RESULT s2n_async_pkey_op_set_validation_mode(struct s2n_async_pkey_op *op, s2n_async_pkey_validation_mode mode)
 {
-    POSIX_ENSURE_REF(op);
+    RESULT_ENSURE_REF(op);
 
     switch (mode) {
         case S2N_ASYNC_PKEY_VALIDATION_FAST:
         case S2N_ASYNC_PKEY_VALIDATION_STRICT:
             op->validation_mode = mode;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
     }
 
-    POSIX_BAIL(S2N_ERR_INVALID_ARGUMENT);
+    RESULT_BAIL(S2N_ERR_INVALID_ARGUMENT);
 }
 
 int s2n_async_pkey_op_get_op_type(struct s2n_async_pkey_op *op, s2n_async_pkey_op_type *type)
@@ -706,12 +706,12 @@ static S2N_RESULT s2n_async_pkey_verify_async(struct s2n_connection *conn, s2n_s
     return S2N_RESULT_OK;
 }
 
-int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
+S2N_RESULT s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *digest, struct s2n_blob *signature)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(digest);
-    POSIX_ENSURE_REF(signature);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(digest);
+    RESULT_ENSURE_REF(signature);
 
     struct s2n_pkey *pub_key = NULL;
     if (conn->mode == S2N_CLIENT) {
@@ -721,10 +721,10 @@ int s2n_async_pkey_verify(struct s2n_connection *conn, s2n_signature_algorithm s
     }
 
     if (s2n_async_offload_op_is_in_allow_list(conn->config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY)) {
-        POSIX_GUARD_RESULT(s2n_async_pkey_verify_async(conn, sig_alg, digest, signature));
+        RESULT_GUARD(s2n_async_pkey_verify_async(conn, sig_alg, digest, signature));
     } else {
-        POSIX_GUARD(s2n_pkey_verify(pub_key, sig_alg, digest, signature));
+        RESULT_GUARD_POSIX(s2n_pkey_verify(pub_key, sig_alg, digest, signature));
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }

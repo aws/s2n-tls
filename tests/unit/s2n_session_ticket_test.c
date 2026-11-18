@@ -154,7 +154,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&tls13_serialized_session_state, 0));
 
     struct s2n_test_io_pair io_pair;
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain, private_key));
 
     struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -269,7 +269,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -310,7 +310,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -442,7 +442,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -503,7 +503,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -564,7 +564,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -645,7 +645,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Not enabling resumption using ST */
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -836,7 +836,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -920,7 +920,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
             /* Create nonblocking pipes */
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
             EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -1000,7 +1000,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -1070,7 +1070,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -1137,7 +1137,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -1282,7 +1282,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
@@ -1326,7 +1326,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_config_mock_wall_clock(config, &now));
 
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, s2n_array_len(ticket_key_name1),
                 ticket_key1, s2n_array_len(ticket_key1), 0));
@@ -1344,7 +1344,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that TLS1.3 was negotiated */
@@ -1386,7 +1386,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, s2n_array_len(ticket_key_name1),
@@ -1403,7 +1403,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240501"));
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Verify that TLS1.2 was negotiated */
@@ -1435,14 +1435,14 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_configuration, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_configuration));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_configuration));
 
         DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_configuration));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(server_configuration));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_configuration,
                 chain_and_key));
 
@@ -1504,7 +1504,7 @@ int main(int argc, char **argv)
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_configuration));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_configuration));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_configuration, "20240501"));
 
         DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(),
@@ -1576,7 +1576,7 @@ int main(int argc, char **argv)
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(tls12_client_config);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls12_client_config, 1));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls12_client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(tls12_client_config));
         /* Security policy that does not support TLS1.3 */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, "20240501"));
 
@@ -1584,7 +1584,7 @@ int main(int argc, char **argv)
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(tls12_client_config);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls13_client_config, 1));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls13_client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(tls13_client_config));
         /* Security policy that does support TLS1.3 */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "default_tls13"));
 
@@ -1705,7 +1705,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_require_ticket_forward_secrecy(forward_secret_config, true));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(forward_secret_config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(forward_secret_config, 1));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(forward_secret_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(forward_secret_config));
 
         DEFER_CLEANUP(struct s2n_config *tls12_server_config = s2n_config_new(),
                 s2n_config_ptr_free);

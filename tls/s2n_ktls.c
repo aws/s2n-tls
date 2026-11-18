@@ -406,7 +406,7 @@ S2N_RESULT s2n_ktls_check_estimated_record_limit(struct s2n_connection *conn, si
     uint64_t old_records_sent = 0;
     struct s2n_blob seq_num = { 0 };
     RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, &old_records_sent));
+    RESULT_GUARD(s2n_sequence_number_to_uint64(&seq_num, &old_records_sent));
 
     RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(old_records_sent, new_records_sent, UINT64_MAX),
             S2N_ERR_KTLS_KEY_LIMIT);
@@ -447,7 +447,7 @@ S2N_RESULT s2n_ktls_key_update_send(struct s2n_connection *conn, size_t bytes_re
         RESULT_GUARD_POSIX(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
 
         /* Write Keyupdate message */
-        RESULT_GUARD_POSIX(s2n_key_update_write(&key_update_blob));
+        RESULT_GUARD(s2n_key_update_write(&key_update_blob));
 
         /* Send Keyupdate message */
         const struct iovec iov = {

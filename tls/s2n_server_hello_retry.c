@@ -39,10 +39,10 @@ int s2n_server_hello_retry_send(struct s2n_connection *conn)
 
     POSIX_CHECKED_MEMCPY(conn->handshake_params.server_random, hello_retry_req_random, S2N_TLS_RANDOM_DATA_LEN);
 
-    POSIX_GUARD(s2n_server_hello_write_message(conn));
+    POSIX_GUARD_RESULT(s2n_server_hello_write_message(conn));
 
     /* Write the extensions */
-    POSIX_GUARD(s2n_server_extensions_send(conn, &conn->handshake.io));
+    POSIX_GUARD_RESULT(s2n_server_extensions_send(conn, &conn->handshake.io));
 
     /* Update transcript */
     POSIX_GUARD(s2n_server_hello_retry_recreate_transcript(conn));
@@ -65,7 +65,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(ecc_pref);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    POSIX_GUARD_RESULT(s2n_connection_get_kem_preferences(conn, &kem_pref));
     POSIX_ENSURE_REF(kem_pref);
 
     const struct s2n_ecc_named_curve *named_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;

@@ -214,12 +214,12 @@ typedef S2N_RESULT (*s2n_test_scenario)(struct s2n_connection *conn, struct s2n_
 static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
 {
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    RESULT_GUARD_POSIX(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    RESULT_GUARD(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     struct s2n_config *config = s2n_config_new();
     RESULT_ENSURE_REF(config);
-    RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
+    RESULT_GUARD(s2n_config_set_unsafe_for_testing(config));
     RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_tls13"));
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
@@ -228,7 +228,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
     RESULT_GUARD(s2n_get_public_random_data(&input));
 
     DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(&io_pair));
+    RESULT_GUARD(s2n_io_pair_init_non_blocking(&io_pair));
 
     pid_t client_pid = fork();
     if (client_pid == 0) {

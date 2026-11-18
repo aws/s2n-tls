@@ -56,7 +56,7 @@ int s2n_pkey_verify(const struct s2n_pkey *pkey, s2n_signature_algorithm sig_alg
         struct s2n_hash_state *digest, struct s2n_blob *signature);
 int s2n_pkey_encrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out);
 int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2n_blob *out);
-int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key);
+S2N_RESULT s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key);
 int s2n_pkey_free(struct s2n_pkey *pkey);
 
 S2N_RESULT s2n_pkey_init_hash(const struct s2n_pkey *pkey,

@@ -31,7 +31,7 @@
         SIZEOF_UINT24 +                           /* message len */ \
         sizeof(uint8_t)                           /* message */
 
-int s2n_key_update_write(struct s2n_blob *out);
+S2N_RESULT s2n_key_update_write(struct s2n_blob *out);
 
 int main(int argc, char **argv)
 {
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
                 uint8_t data[KEY_UPDATE_MESSAGE_SIZE] = { 0 };
                 struct s2n_blob key_update_message = { 0 };
                 EXPECT_SUCCESS(s2n_blob_init(&key_update_message, data, sizeof(data)));
-                EXPECT_SUCCESS(s2n_key_update_write(&key_update_message));
+                EXPECT_OK(s2n_key_update_write(&key_update_message));
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, key_update_message.data, key_update_message.size));
             }
 
@@ -186,13 +186,13 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
+            EXPECT_OK(s2n_connection_set_send_io_stuffer(&output, conn));
 
             conn->actual_protocol_version = S2N_TLS13;
             s2n_atomic_flag_set(&conn->key_update_pending);
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+            EXPECT_OK(s2n_post_handshake_send(conn, &blocked));
 
             EXPECT_TRUE(s2n_stuffer_data_available(&output) > 0);
         };
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
             s2n_atomic_flag_clear(&conn->key_update_pending);
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+            EXPECT_OK(s2n_post_handshake_send(conn, &blocked));
 
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
         };
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
             s2n_atomic_flag_set(&conn->key_update_pending);
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+            EXPECT_OK(s2n_post_handshake_send(conn, &blocked));
 
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
@@ -244,8 +244,8 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io_stuffer, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&io_stuffer, &io_stuffer, server_conn));
 
         /* Send just the ClientHello */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;

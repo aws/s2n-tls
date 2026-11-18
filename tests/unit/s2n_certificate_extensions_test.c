@@ -83,7 +83,7 @@ static int s2n_setup_connection_for_ocsp_validate_test(struct s2n_connection **c
      */
     nconn->x509_validator.skip_cert_validation = true;
 
-    POSIX_GUARD(s2n_connection_allow_all_response_extensions(nconn));
+    POSIX_GUARD_RESULT(s2n_connection_allow_all_response_extensions(nconn));
     nconn->status_type = S2N_STATUS_REQUEST_OCSP;
 
     *conn = nconn;
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
     /* Initialize cert chain */
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* Initialize cert extension data */
@@ -116,7 +116,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->handshake_params.our_chain_and_key = chain_and_key;
 
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
             conn->status_type = S2N_STATUS_REQUEST_OCSP;
 
             /* TLS1.2 does NOT send extensions */
@@ -125,13 +125,13 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
                 conn->actual_protocol_version = S2N_TLS12;
-                EXPECT_SUCCESS(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
+                EXPECT_OK(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
 
                 s2n_parsed_extensions_list extensions;
                 EXPECT_SUCCESS(s2n_skip_cert_chain_size(&stuffer));
                 EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &extensions),
+                EXPECT_ERROR_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &extensions),
                         S2N_ERR_BAD_MESSAGE);
             };
 
@@ -141,13 +141,13 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
                 conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_SUCCESS(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
+                EXPECT_OK(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
 
                 s2n_parsed_extensions_list extensions;
                 EXPECT_SUCCESS(s2n_skip_cert_chain_size(&stuffer));
                 EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
 
-                EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
+                EXPECT_OK(s2n_extension_list_parse(&stuffer, &extensions));
                 EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(extensions);
             };
 
@@ -163,24 +163,24 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
             conn->status_type = S2N_STATUS_REQUEST_OCSP;
 
             conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
+            EXPECT_OK(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
 
             s2n_parsed_extensions_list extensions;
             EXPECT_SUCCESS(s2n_skip_cert_chain_size(&stuffer));
 
             /* First cert includes extensions */
             EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
-            EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
+            EXPECT_OK(s2n_extension_list_parse(&stuffer, &extensions));
             EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(extensions);
 
             /* Other certs do not include extensions */
             do {
                 EXPECT_SUCCESS(s2n_skip_cert(&stuffer));
-                EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &extensions));
+                EXPECT_OK(s2n_extension_list_parse(&stuffer, &extensions));
                 EXPECT_PARSED_EXTENSION_LIST_EMPTY(extensions);
             } while (s2n_stuffer_data_available(&stuffer));
 
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
+            EXPECT_OK(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
             EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -218,11 +218,11 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
             conn->status_type = S2N_STATUS_REQUEST_OCSP;
             conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
 
-            EXPECT_SUCCESS(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
+            EXPECT_OK(s2n_send_cert_chain(conn, &stuffer, chain_and_key));
             EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
 
             /* OCSP extension processed */
@@ -250,7 +250,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer_reservation size = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &size));
             EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
-            EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, setup_conn, &stuffer));
+            EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, setup_conn, &stuffer));
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&size));
 
             /* TLS1.2 does NOT process extensions */
@@ -302,9 +302,9 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &size));
                 EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
-                EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, &stuffer));
+                EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, &stuffer));
                 EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
-                EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
+                EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
                 EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&size));
 
                 EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
@@ -325,9 +325,9 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&stuffer, &size));
                 EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
-                EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
+                EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_CERTIFICATE, conn, &stuffer));
                 EXPECT_SUCCESS(s2n_write_test_cert(&stuffer, chain_and_key));
-                EXPECT_SUCCESS(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, &stuffer));
+                EXPECT_OK(s2n_extension_list_send(S2N_EXTENSION_LIST_EMPTY, conn, &stuffer));
                 EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&size));
 
                 EXPECT_SUCCESS(s2n_x509_validator_validate_cert_chain_test(conn, &stuffer));
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&test_chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&test_chain_and_key,
                     test_cases[i].cert_path, test_cases[i].key_path));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_path, NULL));

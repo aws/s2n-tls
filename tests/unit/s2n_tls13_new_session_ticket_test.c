@@ -68,7 +68,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config);
 
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(server_config));
@@ -88,8 +88,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&output, &input, client_conn));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 

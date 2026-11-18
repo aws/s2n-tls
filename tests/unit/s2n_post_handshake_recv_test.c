@@ -27,7 +27,7 @@
 
 #define S2N_TEST_MESSAGE_COUNT 5
 
-int s2n_key_update_write(struct s2n_blob *out);
+S2N_RESULT s2n_key_update_write(struct s2n_blob *out);
 
 size_t tickets_count = 0;
 static int s2n_ticket_count_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
@@ -139,12 +139,12 @@ static S2N_RESULT s2n_test_init_sender_and_receiver(struct s2n_config *config,
         struct s2n_test_io_stuffer_pair *io_pair)
 {
     RESULT_GUARD_POSIX(s2n_connection_set_config(sender, config));
-    RESULT_GUARD_POSIX(s2n_connection_set_all_protocol_versions(sender, S2N_TLS13));
+    RESULT_GUARD(s2n_connection_set_all_protocol_versions(sender, S2N_TLS13));
     RESULT_GUARD(s2n_connection_set_secrets(sender));
     RESULT_GUARD_POSIX(s2n_connection_set_blinding(sender, S2N_SELF_SERVICE_BLINDING));
 
     RESULT_GUARD_POSIX(s2n_connection_set_config(receiver, config));
-    RESULT_GUARD_POSIX(s2n_connection_set_all_protocol_versions(receiver, S2N_TLS13));
+    RESULT_GUARD(s2n_connection_set_all_protocol_versions(receiver, S2N_TLS13));
     RESULT_GUARD(s2n_connection_set_secrets(receiver));
     RESULT_GUARD_POSIX(s2n_connection_set_blinding(receiver, S2N_SELF_SERVICE_BLINDING));
 
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_blob message_blob = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&message_blob, S2N_KEY_UPDATE_MESSAGE_SIZE));
             for (size_t i = 0; i < S2N_TEST_MESSAGE_COUNT; i++) {
-                EXPECT_SUCCESS(s2n_key_update_write(&message_blob));
+                EXPECT_OK(s2n_key_update_write(&message_blob));
                 EXPECT_SUCCESS(s2n_stuffer_init(&message, &message_blob));
                 EXPECT_SUCCESS(s2n_stuffer_skip_write(&message, S2N_KEY_UPDATE_MESSAGE_SIZE));
 

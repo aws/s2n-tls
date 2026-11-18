@@ -39,7 +39,7 @@ int s2n_establish_session(struct s2n_connection *conn)
 
     if (!conn->client_hello.sslv2) {
         /* We've selected the parameters for the handshake, update the required hashes for this connection */
-        POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
+        POSIX_GUARD_RESULT(s2n_conn_update_required_handshake_hashes(conn));
     }
 
     return 0;

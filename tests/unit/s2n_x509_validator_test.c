@@ -1859,11 +1859,11 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, pem_str));
+        EXPECT_OK(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, pem_str));
 
         DEFER_CLEANUP(struct s2n_stuffer message = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&message, 0));
-        EXPECT_SUCCESS(s2n_send_cert_chain(conn, &message, chain_and_key));
+        EXPECT_OK(s2n_send_cert_chain(conn, &message, chain_and_key));
         EXPECT_SUCCESS(s2n_stuffer_skip_read(&message, 3));
 
         uint32_t chain_len = s2n_stuffer_data_available(&message);
@@ -2112,7 +2112,7 @@ int main(int argc, char **argv)
             const char *non_root_key_path = S2N_RSA_2048_PKCS1_KEY;
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, non_root_cert_path, non_root_key_path));
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key, non_root_cert_path, non_root_key_path));
             struct s2n_cert *cert = NULL;
             EXPECT_SUCCESS(s2n_cert_chain_get_cert(chain_and_key, &cert, 0));
             EXPECT_NOT_NULL(cert);

@@ -989,7 +989,7 @@ int s2n_crypto_disable_init(void)
 }
 
 /* Determines cipher suite availability and selects record algorithms */
-int s2n_cipher_suites_init(void)
+S2N_RESULT s2n_cipher_suites_init(void)
 {
     const int num_cipher_suites = s2n_array_len(s2n_all_cipher_suites);
     for (int i = 0; i < num_cipher_suites; i++) {
@@ -1019,9 +1019,9 @@ int s2n_cipher_suites_init(void)
         /* Initialize SSLv3 cipher suite if SSLv3 utilizes a different record algorithm */
         if (cur_suite->sslv3_record_alg && cur_suite->sslv3_record_alg->cipher->is_available()) {
             struct s2n_blob cur_suite_mem = { 0 };
-            POSIX_GUARD(s2n_blob_init(&cur_suite_mem, (uint8_t *) cur_suite, sizeof(struct s2n_cipher_suite)));
+            RESULT_GUARD_POSIX(s2n_blob_init(&cur_suite_mem, (uint8_t *) cur_suite, sizeof(struct s2n_cipher_suite)));
             struct s2n_blob new_suite_mem = { 0 };
-            POSIX_GUARD(s2n_dup(&cur_suite_mem, &new_suite_mem));
+            RESULT_GUARD_POSIX(s2n_dup(&cur_suite_mem, &new_suite_mem));
 
             struct s2n_cipher_suite *new_suite = (struct s2n_cipher_suite *) (void *) new_suite_mem.data;
             new_suite->available = 1;
@@ -1037,14 +1037,14 @@ int s2n_cipher_suites_init(void)
         /*https://wiki.openssl.org/index.php/Manual:OpenSSL_add_all_algorithms(3)*/
         OpenSSL_add_all_algorithms();
 #else
-        POSIX_GUARD_OSSL(OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL),
+        RESULT_GUARD_OSSL(OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CRYPTO_STRINGS | OPENSSL_INIT_ADD_ALL_CIPHERS | OPENSSL_INIT_ADD_ALL_DIGESTS, NULL),
                 S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 #endif
     }
 
     crypto_initialized = true;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* Reset any selected record algorithms */
@@ -1103,15 +1103,15 @@ S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t *iana, size_t iana_len, stru
     RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
+S2N_RESULT s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN])
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
     const struct s2n_security_policy *security_policy = NULL;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
-    POSIX_ENSURE_REF(security_policy);
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
+    RESULT_ENSURE_REF(security_policy);
 
     /**
      * Ensure that the wire cipher suite is contained in the security
@@ -1138,9 +1138,9 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
             break;
         }
     }
-    POSIX_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    RESULT_ENSURE(cipher_suite != NULL, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
-    POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
+    RESULT_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /** Clients MUST verify
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
@@ -1148,7 +1148,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# indicating a Hash associated with the PSK
      **/
     if (conn->psk_params.chosen_psk) {
-        POSIX_ENSURE(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
+        RESULT_ENSURE(cipher_suite->prf_alg == conn->psk_params.chosen_psk->hmac_alg,
                 S2N_ERR_CIPHER_NOT_SUPPORTED);
     }
 
@@ -1160,8 +1160,8 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      *# otherwise abort the handshake with an "illegal_parameter" alert.
      **/
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
-        POSIX_ENSURE(conn->secure->cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
-        return S2N_SUCCESS;
+        RESULT_ENSURE(conn->secure->cipher_suite->iana_value == cipher_suite->iana_value, S2N_ERR_CIPHER_NOT_SUPPORTED);
+        return S2N_RESULT_OK;
     }
 
     conn->secure->cipher_suite = cipher_suite;
@@ -1169,10 +1169,10 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     /* For SSLv3 use SSLv3-specific ciphers */
     if (conn->actual_protocol_version == S2N_SSLv3) {
         conn->secure->cipher_suite = conn->secure->cipher_suite->sslv3_cipher_suite;
-        POSIX_ENSURE_REF(conn->secure->cipher_suite);
+        RESULT_ENSURE_REF(conn->secure->cipher_suite);
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
@@ -1214,10 +1214,10 @@ static S2N_RESULT s2n_validate_chacha20_boosting(const struct s2n_cipher_prefere
     return S2N_RESULT_OK;
 }
 
-static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
+static S2N_RESULT s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, uint32_t count, uint32_t cipher_suite_len)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
 
     uint8_t renegotiation_info_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_EMPTY_RENEGOTIATION_INFO_SCSV };
     struct s2n_cipher_suite *higher_vers_match = NULL;
@@ -1230,7 +1230,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     if (conn->client_protocol_version < conn->server_protocol_version) {
         uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
         if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
-            POSIX_BAIL(S2N_ERR_FALLBACK_DETECTED);
+            RESULT_BAIL(S2N_ERR_FALLBACK_DETECTED);
         }
     }
 
@@ -1241,7 +1241,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
          *#    does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If
          *#    the SCSV is present, the server MUST abort the handshake.
          */
-        POSIX_ENSURE(!s2n_handshake_is_renegotiation(conn), S2N_ERR_BAD_MESSAGE);
+        RESULT_ENSURE(!s2n_handshake_is_renegotiation(conn), S2N_ERR_BAD_MESSAGE);
 
         /** For initial handshakes:
          *= https://www.rfc-editor.org/rfc/rfc5746#3.6
@@ -1253,10 +1253,10 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     }
 
     const struct s2n_security_policy *security_policy = NULL;
-    POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
 
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
-    POSIX_ENSURE_REF(cipher_preferences);
+    RESULT_ENSURE_REF(cipher_preferences);
 
     bool try_chacha20_boosting = s2n_result_is_ok(s2n_validate_chacha20_boosting(cipher_preferences, wire, cipher_suite_len));
 
@@ -1299,7 +1299,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
             /* If the kex is not supported continue to the next candidate */
             bool kex_supported = false;
-            POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
+            RESULT_GUARD(s2n_kex_supported(match, conn, &kex_supported));
             if (!kex_supported) {
                 continue;
             }
@@ -1331,7 +1331,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             if (try_chacha20_boosting) {
                 if (s2n_cipher_suite_uses_chacha20_alg(match)) {
                     conn->secure->cipher_suite = match;
-                    return S2N_SUCCESS;
+                    return S2N_RESULT_OK;
                 }
 
                 /* Save the valid non-chacha20 match in case no valid chacha20 match is found */
@@ -1342,30 +1342,30 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             conn->secure->cipher_suite = match;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
 
     if (non_chacha20_match) {
         conn->secure->cipher_suite = non_chacha20_match;
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     /* Settle for a cipher with a higher required proto version, if it was set */
     if (higher_vers_match) {
         conn->secure->cipher_suite = higher_vers_match;
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
-    POSIX_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
+    RESULT_BAIL(S2N_ERR_CIPHER_NOT_SUPPORTED);
 }
 
-int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
+S2N_RESULT s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_SSLv2_CIPHER_SUITE_LEN);
 }
 
-int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
+S2N_RESULT s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count)
 {
     return s2n_set_cipher_as_server(conn, wire, count, S2N_TLS_CIPHER_SUITE_LEN);
 }

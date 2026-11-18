@@ -83,8 +83,8 @@ int main()
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
         struct s2n_stuffer stuffer = { 0 };
 
-        EXPECT_FAILURE(s2n_extension_list_parse(NULL, &parsed_extension_list));
-        EXPECT_FAILURE(s2n_extension_list_parse(&stuffer, NULL));
+        EXPECT_ERROR(s2n_extension_list_parse(NULL, &parsed_extension_list));
+        EXPECT_ERROR(s2n_extension_list_parse(&stuffer, NULL));
     };
 
     /* Test that parse clears existing parsed_extensions */
@@ -97,7 +97,7 @@ int main()
         parsed_extension_list.parsed_extensions[S2N_PARSED_EXTENSIONS_COUNT - 1].extension_type = 0xFF;
         EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(parsed_extension_list);
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
@@ -114,7 +114,7 @@ int main()
         struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1));
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
@@ -135,7 +135,7 @@ int main()
         /* Write zero size */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 0));
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
         EXPECT_PARSED_EXTENSION_LIST_EMPTY(parsed_extension_list);
@@ -154,7 +154,7 @@ int main()
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&stuffer, 100));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
+        EXPECT_ERROR_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_BAD_MESSAGE);
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
@@ -174,7 +174,7 @@ int main()
         /* One less byte than the extension type takes  */
         EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, sizeof(uint16_t) - 1));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
+        EXPECT_ERROR_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_BAD_MESSAGE);
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
@@ -198,7 +198,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
         EXPECT_PARSED_EXTENSION_LIST_NOT_EMPTY(parsed_extension_list);
@@ -228,7 +228,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
+        EXPECT_ERROR_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_BAD_MESSAGE);
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
@@ -253,7 +253,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
         EXPECT_EQUAL(parsed_extension_list.count, 1);
@@ -283,7 +283,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
         EXPECT_EQUAL(parsed_extension_list.count, 0);
@@ -309,7 +309,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
+        EXPECT_ERROR_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_DUPLICATE_EXTENSION);
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
@@ -332,7 +332,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
+        EXPECT_ERROR_WITH_ERRNO(s2n_extension_list_parse(&stuffer, &parsed_extension_list),
                 S2N_ERR_DUPLICATE_EXTENSION);
         EXPECT_RAW_EQUAL(parsed_extension_list, stuffer);
 
@@ -364,7 +364,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         EXPECT_PARSED_EXTENSION_EQUAL(parsed_extension_list, test_extension.iana_value, test_data, sizeof(test_data));
         EXPECT_PARSED_EXTENSION_EQUAL(parsed_extension_list, test_extension_2.iana_value, test_data, 0);
@@ -404,7 +404,7 @@ int main()
         EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > extension_list_size.length);
         EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
-        EXPECT_SUCCESS(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
+        EXPECT_OK(s2n_extension_list_parse(&stuffer, &parsed_extension_list));
 
         uint16_t expected_order[] = { test_extension.iana_value, test_extension_2.iana_value, test_extension_3.iana_value };
         for (size_t i = 0; i < s2n_array_len(expected_order); i++) {

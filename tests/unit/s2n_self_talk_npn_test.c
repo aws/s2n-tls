@@ -49,10 +49,10 @@ int main(int argc, char **argv)
     /* Set up config */
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(config);
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
     config->npn_supported = true;
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
     /* Set up config that wipes ALPN extension */
     DEFER_CLEANUP(struct s2n_config *npn_config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(npn_config);
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(npn_config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(npn_config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(npn_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(npn_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(npn_config, protocols, protocols_count));
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
         const uint8_t server_protocols_count = s2n_array_len(server_protocols);
         DEFER_CLEANUP(struct s2n_config *different_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(different_config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(different_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(different_config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(different_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(different_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(different_config, server_protocols, server_protocols_count));
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
 

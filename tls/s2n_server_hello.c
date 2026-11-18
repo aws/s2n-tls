@@ -75,21 +75,21 @@ static int s2n_client_detect_downgrade_mechanism(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_server_add_downgrade_mechanism(struct s2n_connection *conn)
+static S2N_RESULT s2n_server_add_downgrade_mechanism(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
     uint8_t *downgrade_bytes = &conn->handshake_params.server_random[S2N_TLS_RANDOM_DATA_LEN - S2N_DOWNGRADE_PROTECTION_SIZE];
 
     /* Protect against downgrade attacks according to RFC 8446 section 4.1.3 */
     if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version == S2N_TLS12) {
         /* TLS1.3 servers MUST use a special random value when negotiating TLS1.2 */
-        POSIX_CHECKED_MEMCPY(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
+        RESULT_CHECKED_MEMCPY(downgrade_bytes, tls12_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
     } else if (conn->server_protocol_version >= S2N_TLS13 && conn->actual_protocol_version <= S2N_TLS11) {
         /* TLS1.3 servers MUST, use a special random value when negotiating TLS1.1 or below */
-        POSIX_CHECKED_MEMCPY(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
+        RESULT_CHECKED_MEMCPY(downgrade_bytes, tls11_downgrade_protection_bytes, S2N_DOWNGRADE_PROTECTION_SIZE);
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_server_hello_parse(struct s2n_connection *conn)
@@ -131,7 +131,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          **/
         POSIX_ENSURE(legacy_version == S2N_TLS12, S2N_ERR_INVALID_HELLO_RETRY);
 
-        POSIX_GUARD(s2n_set_hello_retry_required(conn));
+        POSIX_GUARD_RESULT(s2n_set_hello_retry_required(conn));
     }
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &session_id_len));
@@ -191,7 +191,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         POSIX_ENSURE(session_ids_match || (session_id_len == 0 && conn->session_id_len == 0), S2N_ERR_BAD_MESSAGE);
 
         conn->actual_protocol_version = conn->server_protocol_version;
-        POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+        POSIX_GUARD_RESULT(s2n_set_cipher_as_client(conn, cipher_suite_wire));
 
         /* Erase TLS 1.2 client session ticket which might have been set for session resumption */
         POSIX_GUARD(s2n_free(&conn->client_ticket));
@@ -241,7 +241,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         } else {
             conn->session_id_len = session_id_len;
             POSIX_CHECKED_MEMCPY(conn->session_id, session_id, session_id_len);
-            POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+            POSIX_GUARD_RESULT(s2n_set_cipher_as_client(conn, cipher_suite_wire));
             /* Erase master secret which might have been set for session resumption */
             POSIX_CHECKED_MEMSET((uint8_t *) conn->secrets.version.tls12.master_secret, 0, S2N_TLS_SECRET_LEN);
 
@@ -282,19 +282,19 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     }
 
     if (conn->actual_protocol_version < S2N_TLS13 && s2n_connection_is_session_resumed(conn)) {
-        POSIX_GUARD(s2n_prf_key_expansion(conn));
+        POSIX_GUARD_RESULT(s2n_prf_key_expansion(conn));
     }
 
     /* Update the required hashes for this connection */
-    POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));
+    POSIX_GUARD_RESULT(s2n_conn_update_required_handshake_hashes(conn));
 
     return 0;
 }
 
-int s2n_server_hello_write_message(struct s2n_connection *conn)
+S2N_RESULT s2n_server_hello_write_message(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
 
     /* The actual_protocol_version is set while processing the CLIENT_HELLO message, so
      * it could be S2N_TLS13. SERVER_HELLO should always respond with the legacy version.
@@ -304,14 +304,14 @@ int s2n_server_hello_write_message(struct s2n_connection *conn)
     protocol_version[0] = (uint8_t) (legacy_protocol_version / 10);
     protocol_version[1] = (uint8_t) (legacy_protocol_version % 10);
 
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, conn->session_id_len));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->session_id, conn->session_id_len));
-    POSIX_GUARD(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&conn->handshake.io, S2N_TLS_COMPRESSION_METHOD_NULL));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&conn->handshake.io, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&conn->handshake.io, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&conn->handshake.io, conn->session_id_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&conn->handshake.io, conn->session_id, conn->session_id_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&conn->handshake.io, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&conn->handshake.io, S2N_TLS_COMPRESSION_METHOD_NULL));
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 int s2n_server_hello_send(struct s2n_connection *conn)
@@ -331,11 +331,11 @@ int s2n_server_hello_send(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_get_public_random_data(&rand_data));
 
     /* Add a downgrade detection mechanism if required */
-    POSIX_GUARD(s2n_server_add_downgrade_mechanism(conn));
+    POSIX_GUARD_RESULT(s2n_server_add_downgrade_mechanism(conn));
 
-    POSIX_GUARD(s2n_server_hello_write_message(conn));
+    POSIX_GUARD_RESULT(s2n_server_hello_write_message(conn));
 
-    POSIX_GUARD(s2n_server_extensions_send(conn, &conn->handshake.io));
+    POSIX_GUARD_RESULT(s2n_server_extensions_send(conn, &conn->handshake.io));
 
     conn->actual_protocol_version_established = 1;
 

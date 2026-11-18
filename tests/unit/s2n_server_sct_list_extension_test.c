@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* should_send */

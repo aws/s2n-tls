@@ -53,7 +53,7 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     POSIX_ENSURE_REF(ecc_pref);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    POSIX_GUARD_RESULT(s2n_connection_get_kem_preferences(conn, &kem_pref));
     POSIX_ENSURE_REF(kem_pref);
 
     /* Group list len */
@@ -102,53 +102,53 @@ S2N_RESULT s2n_supported_groups_parse_count(struct s2n_stuffer *extension, uint1
 /* Populates the appropriate index of either the mutually_supported_curves or
  * mutually_supported_kem_groups array based on the received IANA ID. Will
  * ignore unrecognized IANA IDs (and return success). */
-static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn, uint16_t iana_id)
+static S2N_RESULT s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn, uint16_t iana_id)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    RESULT_ENSURE_REF(ecc_pref);
 
     for (size_t i = 0; i < ecc_pref->count; i++) {
         const struct s2n_ecc_named_curve *supported_curve = ecc_pref->ecc_curves[i];
         if (iana_id == supported_curve->iana_id) {
             conn->kex_params.mutually_supported_curves[i] = supported_curve;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
 
     /* Return early if PQ is disabled, or if TLS version is less than 1.3, so as to ignore PQ IDs */
     if (!s2n_pq_is_enabled() || s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return S2N_SUCCESS;
+        return S2N_RESULT_OK;
     }
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    POSIX_ENSURE_REF(kem_pref);
+    RESULT_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    RESULT_ENSURE_REF(kem_pref);
 
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_kem_group = kem_pref->tls13_kem_groups[i];
         if (s2n_kem_group_is_available(supported_kem_group) && iana_id == supported_kem_group->iana_id) {
             conn->kex_params.mutually_supported_kem_groups[i] = supported_kem_group;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_choose_supported_group(struct s2n_connection *conn)
+static S2N_RESULT s2n_choose_supported_group(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    RESULT_ENSURE_REF(ecc_pref);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    POSIX_ENSURE_REF(kem_pref);
+    RESULT_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
+    RESULT_ENSURE_REF(kem_pref);
 
     /* Ensure that only the intended group will be non-NULL (if no group is chosen, everything
      * should be NULL). */
@@ -166,7 +166,7 @@ static int s2n_choose_supported_group(struct s2n_connection *conn)
             conn->kex_params.server_kem_group_params.kem_group = candidate_kem_group;
             conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = candidate_kem_group->curve;
             conn->kex_params.server_kem_group_params.kem_params.kem = candidate_kem_group->kem;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
 
@@ -174,11 +174,11 @@ static int s2n_choose_supported_group(struct s2n_connection *conn)
         const struct s2n_ecc_named_curve *candidate_curve = conn->kex_params.mutually_supported_curves[i];
         if (candidate_curve != NULL) {
             conn->kex_params.server_ecc_evp_params.negotiated_curve = candidate_curve;
-            return S2N_SUCCESS;
+            return S2N_RESULT_OK;
         }
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
@@ -195,10 +195,10 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
     for (size_t i = 0; i < supported_groups_count; i++) {
         uint16_t iana_id = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &iana_id));
-        POSIX_GUARD(s2n_client_supported_groups_recv_iana_id(conn, iana_id));
+        POSIX_GUARD_RESULT(s2n_client_supported_groups_recv_iana_id(conn, iana_id));
     }
 
-    POSIX_GUARD(s2n_choose_supported_group(conn));
+    POSIX_GUARD_RESULT(s2n_choose_supported_group(conn));
 
     return S2N_SUCCESS;
 }

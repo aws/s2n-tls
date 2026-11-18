@@ -55,7 +55,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&hostname_stuffer, &hostname_blob));
         EXPECT_SUCCESS(s2n_stuffer_skip_write(&hostname_stuffer, hostname_blob.size));
         EXPECT_SUCCESS(s2n_stuffer_init(&output_stuffer, &output_blob));
-        EXPECT_SUCCESS(s2n_create_wildcard_hostname(&hostname_stuffer, &output_stuffer));
+        EXPECT_OK(s2n_create_wildcard_hostname(&hostname_stuffer, &output_stuffer));
 
         /* Make sure the wildcard generated matches the output we expect. */
         const uint32_t wildcard_len = s2n_stuffer_data_available(&output_stuffer);
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     test_cases[i].cert_path, test_cases[i].key_path));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_config_set_tls12_security_policy(config));
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));

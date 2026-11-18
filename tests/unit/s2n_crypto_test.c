@@ -25,7 +25,7 @@ int main()
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     /* Test s2n_connection_get_master_secret */
@@ -126,7 +126,7 @@ int main()
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
 
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
@@ -143,8 +143,8 @@ int main()
             memset(server->secrets.version.tls12.master_secret, 1, S2N_TLS_SECRET_LEN);
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
             EXPECT_EQUAL(server->actual_protocol_version, version);
 

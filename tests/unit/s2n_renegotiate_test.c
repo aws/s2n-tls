@@ -68,11 +68,11 @@ int main(int argc, char *argv[])
     BEGIN_TEST();
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     char dh_params[S2N_MAX_TEST_PEM_SIZE] = { 0 };
@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(config);
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+    EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 
             /* "io_pair" just uses file descriptors and the default io callbacks */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 #ifndef _WIN32
@@ -136,8 +136,8 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&out, &in, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&in, &out, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&out, &in, server_conn));
 #ifndef _WIN32
             EXPECT_NOT_EQUAL(client_conn->send, s2n_socket_write);
             EXPECT_NOT_EQUAL(client_conn->recv, s2n_socket_read);
@@ -168,8 +168,8 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&out, &in, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&in, &out, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&out, &in, server_conn));
 
             EXPECT_SUCCESS(s2n_connection_prefer_low_latency(client_conn));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -199,8 +199,8 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&out, &in, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&in, &out, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&out, &in, server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -230,7 +230,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -253,7 +253,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -279,7 +279,7 @@ int main(int argc, char *argv[])
         {
             DEFER_CLEANUP(struct s2n_config *small_frag_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(small_frag_config);
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(small_frag_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(small_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(small_frag_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(small_frag_config, "20240501"));
             EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(small_frag_config));
@@ -287,7 +287,7 @@ int main(int argc, char *argv[])
 
             DEFER_CLEANUP(struct s2n_config *larger_frag_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(larger_frag_config);
-            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(larger_frag_config));
+            EXPECT_OK(s2n_config_set_unsafe_for_testing(larger_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(larger_frag_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(larger_frag_config, "20240501"));
             EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(larger_frag_config));
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -336,8 +336,8 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -398,8 +398,8 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&out, &in, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&in, &out, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&out, &in, server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -407,7 +407,7 @@ int main(int argc, char *argv[])
             uint16_t partial_send_len = client_conn->max_outgoing_fragment_length / 2;
             DEFER_CLEANUP(struct s2n_stuffer small_out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_alloc(&small_out, partial_send_len));
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&small_out, client_conn));
+            EXPECT_OK(s2n_connection_set_send_io_stuffer(&small_out, client_conn));
             EXPECT_FAILURE_WITH_ERRNO(s2n_send(client_conn, large_app_data, sizeof(large_app_data), &blocked),
                     S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
@@ -415,7 +415,7 @@ int main(int argc, char *argv[])
             EXPECT_FAILURE_WITH_ERRNO(s2n_renegotiate_wipe(client_conn), S2N_ERR_INVALID_STATE);
 
             /* Finish the send */
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&out, client_conn));
+            EXPECT_OK(s2n_connection_set_send_io_stuffer(&out, client_conn));
             EXPECT_EQUAL(s2n_send(client_conn, large_app_data, sizeof(large_app_data), &blocked), sizeof(large_app_data));
 
             EXPECT_SUCCESS(s2n_renegotiate_wipe(client_conn));
@@ -435,8 +435,8 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&in, &out, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&out, &in, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&in, &out, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&out, &in, server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -516,7 +516,7 @@ int main(int argc, char *argv[])
         /* Setting the max fragment length will require modifying the client config */
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_config);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(client_config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
 
         /* The oldest version s2n-tls supports is SSLv3.
@@ -589,7 +589,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 

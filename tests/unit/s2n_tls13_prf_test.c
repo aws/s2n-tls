@@ -123,7 +123,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&throwaway));
 
     /* Validate the early secret */
-    EXPECT_SUCCESS(s2n_hkdf_extract(&throwaway, S2N_HMAC_SHA256, &salt, &ikm, &secret));
+    EXPECT_OK(s2n_hkdf_extract(&throwaway, S2N_HMAC_SHA256, &salt, &ikm, &secret));
     EXPECT_EQUAL(memcmp(secret_buf, expected_secret_bytes, sizeof(secret_buf)), 0);
 
     /* Validate the derived secret */
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
     struct s2n_hmac_state hmac = { 0 };
 
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
-    EXPECT_SUCCESS(s2n_hkdf_expand_label(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));
+    EXPECT_OK(s2n_hkdf_expand_label(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));
 
     EXPECT_EQUAL(memcmp(output_buf, expected_expanded_bytes, sizeof(output_buf)), 0);
 

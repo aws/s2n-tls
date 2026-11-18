@@ -88,7 +88,7 @@ static struct s2n_rand_device s2n_dev_urandom = {
 
 static int s2n_rand_init_cb_impl(void);
 static int s2n_rand_cleanup_cb_impl(void);
-static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size);
+static S2N_RESULT s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size);
 
 static int s2n_rand_entropy_fd_close_ptr(int *fd)
 {
@@ -156,7 +156,7 @@ static S2N_RESULT s2n_get_system_random_data(struct s2n_blob *blob)
     RESULT_GUARD_PTR(blob->data);
 
     /* This function sets s2n_errno on failure */
-    RESULT_GUARD_POSIX(s2n_rand_get_entropy_from_urandom(blob->data, blob->size));
+    RESULT_GUARD(s2n_rand_get_entropy_from_urandom(blob->data, blob->size));
 
     return S2N_RESULT_OK;
 }
@@ -235,10 +235,10 @@ S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
     return S2N_RESULT_OK;
 }
 
-static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
+static S2N_RESULT s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
 {
-    POSIX_ENSURE_REF(ptr);
-    POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+    RESULT_ENSURE_REF(ptr);
+    RESULT_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
     /* It's possible that the file descriptor pointing to /dev/urandom was closed or changed from
      * when it was last opened. Ensure that the file descriptor is still valid, and if it isn't,
@@ -249,7 +249,7 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
      * read.
      */
     if (s2n_result_is_error(s2n_rand_device_validate(&s2n_dev_urandom))) {
-        POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
+        RESULT_GUARD(s2n_rand_device_open(&s2n_dev_urandom));
     }
 
     uint8_t *data = ptr;
@@ -294,7 +294,7 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
         n -= r;
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /*

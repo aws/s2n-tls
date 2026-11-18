@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL, s2n_cert_chain_and_key_ptr_free);
 
     /* Note that this certificate will only be able to produce signatures with the secp256r1 curve */
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain, S2N_ECDSA_P256_PKCS1_CERT_CHAIN,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain, S2N_ECDSA_P256_PKCS1_CERT_CHAIN,
             S2N_ECDSA_P256_PKCS1_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(ecdsa_config, ecdsa_cert_chain));
 
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
     /* ML-DSA signature test: ML-DSA is supported only by TLS 1.3 */
     if (s2n_is_tls13_fully_supported() && s2n_mldsa_is_supported()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa_chain_and_key, S2N_MLDSA44_CERT, S2N_MLDSA44_KEY));
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&mldsa_chain_and_key, S2N_MLDSA44_CERT, S2N_MLDSA44_KEY));
 
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_config);

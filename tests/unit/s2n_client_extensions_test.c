@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
     /* Create nonblocking pipes */
     struct s2n_test_io_pair io_pair;
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
     /* Client doesn't use the server name extension. */
     {
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -663,7 +663,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -728,7 +728,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -789,7 +789,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -839,7 +839,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -901,7 +901,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS13;
         server_conn->client_protocol_version = S2N_TLS13;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
@@ -962,7 +962,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -1016,7 +1016,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -1071,7 +1071,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -1125,7 +1125,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -1179,7 +1179,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));
@@ -1231,7 +1231,7 @@ int main(int argc, char **argv)
         server_conn->server_protocol_version = S2N_TLS12;
         server_conn->client_protocol_version = S2N_TLS12;
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_OK(s2n_config_set_tls12_security_policy(server_config));

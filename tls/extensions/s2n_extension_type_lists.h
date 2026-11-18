@@ -23,4 +23,4 @@ typedef struct {
     const uint8_t count;
 } s2n_extension_type_list;
 
-int s2n_extension_type_list_get(s2n_extension_list_id list_type, s2n_extension_type_list **extension_type_list);
+S2N_RESULT s2n_extension_type_list_get(s2n_extension_list_id list_type, s2n_extension_type_list **extension_type_list);

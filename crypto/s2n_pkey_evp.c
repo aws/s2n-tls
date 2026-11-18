@@ -110,18 +110,18 @@ static EVP_PKEY_CTX *s2n_evp_pkey_ctx_new(EVP_PKEY *pkey, s2n_hash_algorithm has
  * Currently only awslc-fips meets both these requirements. New libcryptos
  * should be assumed not to meet these requirements until proven otherwise.
  */
-static int s2n_pkey_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
+static S2N_RESULT s2n_pkey_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
-    POSIX_ENSURE_REF(pctx);
-    POSIX_ENSURE_REF(hash_state);
-    POSIX_ENSURE_REF(signature);
+    RESULT_ENSURE_REF(pctx);
+    RESULT_ENSURE_REF(hash_state);
+    RESULT_ENSURE_REF(signature);
 
     /* Custom MD5_SHA1 involves combining separate MD5 and SHA1 hashes.
      * That involves two hash states instead of the single hash state this
      * method requires.
      */
-    POSIX_ENSURE(!s2n_hash_use_custom_md5_sha1(), S2N_ERR_SAFETY);
+    RESULT_ENSURE(!s2n_hash_use_custom_md5_sha1(), S2N_ERR_SAFETY);
 
     /* Not all implementations of EVP_MD_CTX_set_pkey_ctx behave as required
      * by this method. Using EVP_MD_CTX_set_pkey_ctx to convert a hash initialized
@@ -130,19 +130,19 @@ static int s2n_pkey_evp_digest_and_sign(EVP_PKEY_CTX *pctx, s2n_signature_algori
      *
      * However, this behavior is known to work with awslc-fips.
      */
-    POSIX_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
+    RESULT_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
-    POSIX_ENSURE_REF(ctx);
-    POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
+    RESULT_ENSURE_REF(ctx);
+    RESULT_GUARD(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
 
     size_t signature_size = signature->size;
-    POSIX_GUARD_OSSL(EVP_DigestSignFinal(ctx, signature->data, &signature_size), S2N_ERR_SIGN);
-    POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
+    RESULT_GUARD_OSSL(EVP_DigestSignFinal(ctx, signature->data, &signature_size), S2N_ERR_SIGN);
+    RESULT_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
-    POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, NULL));
+    RESULT_GUARD(s2n_evp_md_ctx_set_pkey_ctx(ctx, NULL));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* See s2n_evp_digest_and_sign for more information */
@@ -159,28 +159,28 @@ static bool s2n_pkey_evp_digest_and_sign_is_required(s2n_signature_algorithm sig
  * then sign the digest bytes. That is not allowed by FIPS 140-3, but is allowed
  * in all other cases.
  */
-static int s2n_pkey_evp_digest_then_sign(EVP_PKEY_CTX *pctx,
+static S2N_RESULT s2n_pkey_evp_digest_then_sign(EVP_PKEY_CTX *pctx,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
-    POSIX_ENSURE_REF(pctx);
-    POSIX_ENSURE_REF(hash_state);
-    POSIX_ENSURE_REF(signature);
+    RESULT_ENSURE_REF(pctx);
+    RESULT_ENSURE_REF(hash_state);
+    RESULT_ENSURE_REF(signature);
 
     uint8_t digest_length = 0;
-    POSIX_GUARD(s2n_hash_digest_size(hash_state->alg, &digest_length));
-    POSIX_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_state->alg, &digest_length));
+    RESULT_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
 
     uint8_t digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
-    POSIX_GUARD(s2n_hash_digest(hash_state, digest_out, digest_length));
+    RESULT_GUARD_POSIX(s2n_hash_digest(hash_state, digest_out, digest_length));
 
     size_t signature_size = signature->size;
-    POSIX_GUARD_OSSL(EVP_PKEY_sign(pctx, signature->data, &signature_size,
-                             digest_out, digest_length),
+    RESULT_GUARD_OSSL(EVP_PKEY_sign(pctx, signature->data, &signature_size,
+                              digest_out, digest_length),
             S2N_ERR_SIGN);
-    POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
+    RESULT_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_pkey_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
@@ -203,55 +203,55 @@ int s2n_pkey_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_a
     }
 
     if (s2n_pkey_evp_digest_and_sign_is_required(sig_alg)) {
-        POSIX_GUARD(s2n_pkey_evp_digest_and_sign(pctx, sig_alg, hash_state, signature));
+        POSIX_GUARD_RESULT(s2n_pkey_evp_digest_and_sign(pctx, sig_alg, hash_state, signature));
     } else {
-        POSIX_GUARD(s2n_pkey_evp_digest_then_sign(pctx, hash_state, signature));
+        POSIX_GUARD_RESULT(s2n_pkey_evp_digest_then_sign(pctx, hash_state, signature));
     }
 
     return S2N_SUCCESS;
 }
 
 /* See s2n_evp_digest_and_sign for more information */
-static int s2n_pkey_evp_digest_and_verify(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
+static S2N_RESULT s2n_pkey_evp_digest_and_verify(EVP_PKEY_CTX *pctx, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
-    POSIX_ENSURE_REF(pctx);
-    POSIX_ENSURE_REF(hash_state);
-    POSIX_ENSURE_REF(signature);
+    RESULT_ENSURE_REF(pctx);
+    RESULT_ENSURE_REF(hash_state);
+    RESULT_ENSURE_REF(signature);
 
     /* See digest-and-sign requirements */
-    POSIX_ENSURE(!s2n_hash_use_custom_md5_sha1(), S2N_ERR_SAFETY);
-    POSIX_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
+    RESULT_ENSURE(!s2n_hash_use_custom_md5_sha1(), S2N_ERR_SAFETY);
+    RESULT_ENSURE(s2n_libcrypto_is_awslc_fips(), S2N_ERR_SAFETY);
 
     EVP_MD_CTX *ctx = hash_state->digest.high_level.evp.ctx;
-    POSIX_ENSURE_REF(ctx);
-    POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
+    RESULT_ENSURE_REF(ctx);
+    RESULT_GUARD(s2n_evp_md_ctx_set_pkey_ctx(ctx, pctx));
 
-    POSIX_GUARD_OSSL(EVP_DigestVerifyFinal(ctx, signature->data, signature->size), S2N_ERR_VERIFY_SIGNATURE);
-    POSIX_GUARD_RESULT(s2n_evp_md_ctx_set_pkey_ctx(ctx, NULL));
+    RESULT_GUARD_OSSL(EVP_DigestVerifyFinal(ctx, signature->data, signature->size), S2N_ERR_VERIFY_SIGNATURE);
+    RESULT_GUARD(s2n_evp_md_ctx_set_pkey_ctx(ctx, NULL));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 /* See s2n_evp_digest_then_sign for more information */
-static int s2n_pkey_evp_digest_then_verify(EVP_PKEY_CTX *pctx,
+static S2N_RESULT s2n_pkey_evp_digest_then_verify(EVP_PKEY_CTX *pctx,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
-    POSIX_ENSURE_REF(pctx);
-    POSIX_ENSURE_REF(hash_state);
-    POSIX_ENSURE_REF(signature);
+    RESULT_ENSURE_REF(pctx);
+    RESULT_ENSURE_REF(hash_state);
+    RESULT_ENSURE_REF(signature);
 
     uint8_t digest_length = 0;
-    POSIX_GUARD(s2n_hash_digest_size(hash_state->alg, &digest_length));
-    POSIX_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
+    RESULT_GUARD_POSIX(s2n_hash_digest_size(hash_state->alg, &digest_length));
+    RESULT_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
 
     uint8_t digest_out[S2N_MAX_DIGEST_LEN] = { 0 };
-    POSIX_GUARD(s2n_hash_digest(hash_state, digest_out, digest_length));
+    RESULT_GUARD_POSIX(s2n_hash_digest(hash_state, digest_out, digest_length));
 
-    POSIX_GUARD_OSSL(EVP_PKEY_verify(pctx, signature->data, signature->size,
-                             digest_out, digest_length),
+    RESULT_GUARD_OSSL(EVP_PKEY_verify(pctx, signature->data, signature->size,
+                              digest_out, digest_length),
             S2N_ERR_VERIFY_SIGNATURE);
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_pkey_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
@@ -276,9 +276,9 @@ int s2n_pkey_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_
     }
 
     if (s2n_pkey_evp_digest_and_sign_is_required(sig_alg)) {
-        POSIX_GUARD(s2n_pkey_evp_digest_and_verify(pctx, sig_alg, hash_state, signature));
+        POSIX_GUARD_RESULT(s2n_pkey_evp_digest_and_verify(pctx, sig_alg, hash_state, signature));
     } else {
-        POSIX_GUARD(s2n_pkey_evp_digest_then_verify(pctx, hash_state, signature));
+        POSIX_GUARD_RESULT(s2n_pkey_evp_digest_then_verify(pctx, hash_state, signature));
     }
 
     return S2N_SUCCESS;

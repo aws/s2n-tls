@@ -22,7 +22,7 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_bitmap.h"
 
-int s2n_parse_client_hello(struct s2n_connection *conn);
+S2N_RESULT s2n_parse_client_hello(struct s2n_connection *conn);
 
 /* Compares two cert_authorities extension payloads as unordered sets of
  * DER-encoded names. X509_STORE object enumeration order is not specified
@@ -101,7 +101,7 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = NULL,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&cert_chain,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     s2n_extension_type_id temp_id = s2n_unsupported_extension;
@@ -265,7 +265,7 @@ int main(int argc, char **argv)
      */
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_alloc(&config->cert_authorities, 10));
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
         EXPECT_SUCCESS(s2n_client_hello_send(client));
-        EXPECT_SUCCESS(s2n_parse_client_hello(client));
+        EXPECT_OK(s2n_parse_client_hello(client));
         struct s2n_client_hello *client_hello = &client->client_hello;
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
      **/
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_OPTIONAL));
@@ -340,8 +340,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client, server, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);

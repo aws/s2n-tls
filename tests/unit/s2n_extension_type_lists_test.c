@@ -30,18 +30,18 @@ int main(int argc, char **argv)
 
         /* Safety checks */
         {
-            EXPECT_FAILURE(s2n_extension_type_list_get(0, NULL));
+            EXPECT_ERROR(s2n_extension_type_list_get(0, NULL));
 
             /* Should fail for a bad list type */
-            EXPECT_FAILURE(s2n_extension_type_list_get(-1, &list));
-            EXPECT_FAILURE(s2n_extension_type_list_get(S2N_EXTENSION_LIST_IDS_COUNT, &list));
+            EXPECT_ERROR(s2n_extension_type_list_get(-1, &list));
+            EXPECT_ERROR(s2n_extension_type_list_get(S2N_EXTENSION_LIST_IDS_COUNT, &list));
         };
 
         /* Can retrieve a list for every id */
         {
             for (size_t i = 0; i < S2N_EXTENSION_LIST_IDS_COUNT; i++) {
                 list = NULL;
-                EXPECT_SUCCESS(s2n_extension_type_list_get(i, &list));
+                EXPECT_OK(s2n_extension_type_list_get(i, &list));
                 EXPECT_NOT_NULL(list);
             }
         };

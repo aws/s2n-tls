@@ -24,16 +24,16 @@
 /* An empty list will just contain the uint16_t list size */
 #define S2N_EMPTY_EXTENSION_LIST_SIZE sizeof(uint16_t)
 
-int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+S2N_RESULT s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     uint32_t data_available_before_extensions = s2n_stuffer_data_available(out);
 
     if (s2n_is_hello_retry_message(conn)) {
-        POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, out));
+        RESULT_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, out));
     } else if (conn->actual_protocol_version >= S2N_TLS13) {
-        POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, out));
+        RESULT_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, out));
     } else {
-        POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, out));
+        RESULT_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, out));
     }
 
     /* The ServerHello extension list size (uint16_t) is NOT written if the list is empty.
@@ -46,16 +46,16 @@ int s2n_server_extensions_send(struct s2n_connection *conn, struct s2n_stuffer *
      * so will never produce an empty list.
      */
     if (s2n_stuffer_data_available(out) - data_available_before_extensions == S2N_EMPTY_EXTENSION_LIST_SIZE) {
-        POSIX_GUARD(s2n_stuffer_wipe_n(out, S2N_EMPTY_EXTENSION_LIST_SIZE));
+        RESULT_GUARD_POSIX(s2n_stuffer_wipe_n(out, S2N_EMPTY_EXTENSION_LIST_SIZE));
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     s2n_parsed_extensions_list parsed_extension_list = { 0 };
-    POSIX_GUARD(s2n_extension_list_parse(in, &parsed_extension_list));
+    POSIX_GUARD_RESULT(s2n_extension_list_parse(in, &parsed_extension_list));
 
     /**
      * Process supported_versions first so that we know which extensions list to use.
@@ -63,7 +63,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
      * - If the supported_versions extension does not exist, then the server_protocol_version will remain
      *   unknown and we will use the default list of allowed extension types.
      **/
-    POSIX_GUARD(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
+    POSIX_GUARD_RESULT(s2n_extension_process(&s2n_server_supported_versions_extension, conn, &parsed_extension_list));
 
     if (s2n_is_hello_retry_message(conn)) {
         /**
@@ -71,11 +71,11 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
          *# Otherwise, the client MUST process all extensions in the
          *# HelloRetryRequest
          */
-        POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, &parsed_extension_list));
+        POSIX_GUARD_RESULT(s2n_extension_list_process(S2N_EXTENSION_LIST_HELLO_RETRY_REQUEST, conn, &parsed_extension_list));
     } else if (conn->server_protocol_version >= S2N_TLS13) {
-        POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, &parsed_extension_list));
+        POSIX_GUARD_RESULT(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_TLS13, conn, &parsed_extension_list));
     } else {
-        POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, &parsed_extension_list));
+        POSIX_GUARD_RESULT(s2n_extension_list_process(S2N_EXTENSION_LIST_SERVER_HELLO_DEFAULT, conn, &parsed_extension_list));
     }
 
     return S2N_SUCCESS;

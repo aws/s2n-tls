@@ -143,12 +143,12 @@ static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
     return S2N_SUCCESS;
 }
 
-static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *p, struct s2n_blob *g,
+static S2N_RESULT s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *p, struct s2n_blob *g,
         struct s2n_blob *Ys)
 {
-    POSIX_ENSURE(p->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    POSIX_ENSURE(g->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    POSIX_ENSURE(Ys->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    RESULT_ENSURE(p->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    RESULT_ENSURE(g->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
+    RESULT_ENSURE(Ys->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     BIGNUM *bn_p = BN_bin2bn((const unsigned char *) p->data, p->size, NULL);
     BIGNUM *bn_g = BN_bin2bn((const unsigned char *) g->data, g->size, NULL);
     BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *) Ys->data, Ys->size, NULL);
@@ -157,25 +157,25 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
     /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
 	* values that have been passed in should not be freed directly after this function has been called
 	*/
-    POSIX_GUARD_OSSL(DH_set0_pqg(dh_params->dh, bn_p, NULL, bn_g), S2N_ERR_DH_PARAMS_CREATE);
+    RESULT_GUARD_OSSL(DH_set0_pqg(dh_params->dh, bn_p, NULL, bn_g), S2N_ERR_DH_PARAMS_CREATE);
 
     /* Same as DH_set0_pqg */
-    POSIX_GUARD_OSSL(DH_set0_key(dh_params->dh, bn_Ys, NULL), S2N_ERR_DH_PARAMS_CREATE);
+    RESULT_GUARD_OSSL(DH_set0_key(dh_params->dh, bn_Ys, NULL), S2N_ERR_DH_PARAMS_CREATE);
 #else
     dh_params->dh->p = bn_p;
     dh_params->dh->g = bn_g;
     dh_params->dh->pub_key = bn_Ys;
 #endif
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_check_all_dh_params(struct s2n_dh_params *dh_params)
+S2N_RESULT s2n_check_all_dh_params(struct s2n_dh_params *dh_params)
 {
-    POSIX_GUARD(s2n_check_p_g_dh_params(dh_params));
-    POSIX_GUARD(s2n_check_pub_key_dh_params(dh_params));
+    RESULT_GUARD_POSIX(s2n_check_p_g_dh_params(dh_params));
+    RESULT_GUARD_POSIX(s2n_check_pub_key_dh_params(dh_params));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkcs3)
@@ -220,15 +220,15 @@ int s2n_dh_p_g_Ys_to_dh_params(struct s2n_dh_params *server_dh_params, struct s2
     server_dh_params->dh = DH_new();
     POSIX_ENSURE(server_dh_params->dh != NULL, S2N_ERR_DH_PARAMS_CREATE);
 
-    POSIX_GUARD(s2n_set_p_g_Ys_dh_params(server_dh_params, p, g, Ys));
-    POSIX_GUARD(s2n_check_all_dh_params(server_dh_params));
+    POSIX_GUARD_RESULT(s2n_set_p_g_Ys_dh_params(server_dh_params, p, g, Ys));
+    POSIX_GUARD_RESULT(s2n_check_all_dh_params(server_dh_params));
 
     return S2N_SUCCESS;
 }
 
 int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *out, struct s2n_blob *output)
 {
-    POSIX_GUARD(s2n_check_all_dh_params(server_dh_params));
+    POSIX_GUARD_RESULT(s2n_check_all_dh_params(server_dh_params));
     POSIX_PRECONDITION(s2n_stuffer_validate(out));
     POSIX_PRECONDITION(s2n_blob_validate(output));
 
@@ -336,7 +336,7 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     int shared_key_size = 0;
     DEFER_CLEANUP(BIGNUM *pub_key = NULL, BN_free_pointer);
 
-    POSIX_GUARD(s2n_check_all_dh_params(server_dh_params));
+    POSIX_GUARD_RESULT(s2n_check_all_dh_params(server_dh_params));
     int server_dh_params_size = DH_size(server_dh_params->dh);
     POSIX_ENSURE(server_dh_params_size <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
 

@@ -171,10 +171,10 @@ int s2n_client_cert_send(struct s2n_connection *conn)
 
     if (chain_and_key == NULL) {
         POSIX_GUARD(s2n_conn_set_handshake_no_client_cert(conn));
-        POSIX_GUARD(s2n_send_empty_cert_chain(&conn->handshake.io));
+        POSIX_GUARD_RESULT(s2n_send_empty_cert_chain(&conn->handshake.io));
         return 0;
     }
 
-    POSIX_GUARD(s2n_send_cert_chain(conn, &conn->handshake.io, chain_and_key));
+    POSIX_GUARD_RESULT(s2n_send_cert_chain(conn, &conn->handshake.io, chain_and_key));
     return S2N_SUCCESS;
 }

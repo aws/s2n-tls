@@ -228,7 +228,7 @@ int main(int argc, char **argv)
     /* Self-talk tests for PQ only policies on supported libcryptos. */
     if (s2n_is_tls13_fully_supported() && s2n_libcrypto_supports_mlkem()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         /* Test a PQ-only policy is able to negotiate. */
@@ -249,7 +249,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -279,7 +279,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -294,14 +294,14 @@ int main(int argc, char **argv)
     /* Self-talk tests for `cnsa_2` and `cnsa_1_2_interop` policies on supported libcryptos. */
     if (s2n_is_tls13_fully_supported() && s2n_libcrypto_supports_mlkem() && s2n_mldsa_is_supported()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha384_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
         const char *ecdsa_sha384_cert = "../pems/permutations/ec_ecdsa_p384_sha384/server-chain.pem";
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa44_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa44_chain_and_key, S2N_MLDSA44_CERT, S2N_MLDSA44_KEY));
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&mldsa44_chain_and_key, S2N_MLDSA44_CERT, S2N_MLDSA44_KEY));
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
 
         DEFER_CLEANUP(struct s2n_config *cnsa2_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(cnsa2_config);
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 

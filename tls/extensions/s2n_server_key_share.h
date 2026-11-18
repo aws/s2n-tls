@@ -21,7 +21,7 @@
 
 extern const s2n_extension_type s2n_server_key_share_extension;
 
-int s2n_extensions_server_key_share_select(struct s2n_connection *conn);
+S2N_RESULT s2n_extensions_server_key_share_select(struct s2n_connection *conn);
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 int s2n_extensions_server_key_share_send_size(struct s2n_connection *conn);

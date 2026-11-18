@@ -172,11 +172,11 @@ static s2n_extension_type_list extension_lists[] = {
     [S2N_EXTENSION_LIST_EMPTY] = { .extension_types = NULL, .count = 0 },
 };
 
-int s2n_extension_type_list_get(s2n_extension_list_id list_type, s2n_extension_type_list **extension_list)
+S2N_RESULT s2n_extension_type_list_get(s2n_extension_list_id list_type, s2n_extension_type_list **extension_list)
 {
-    POSIX_ENSURE_REF(extension_list);
-    POSIX_ENSURE_LT(list_type, s2n_array_len(extension_lists));
+    RESULT_ENSURE_REF(extension_list);
+    RESULT_ENSURE_LT(list_type, s2n_array_len(extension_lists));
 
     *extension_list = &extension_lists[list_type];
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }

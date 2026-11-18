@@ -59,7 +59,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     struct s2n_test_io_pair io_pair;
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+    EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
     EXPECT_NOT_NULL(alligator_cert = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(alligator_key = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn = create_conn(S2N_SERVER, server_config));
         EXPECT_NOT_NULL(client_conn = create_conn(S2N_CLIENT, client_config));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_set_server_name(client_conn, "www.alligator.com"));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
         EXPECT_NOT_NULL(server_conn = create_conn(S2N_SERVER, server_config));
         EXPECT_NOT_NULL(client_conn = create_conn(S2N_CLIENT, client_config));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(IS_FULL_HANDSHAKE(server_conn));
@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         /* Config first uses s2n_config_add_cert_chain_and_key: library owns chain */
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&chain, "ec", "ecdsa",
+            EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&chain, "ec", "ecdsa",
                     "p384", "sha256"));
             struct s2n_cert *leaf = chain->cert_chain->head;
             EXPECT_EQUAL(leaf->info.self_signed, false);

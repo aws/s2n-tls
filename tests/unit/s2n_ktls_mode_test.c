@@ -27,7 +27,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
 
         EXPECT_FALSE(conn->ktls_recv_enabled);

@@ -29,7 +29,7 @@
 #define MAX_OUTPUT_SIZE          82
 #define MAX_PSEUDO_RAND_KEY_SIZE 64
 
-int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt, const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key);
+S2N_RESULT s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt, const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key);
 
 struct hkdf_test_vector {
     s2n_hmac_algorithm alg;
@@ -435,7 +435,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&prk_result, prk_pad, sizeof(prk_pad)));
         EXPECT_SUCCESS(s2n_blob_init(&out_result, output_pad, sizeof(output_pad)));
 
-        EXPECT_SUCCESS(s2n_hkdf_extract(&hmac, test->alg, &salt_blob, &in_key_blob, &prk_result));
+        EXPECT_OK(s2n_hkdf_extract(&hmac, test->alg, &salt_blob, &in_key_blob, &prk_result));
         EXPECT_EQUAL(memcmp(prk_pad, actual_prk_blob.data, actual_prk_blob.size), 0);
 
         /* The size of the PRK output should match the digest size */
@@ -443,19 +443,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_hmac_digest_size(test->alg, &digest_size));
         EXPECT_EQUAL(prk_result.size, digest_size);
 
-        EXPECT_SUCCESS(s2n_hkdf(&hmac, test->alg, &salt_blob, &in_key_blob, &info_blob, &out_result));
+        EXPECT_OK(s2n_hkdf(&hmac, test->alg, &salt_blob, &in_key_blob, &info_blob, &out_result));
         EXPECT_EQUAL(memcmp(output_pad, actual_output_blob.data, actual_output_blob.size), 0);
     }
 
     /* Ensure that the PRK output size can't be set beyond its max size */
     {
         s2n_stack_blob(small_prk_output, 10, 10);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &small_prk_output),
+        EXPECT_ERROR_WITH_ERRNO(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &small_prk_output),
                 S2N_ERR_HKDF_OUTPUT_SIZE);
 
         /* s2n_hkdf_extract succeeds with the correct output size */
         s2n_stack_blob(large_prk_output, SHA512_DIGEST_LENGTH, SHA512_DIGEST_LENGTH);
-        EXPECT_SUCCESS(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &large_prk_output));
+        EXPECT_OK(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &large_prk_output));
     }
 
     /* Ensure that the libcrypto HKDF implementation is supported when s2n-tls is linked with AWSLC-FIPS */
@@ -475,8 +475,8 @@ int main(int argc, char **argv)
 
     s2n_hmac_algorithm alg = S2N_HMAC_SHA1;
 
-    EXPECT_FAILURE(s2n_hkdf(&hmac, alg, &salt_blob, &in_key_blob, &info_blob, &error_out));
-    EXPECT_FAILURE(s2n_hkdf(&hmac, alg, &salt_blob, &in_key_blob, &info_blob, &zero_out));
+    EXPECT_ERROR(s2n_hkdf(&hmac, alg, &salt_blob, &in_key_blob, &info_blob, &error_out));
+    EXPECT_ERROR(s2n_hkdf(&hmac, alg, &salt_blob, &in_key_blob, &info_blob, &zero_out));
 
     EXPECT_SUCCESS(s2n_hmac_free(&hmac));
 

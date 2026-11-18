@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         /* Test: safety - NULL policy */
         {
             uint32_t length = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_length(NULL, S2N_POLICY_FORMAT_DEBUG_V1, &length),
                     S2N_ERR_NULL);
         };
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &policy));
             EXPECT_NOT_NULL(policy);
 
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, NULL),
                     S2N_ERR_NULL);
         };
@@ -68,7 +68,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             uint32_t length = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_length(policy, 999, &length),
                     S2N_ERR_INVALID_ARGUMENT);
         };
@@ -80,13 +80,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             uint32_t required_length = 0;
-            EXPECT_SUCCESS(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &required_length));
+            EXPECT_OK(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &required_length));
             EXPECT_TRUE(required_length > 0);
 
             DEFER_CLEANUP(struct s2n_blob exact_buffer = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&exact_buffer, required_length + 1));
             uint32_t output_size = 0;
-            EXPECT_SUCCESS(s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, exact_buffer.data, required_length, &output_size));
+            EXPECT_OK(s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, exact_buffer.data, required_length, &output_size));
             exact_buffer.data[required_length] = '\0';
 
             EXPECT_OK(s2n_verify_format_v1_output((const char *) exact_buffer.data));
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_blob small_buffer = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&small_buffer, required_length - 1));
             output_size = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, small_buffer.data, required_length - 1, &output_size),
                     S2N_ERR_INSUFFICIENT_MEM_SIZE);
         };
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
         {
             uint8_t buffer[1024] = { 0 };
             uint32_t output_size = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_bytes(NULL, S2N_POLICY_FORMAT_DEBUG_V1, buffer, sizeof(buffer), &output_size),
                     S2N_ERR_NULL);
         };
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             uint32_t output_size = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, NULL, 1024, &output_size),
                     S2N_ERR_NULL);
         };
@@ -132,7 +132,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             uint8_t buffer[1024] = { 0 };
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, buffer, sizeof(buffer), NULL),
                     S2N_ERR_NULL);
         };
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 
             uint8_t buffer[1024] = { 0 };
             uint32_t output_size = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_bytes(policy, 999, buffer, sizeof(buffer), &output_size),
                     S2N_ERR_INVALID_ARGUMENT);
         };
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
 
             uint8_t small_buffer[10] = { 0 };
             uint32_t output_size = 0;
-            EXPECT_FAILURE_WITH_ERRNO(
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, small_buffer, sizeof(small_buffer), &output_size),
                     S2N_ERR_INSUFFICIENT_MEM_SIZE);
         };
@@ -170,12 +170,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             uint32_t required_length = 0;
-            EXPECT_SUCCESS(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &required_length));
+            EXPECT_OK(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &required_length));
 
             DEFER_CLEANUP(struct s2n_blob buffer = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&buffer, required_length + 1));
             uint32_t output_size = 0;
-            EXPECT_SUCCESS(s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, buffer.data, required_length, &output_size));
+            EXPECT_OK(s2n_security_policy_write_bytes(policy, S2N_POLICY_FORMAT_DEBUG_V1, buffer.data, required_length, &output_size));
             EXPECT_EQUAL(output_size, required_length);
             buffer.data[required_length] = '\0';
 
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(policy);
 
             uint32_t expected_length = 0;
-            EXPECT_SUCCESS(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &expected_length));
+            EXPECT_OK(s2n_security_policy_write_length(policy, S2N_POLICY_FORMAT_DEBUG_V1, &expected_length));
 
             /* Use io_pair, which provides fds, to avoid filesystem dependencies in unit tests. */
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);

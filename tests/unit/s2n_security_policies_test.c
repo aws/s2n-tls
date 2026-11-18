@@ -37,23 +37,23 @@ static S2N_RESULT s2n_test_security_policies_compatible_for_policy(const struct 
 
     DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
             s2n_config_ptr_free);
-    RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(client_config));
+    RESULT_GUARD(s2n_config_set_unsafe_for_testing(client_config));
     RESULT_GUARD_POSIX(s2n_config_set_max_blinding_delay(client_config, 0));
 
     DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
             s2n_connection_ptr_free);
     RESULT_GUARD_POSIX(s2n_connection_set_config(server, server_config));
-    RESULT_GUARD_POSIX(s2n_connection_set_security_policy(server, other_policy));
+    RESULT_GUARD(s2n_connection_set_security_policy(server, other_policy));
 
     DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
             s2n_connection_ptr_free);
     RESULT_GUARD_POSIX(s2n_connection_set_config(client, client_config));
-    RESULT_GUARD_POSIX(s2n_connection_set_security_policy(client, policy));
+    RESULT_GUARD(s2n_connection_set_security_policy(client, policy));
 
     DEFER_CLEANUP(struct s2n_test_io_pair test_io_pair = { 0 },
             s2n_io_pair_close);
-    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(&test_io_pair));
-    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client, server, &test_io_pair));
+    RESULT_GUARD(s2n_io_pair_init_non_blocking(&test_io_pair));
+    RESULT_GUARD(s2n_connections_set_io_pair(client, server, &test_io_pair));
     RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server, client));
 
     return S2N_RESULT_OK;
@@ -119,22 +119,22 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha384_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
+    EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha384_chain_and_key, "ec", "ecdsa", "p384", "sha384"));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_sha256_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha256_chain_and_key, "ec", "ecdsa", "p256", "sha256"));
+    EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&ecdsa_sha256_chain_and_key, "ec", "ecdsa", "p256", "sha256"));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_pss_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     if (s2n_is_rsa_pss_certs_supported()) {
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
                 S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
     }
 
@@ -805,14 +805,14 @@ int main(int argc, char **argv)
             .ecc_curves = s2n_ecc_pref_list_test,
         };
 
-        EXPECT_FAILURE(s2n_check_ecc_preferences_curves_list(&s2n_ecc_preferences_new_list));
+        EXPECT_ERROR(s2n_check_ecc_preferences_curves_list(&s2n_ecc_preferences_new_list));
     }
 
     /* Positive and negative cases for s2n_validate_kem_preferences() */
     {
-        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(NULL, 0), S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, 1), S2N_ERR_INVALID_SECURITY_POLICY);
-        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_null, 0));
+        EXPECT_ERROR_WITH_ERRNO(s2n_validate_kem_preferences(NULL, 0), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_validate_kem_preferences(&kem_preferences_null, 1), S2N_ERR_INVALID_SECURITY_POLICY);
+        EXPECT_OK(s2n_validate_kem_preferences(&kem_preferences_null, 0));
 
         const struct s2n_kem_preferences invalid_kem_prefs[] = {
             {
@@ -836,10 +836,10 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i < s2n_array_len(invalid_kem_prefs); i++) {
-            EXPECT_FAILURE_WITH_ERRNO(s2n_validate_kem_preferences(&invalid_kem_prefs[i], 1), S2N_ERR_INVALID_SECURITY_POLICY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_validate_kem_preferences(&invalid_kem_prefs[i], 1), S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
-        EXPECT_SUCCESS(s2n_validate_kem_preferences(&kem_preferences_pq_tls_1_3_ietf_2025_07, 0));
+        EXPECT_OK(s2n_validate_kem_preferences(&kem_preferences_pq_tls_1_3_ietf_2025_07, 0));
     }
 
     /* Checks that NUM_RSA_PSS_SCHEMES accurately represents the number of rsa_pss signature schemes usable in a
@@ -1025,13 +1025,13 @@ int main(int argc, char **argv)
             /* 20260513 */
             if (s2n_mldsa_is_supported()) {
                 DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+                EXPECT_OK(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
                 /* 20260513 supports ML-DSA-87 certs */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", mldsa87_chain_and_key));
 
                 /* Mixed cert chain (e.g. P-256 root → ML-DSA-87 leaf) should also work with 20260513 */
                 DEFER_CLEANUP(struct s2n_cert_chain_and_key *p256_mldsa87_chain = NULL, s2n_cert_chain_and_key_ptr_free);
-                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&p256_mldsa87_chain,
+                EXPECT_OK(s2n_test_cert_chain_and_key_new(&p256_mldsa87_chain,
                         "../pems/mixed_chains/p256_root_mldsa87_leaf/server-chain.pem",
                         "../pems/mixed_chains/p256_root_mldsa87_leaf/server-key.pem"));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260513, "20260513", p256_mldsa87_chain));
@@ -1049,7 +1049,7 @@ int main(int argc, char **argv)
             /* ELB CNSA 2.0 interop policies */
             if (s2n_mldsa_is_supported()) {
                 DEFER_CLEANUP(struct s2n_cert_chain_and_key *mldsa87_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
+                EXPECT_OK(s2n_test_cert_chain_and_key_new(&mldsa87_chain_and_key, S2N_MLDSA87_CERT, S2N_MLDSA87_KEY));
 
                 /* Handshake with each other using ML-DSA-87 certs */
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20260220, "20260720", mldsa87_chain_and_key));

@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 
     /* Load the RSA cert */
     struct s2n_cert_chain_and_key *rsa_cert_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
 
     s2n_stack_blob(result, HASH_LENGTH, HASH_LENGTH);
@@ -202,7 +202,7 @@ int main(int argc, char **argv)
 #if RSA_PSS_CERTS_SUPPORTED
 
     struct s2n_cert_chain_and_key *rsa_pss_cert_chain = NULL;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
             S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
 
     /* Self-Talk tests */

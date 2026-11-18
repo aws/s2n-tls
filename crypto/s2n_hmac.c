@@ -94,31 +94,31 @@ static int s2n_sslv3_mac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm a
     return S2N_SUCCESS;
 }
 
-static int s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
+static S2N_RESULT s2n_tls_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const void *key, uint32_t klen)
 {
     memset(&state->xor_pad, 0, sizeof(state->xor_pad));
 
     if (klen > state->xor_pad_size) {
-        POSIX_GUARD(s2n_hash_update(&state->outer, key, klen));
-        POSIX_GUARD(s2n_hash_digest(&state->outer, state->digest_pad, state->digest_size));
-        POSIX_CHECKED_MEMCPY(state->xor_pad, state->digest_pad, state->digest_size);
+        RESULT_GUARD_POSIX(s2n_hash_update(&state->outer, key, klen));
+        RESULT_GUARD_POSIX(s2n_hash_digest(&state->outer, state->digest_pad, state->digest_size));
+        RESULT_CHECKED_MEMCPY(state->xor_pad, state->digest_pad, state->digest_size);
     } else {
-        POSIX_CHECKED_MEMCPY(state->xor_pad, key, klen);
+        RESULT_CHECKED_MEMCPY(state->xor_pad, key, klen);
     }
 
     for (int i = 0; i < state->xor_pad_size; i++) {
         state->xor_pad[i] ^= 0x36;
     }
 
-    POSIX_GUARD(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->xor_pad_size));
+    RESULT_GUARD_POSIX(s2n_hash_update(&state->inner_just_key, state->xor_pad, state->xor_pad_size));
 
     /* 0x36 xor 0x5c == 0x6a */
     for (int i = 0; i < state->xor_pad_size; i++) {
         state->xor_pad[i] ^= 0x6a;
     }
 
-    POSIX_GUARD(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
-    return S2N_SUCCESS;
+    RESULT_GUARD_POSIX(s2n_hash_update(&state->outer_just_key, state->xor_pad, state->xor_pad_size));
+    return S2N_RESULT_OK;
 }
 
 int s2n_hmac_xor_pad_size(s2n_hmac_algorithm hmac_alg, uint16_t *xor_pad_size)
@@ -206,7 +206,7 @@ int s2n_hmac_init(struct s2n_hmac_state *state, s2n_hmac_algorithm alg, const vo
     if (alg == S2N_HMAC_SSLv3_SHA1 || alg == S2N_HMAC_SSLv3_MD5) {
         POSIX_GUARD(s2n_sslv3_mac_init(state, alg, key, klen));
     } else {
-        POSIX_GUARD(s2n_tls_hmac_init(state, alg, key, klen));
+        POSIX_GUARD_RESULT(s2n_tls_hmac_init(state, alg, key, klen));
     }
 
     /* Once we have produced inner_just_key and outer_just_key, don't need the key material in xor_pad, so wipe it.

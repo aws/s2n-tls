@@ -146,7 +146,7 @@ int main(int argc, char **argv)
         0xcb, 0x04 };
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
         initialize_cache();
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -244,7 +244,7 @@ int main(int argc, char **argv)
         initialize_cache();
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -292,7 +292,7 @@ int main(int argc, char **argv)
         initialize_cache();
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
@@ -335,7 +335,7 @@ int main(int argc, char **argv)
         initialize_cache();
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate until server has read the Client Hello message but hasn't written the server hello message */
         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
@@ -375,8 +375,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
 
         /* Server will block the first time cache is accessed */
@@ -406,7 +406,7 @@ int main(int argc, char **argv)
         initialize_cache();
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
@@ -416,7 +416,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Connection is successful and EMS is negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -432,8 +432,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Force the client to not send the EMS extension */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
@@ -461,7 +461,7 @@ int main(int argc, char **argv)
         initialize_cache();
 
         struct s2n_test_io_pair io_pair;
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
 
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
@@ -471,7 +471,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate until server has read the Client Hello message but hasn't written the Server Hello message */
         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
@@ -501,8 +501,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Force the client to send the EMS extension even though the original session did not negotiate EMS */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));

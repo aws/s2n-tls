@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 
         /* Setup config */
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
             };
 
             /* We expect to succeed because the cipher was offered by the client */
-            EXPECT_SUCCESS(s2n_set_cipher_as_client(conn, valid_wire_ciphers));
+            EXPECT_OK(s2n_set_cipher_as_client(conn, valid_wire_ciphers));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         };
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
             };
 
             /* We expect to fail because the cipher was not offered by the client */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_client(conn, invalid_wire_ciphers), S2N_ERR_CIPHER_NOT_SUPPORTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_set_cipher_as_client(conn, invalid_wire_ciphers), S2N_ERR_CIPHER_NOT_SUPPORTED);
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         };
@@ -119,7 +119,7 @@ int main(int argc, char **argv)
 
                 /* S2N_HMAC_SHA1 is not a matching hmac algorithm */
                 conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA1;
-                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_client(conn, valid_tls13_wire_ciphers),
+                EXPECT_ERROR_WITH_ERRNO(s2n_set_cipher_as_client(conn, valid_tls13_wire_ciphers),
                         S2N_ERR_CIPHER_NOT_SUPPORTED);
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_null_cipher_suite);
 
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
                 /* S2N_HMAC_SHA256 is a matching hmac algorithm for the cipher suite present in valid_tls13_wire_ciphers */
                 conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA256;
-                EXPECT_SUCCESS(s2n_set_cipher_as_client(conn, valid_tls13_wire_ciphers));
+                EXPECT_OK(s2n_set_cipher_as_client(conn, valid_tls13_wire_ciphers));
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
 
         /* TEST RSA */
         conn->actual_protocol_version = S2N_TLS10;
-        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
+        EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all"));
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
@@ -303,7 +303,7 @@ int main(int argc, char **argv)
          *#    set the secure_renegotiation flag to TRUE.
          */
         conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
+        EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_renegotiation, cipher_count_renegotiation));
         EXPECT_EQUAL(conn->secure_renegotiation, 1);
         EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all"));
         EXPECT_EQUAL(-1, s2n_connection_is_valid_for_cipher_preferences(conn, "not_exist"));
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 
         /* Simulate a TLSv11 client to trigger the fallback error */
         conn->actual_protocol_version = S2N_TLS11;
-        EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers_fallback, cipher_count_fallback));
+        EXPECT_ERROR(s2n_set_cipher_as_tls_server(conn, wire_ciphers_fallback, cipher_count_fallback));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2018"));
@@ -330,7 +330,7 @@ int main(int argc, char **argv)
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
         conn->actual_protocol_version = conn->server_protocol_version;
         const struct s2n_cipher_suite *expected_rsa_wire_choice = &s2n_ecdhe_rsa_with_aes_128_cbc_sha;
-        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+        EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(conn->secure->cipher_suite, expected_rsa_wire_choice);
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
         /* Assume default for negotiated curve. */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
         conn->actual_protocol_version = conn->server_protocol_version;
-        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+        EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(conn->secure->cipher_suite, expected_ecdsa_wire_choice);
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
         /* Assume default for negotiated curve. */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
         conn->actual_protocol_version = conn->server_protocol_version;
-        EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+        EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(conn->secure->cipher_suite, expected_ecdsa_wire_choice);
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -383,7 +383,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -396,7 +396,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -412,7 +412,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -427,7 +427,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -445,7 +445,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -460,7 +460,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_only_ecdsa, cipher_count_only_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_only_ecdsa, cipher_count_only_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -480,7 +480,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_rsa_fallback, cipher_count_rsa_fallback));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_rsa_fallback, cipher_count_rsa_fallback));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -502,7 +502,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -519,7 +519,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -536,7 +536,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -561,7 +561,7 @@ int main(int argc, char **argv)
             conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
             conn->actual_protocol_version = conn->server_protocol_version;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_ecdsa, cipher_count_ecdsa));
             EXPECT_EQUAL(conn->secure_renegotiation, 0);
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -581,7 +581,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
             EXPECT_EQUAL(conn->secure->cipher_suite, tls12_cipher_suite);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         };
@@ -604,7 +604,7 @@ int main(int argc, char **argv)
                 conn->client_protocol_version = S2N_TLS13;
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->server_protocol_version = S2N_TLS13;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
                 EXPECT_EQUAL(conn->secure->cipher_suite, test_cases[i].expected_cipher_wire);
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
             }
@@ -626,10 +626,10 @@ int main(int argc, char **argv)
             conn->server_protocol_version = S2N_TLS13;
 
             if (s2n_chacha20_poly1305.is_available()) {
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
             } else {
-                EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
+                EXPECT_ERROR(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
             }
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         };
@@ -646,7 +646,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
 
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, count));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, count));
             EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
         };
@@ -669,11 +669,11 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS10;
 
                 /* If a match exists, skip the invalid cipher and choose it */
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 3));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 3));
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_128_cbc_sha);
 
                 /* If a match does not exist, choose the invalid cipher */
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -692,12 +692,12 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS12;
 
                 /* If a match exists, skip the invalid cipher and choose it */
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_128_gcm_sha256);
 
                 /* If a match does not exist, fail to negotiate a cipher suite.
                  * We cannot fall back to the TLS1.3 choice. */
-                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 1),
+                EXPECT_ERROR_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 1),
                         S2N_ERR_CIPHER_NOT_SUPPORTED);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -716,12 +716,12 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS13;
 
                 /* If a match exists, skip the invalid cipher and choose it */
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 2));
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
                 /* If a match does not exist, fail to negotiate a cipher suite.
                  * We cannot fall back to the TLS1.2 choice. */
-                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 1),
+                EXPECT_ERROR_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, test_wire_ciphers, 1),
                         S2N_ERR_CIPHER_NOT_SUPPORTED);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -745,11 +745,11 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
 
                 conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA256;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
                 EXPECT_EQUAL(conn->secure->cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
                 conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA384;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13));
                 EXPECT_EQUAL(conn->secure->cipher_suite->prf_alg, conn->psk_params.chosen_psk->hmac_alg);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -765,7 +765,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_conn_set_chosen_psk(conn));
                 conn->psk_params.chosen_psk->hmac_alg = S2N_HMAC_SHA1;
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13),
+                EXPECT_ERROR_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, wire_ciphers_with_tls13, cipher_count_tls13),
                         S2N_ERR_CIPHER_NOT_SUPPORTED);
 
                 EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -783,7 +783,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             conn->client_protocol_version = S2N_TLS13;
             conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, invalid_cipher_pref, invalid_cipher_count), S2N_ERR_CIPHER_NOT_SUPPORTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, invalid_cipher_pref, invalid_cipher_count), S2N_ERR_CIPHER_NOT_SUPPORTED);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         };
@@ -804,12 +804,12 @@ int main(int argc, char **argv)
             uint8_t wire[] = { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 };
 
             /* By default, the server does not accept cipher suites with dh kex. */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(server, wire, 1),
+            EXPECT_ERROR_WITH_ERRNO(s2n_set_cipher_as_tls_server(server, wire, 1),
                     S2N_ERR_CIPHER_NOT_SUPPORTED);
 
             /* With dh params configured, the server accepts cipher suites with dh kex. */
             EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(server, wire, 1));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(server, wire, 1));
             EXPECT_EQUAL(server->secure->cipher_suite, &s2n_dhe_rsa_with_aes_128_gcm_sha256);
         };
 
@@ -839,9 +839,9 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
         struct s2n_cert_chain_and_key *rsa_cert = NULL;
         struct s2n_cert_chain_and_key *ecdsa_cert = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&rsa_cert,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&ecdsa_cert,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         EXPECT_NOT_NULL(rsa_cert);
@@ -858,7 +858,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(connection);
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
                 DEFER_CLEANUP(struct s2n_config *rsa_only_config = s2n_config_new(), s2n_config_ptr_free);
                 EXPECT_NOT_NULL(rsa_only_config);
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(rsa_only_config, rsa_cert));
@@ -892,13 +892,13 @@ int main(int argc, char **argv)
 
                 /* Verify chacha20 RSA ciphersuite chosen with chacha20 boosting enabled */
                 cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256);
 
                 /* Sanity check: non-chacha20 RSA ciphersuite chosen without chacha20 boosting enabled */
                 /* cppcheck-suppress redundantAssignment */
                 cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_256_gcm_sha384);
             };
 
@@ -908,7 +908,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(connection);
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
                 EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
@@ -937,12 +937,12 @@ int main(int argc, char **argv)
                 uint8_t count = sizeof(wire) / S2N_TLS_CIPHER_SUITE_LEN;
 
                 /* Verify most preferred chacha20 ciphersuite is chosen with chacha20 boosting enabled */
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256);
 
                 /* Sanity check: server's most preferred cipehrsuite is chosen when chacha20 boosting is off */
                 cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_256_cbc_sha384);
             };
 
@@ -952,7 +952,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(connection);
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
                 EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
@@ -980,13 +980,13 @@ int main(int argc, char **argv)
 
                 /* Verify server selects its second most preferred chacha20 ciphersuite */
                 cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256);
 
                 /* Sanity check: server's most preferred ciphersuite is chosen without chacha20 boosting enabled */
                 /* cppcheck-suppress redundantAssignment */
                 cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256);
             };
 
@@ -996,7 +996,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(connection);
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
                 EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
@@ -1026,13 +1026,13 @@ int main(int argc, char **argv)
 
                 /* Verify client's second preferred (ecdhe_rsa_chacha20) is negotiated when chacha20 boosting enabled */
                 cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256);
 
                 /* Sanity check: server's most preferred ciphersuite is chosen without chacha20 boosting enabled */
                 /* cppcheck-suppress redundantAssignment */
                 cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_aes_256_cbc_sha384);
             };
 
@@ -1043,7 +1043,7 @@ int main(int argc, char **argv)
 
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
 
                 EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
@@ -1070,7 +1070,7 @@ int main(int argc, char **argv)
 
                 /* Verify that client negotiates non-chacha20 ciphersuite when chacha20 boosting is not signalled by client */
                 cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256);
             };
 
@@ -1081,7 +1081,7 @@ int main(int argc, char **argv)
 
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS13));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS13));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
                     /* Most preferred ciphersuite. If chacha20 boosting behaviour is on then this can't be negotiated. */
@@ -1110,13 +1110,13 @@ int main(int argc, char **argv)
 
                 cipher_preferences.allow_chacha20_boosting = true;
                 /* Verify that client negotiates chacha20 when chacha20 boosting is on */
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, test_wire_1, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, test_wire_1, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
 
                 /* Sanity check: server's most preferred ciphersuite is chosen without chacha20 boosting enabled */
                 /* cppcheck-suppress redundantAssignment */
                 cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, test_wire_1, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, test_wire_1, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
 
                 /*
@@ -1134,7 +1134,7 @@ int main(int argc, char **argv)
                 /* Verify that client negotiates server preferred non-chacha20 aes_256 when client did not signal */
                 /* cppcheck-suppress redundantAssignment */
                 cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, test_wire_2, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, test_wire_2, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
             };
 
@@ -1145,7 +1145,7 @@ int main(int argc, char **argv)
 
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS13));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS13));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
                     /* Negotiated (only available option) */
@@ -1165,7 +1165,7 @@ int main(int argc, char **argv)
                 uint8_t count = sizeof(wire) / S2N_TLS_CIPHER_SUITE_LEN;
 
                 /* Verify server can still negotiate chacha20 if it's the only option even when chacha20 boosting is off */
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
             };
 
@@ -1178,7 +1178,7 @@ int main(int argc, char **argv)
 
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_SSLv2));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_SSLv2));
                 EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
@@ -1220,7 +1220,7 @@ int main(int argc, char **argv)
                  * ecdhe_ecdsa_with_aes_128_cbc is offered by both the client and server and only fails the minimum required version check,
                  * then we save this ciphersuite as a higher_vers_match and continue.
                  */
-                EXPECT_SUCCESS(s2n_set_cipher_as_sslv2_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_sslv2_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
             };
 
@@ -1232,7 +1232,7 @@ int main(int argc, char **argv)
 
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS13));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS13));
 
                 static struct s2n_cipher_suite *test_cipher_suite_list[] = {
                     /* Negotiated because it is the server's most preferred */
@@ -1259,7 +1259,7 @@ int main(int argc, char **argv)
 
                 /* Verify that server is able to negotiate aes_128 even without any chacha20 ciphersuites in its preferences */
                 cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_tls13_aes_128_gcm_sha256);
                 EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             };
@@ -1271,7 +1271,7 @@ int main(int argc, char **argv)
 
                 connection->security_policy_override = &security_policy;
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-                EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
+                EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
 
                 EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
@@ -1302,13 +1302,13 @@ int main(int argc, char **argv)
 
                 /* Verify server negotiates second preferred chacha20 ciphersuite ecdhe_rsa_chacha20 */
                 cipher_preferences.allow_chacha20_boosting = true;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256);
 
                 /* Sanity check: server's most preferred ciphersuite is chosen without chacha20 boosting enabled */
                 /* cppcheck-suppress redundantAssignment */
                 cipher_preferences.allow_chacha20_boosting = false;
-                EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+                EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
                 EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256);
             };
         }
@@ -1319,7 +1319,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(connection);
             connection->security_policy_override = &security_policy;
             connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
-            EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
+            EXPECT_OK(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
             EXPECT_SUCCESS(s2n_connection_set_config(connection, server_config));
 
             static struct s2n_cipher_suite *test_cipher_suite_list[] = {
@@ -1349,7 +1349,7 @@ int main(int argc, char **argv)
 
             /* Verify that server negotiated non-chacha20 ciphersuite ecdhe_ecdsa_aes_128 */
             cipher_preferences.allow_chacha20_boosting = true;
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(connection, wire, count));
+            EXPECT_OK(s2n_set_cipher_as_tls_server(connection, wire, count));
             EXPECT_EQUAL(connection->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256);
         }
 

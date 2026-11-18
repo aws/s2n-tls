@@ -250,7 +250,7 @@ int main(int argc, char **argv)
     /* s2n_connection_set_cipher_preferences */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
 
         /* when certificate preferences apply locally and the connection contains
          * an invalid config then s2n_connection_set_cipher_preferences fails
@@ -270,7 +270,7 @@ int main(int argc, char **argv)
     /* s2n_config invariant: always respects config->security_policy cert preferences */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert,
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&invalid_cert,
                 "ec", "ecdsa", "p384", "sha256"));
 
         /* configure security policy then load an invalid cert */
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
     if (!s2n_libcrypto_is_openssl_fips()) {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
         /* use a very insecure cert that would not be included in any reasonable cert preferences */
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "1024", "sha1"));
+        EXPECT_OK(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "1024", "sha1"));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));

@@ -38,7 +38,7 @@ int s2n_encrypted_extensions_send(struct s2n_connection *conn)
     POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
 
     struct s2n_stuffer *out = &conn->handshake.io;
-    POSIX_GUARD(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS, conn, out));
+    POSIX_GUARD_RESULT(s2n_extension_list_send(S2N_EXTENSION_LIST_ENCRYPTED_EXTENSIONS, conn, out));
     return S2N_SUCCESS;
 }
 

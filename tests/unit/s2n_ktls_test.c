@@ -591,7 +591,7 @@ int main(int argc, char **argv)
                 s2n_config_ptr_free);
 
         /* setup config */
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
@@ -603,8 +603,8 @@ int main(int argc, char **argv)
         /* setup IO and negotiate */
         DEFER_CLEANUP(struct s2n_test_io_pair test_io_pair = { 0 },
                 s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&test_io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &test_io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&test_io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &test_io_pair));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
 

@@ -47,11 +47,11 @@ typedef enum {
     S2N_EXTENSION_LIST_IDS_COUNT,
 } s2n_extension_list_id;
 
-int s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out);
+S2N_RESULT s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out);
 int s2n_extension_list_recv(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *in);
 
-int s2n_extension_process(const s2n_extension_type *extension_type, struct s2n_connection *conn,
+S2N_RESULT s2n_extension_process(const s2n_extension_type *extension_type, struct s2n_connection *conn,
         s2n_parsed_extensions_list *parsed_extension_list);
-int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_connection *conn,
+S2N_RESULT s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_connection *conn,
         s2n_parsed_extensions_list *parsed_extension_list);
-int s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list *parsed_extension_list);
+S2N_RESULT s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list *parsed_extension_list);

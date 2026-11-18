@@ -161,7 +161,7 @@ int main(int argc, char *argv[])
     /* Test s2n_cert_validation_callback */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         /* clang-format off */
@@ -309,7 +309,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -355,7 +355,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -393,7 +393,7 @@ int main(int argc, char *argv[])
             EXPECT_TRUE(ocsp_response_len > 0);
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *ocsp_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ocsp_chain_and_key,
+            EXPECT_OK(s2n_test_cert_chain_and_key_new(&ocsp_chain_and_key,
                     S2N_OCSP_SERVER_CERT, S2N_OCSP_SERVER_KEY));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(ocsp_chain_and_key, ocsp_response, ocsp_response_len));
 
@@ -423,7 +423,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -470,7 +470,7 @@ int main(int argc, char *argv[])
                 EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
                 EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
@@ -538,7 +538,7 @@ int main(int argc, char *argv[])
                 EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
                 EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 

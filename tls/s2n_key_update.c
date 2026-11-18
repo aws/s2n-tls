@@ -27,8 +27,8 @@
 
 static s2n_peer_key_update key_update_request_val = S2N_KEY_UPDATE_NOT_REQUESTED;
 
-int s2n_key_update_write(struct s2n_blob *out);
-int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
+S2N_RESULT s2n_key_update_write(struct s2n_blob *out);
+S2N_RESULT s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number);
 
 S2N_RESULT s2n_set_key_update_request_for_testing(s2n_peer_key_update request)
 {
@@ -67,18 +67,18 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     return S2N_SUCCESS;
 }
 
-int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
+S2N_RESULT s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
     struct s2n_blob sequence_number = { 0 };
-    POSIX_GUARD_RESULT(s2n_connection_get_sequence_number(conn, conn->mode, &sequence_number));
-    POSIX_GUARD(s2n_check_record_limit(conn, &sequence_number));
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &sequence_number));
+    RESULT_GUARD(s2n_check_record_limit(conn, &sequence_number));
 
     if (s2n_atomic_flag_test(&conn->key_update_pending)) {
-        POSIX_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_KEYUPDATE);
+        RESULT_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_KEYUPDATE);
 
         /* Flush any buffered records to ensure an empty output buffer.
          *
@@ -87,57 +87,57 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
          * 2) Check if there is sufficient space in the output buffer for
          *    post-handshake messages.
          */
-        POSIX_GUARD(s2n_flush(conn, blocked));
+        RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
 
         uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE] = { 0 };
         struct s2n_blob key_update_blob = { 0 };
-        POSIX_GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+        RESULT_GUARD_POSIX(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
 
         /* Write key update message */
-        POSIX_GUARD(s2n_key_update_write(&key_update_blob));
+        RESULT_GUARD(s2n_key_update_write(&key_update_blob));
 
         /* Encrypt the message */
-        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_HANDSHAKE, &key_update_blob));
+        RESULT_GUARD(s2n_record_write(conn, TLS_HANDSHAKE, &key_update_blob));
 
         /* Update encryption key */
-        POSIX_GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
+        RESULT_GUARD_POSIX(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
 
         s2n_atomic_flag_clear(&conn->key_update_pending);
-        POSIX_GUARD(s2n_flush(conn, blocked));
+        RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_key_update_write(struct s2n_blob *out)
+S2N_RESULT s2n_key_update_write(struct s2n_blob *out)
 {
-    POSIX_ENSURE_REF(out);
+    RESULT_ENSURE_REF(out);
 
     struct s2n_stuffer key_update_stuffer = { 0 };
-    POSIX_GUARD(s2n_stuffer_init(&key_update_stuffer, out));
-    POSIX_GUARD(s2n_stuffer_write_uint8(&key_update_stuffer, TLS_KEY_UPDATE));
-    POSIX_GUARD(s2n_stuffer_write_uint24(&key_update_stuffer, S2N_KEY_UPDATE_LENGTH));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&key_update_stuffer, out));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&key_update_stuffer, TLS_KEY_UPDATE));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint24(&key_update_stuffer, S2N_KEY_UPDATE_LENGTH));
 
     /* s2n currently does not require peers to update their encryption keys. */
-    POSIX_GUARD(s2n_stuffer_write_uint8(&key_update_stuffer, key_update_request_val));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&key_update_stuffer, key_update_request_val));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number)
+S2N_RESULT s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequence_number)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(sequence_number);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite);
-    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(sequence_number);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
 
     /*
      * This is the sequence number that will be used for the next record,
      * because we incremented the sequence number after sending the last record.
      */
     uint64_t next_seq_num = 0;
-    POSIX_GUARD(s2n_sequence_number_to_uint64(sequence_number, &next_seq_num));
+    RESULT_GUARD(s2n_sequence_number_to_uint64(sequence_number, &next_seq_num));
 
     /*
      * If the next record is the last record we can send, then the next record needs
@@ -149,7 +149,7 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
         s2n_atomic_flag_set(&conn->key_update_pending);
     }
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_connection_request_key_update(struct s2n_connection *conn, s2n_peer_key_update peer_request)

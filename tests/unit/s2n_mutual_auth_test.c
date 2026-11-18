@@ -275,8 +275,8 @@ int main(int argc, char **argv)
             /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
             if (cert_req_callback_mode == 0) {
                 EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -362,8 +362,8 @@ int main(int argc, char **argv)
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -420,8 +420,8 @@ int main(int argc, char **argv)
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -479,8 +479,8 @@ int main(int argc, char **argv)
         /* Set up our I/O callbacks. Use stuffers for the "I/O context" */
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_to_client, &client_to_server, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&client_to_server, &server_to_client, server_conn));
 
         EXPECT_FAILURE(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
@@ -553,7 +553,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 

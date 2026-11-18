@@ -100,7 +100,7 @@ int main(int argc, char **argv)
         /* If send is called with a NULL stuffer, it will fail.
          * So a failure indicates that send was called.
          */
-        EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+        EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_extension_send(&s2n_server_psk_extension, conn, NULL));
         conn->actual_protocol_version = S2N_TLS13;
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&out, chosen_psk_wire_index));
 
             EXPECT_NULL(conn->psk_params.chosen_psk);
-            EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
+            EXPECT_OK(s2n_connection_allow_all_response_extensions(conn));
             EXPECT_SUCCESS(s2n_extension_recv(&s2n_server_psk_extension, conn, &out));
             EXPECT_NULL(conn->psk_params.chosen_psk);
 

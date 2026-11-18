@@ -169,9 +169,9 @@ int main(int argc, char **argv)
 
         /* TLS1.2 cipher preferences */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
@@ -185,8 +185,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Negotiate until server has read the Client Hello message */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -220,9 +220,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
@@ -236,8 +236,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* s2n clients support EMS by default. To manually prevent them from sending the EMS extension, add a 
          * resumption ticket to the connection, which indicates the previous session did not negotiate
@@ -265,9 +265,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+        EXPECT_OK(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+        EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
@@ -281,8 +281,8 @@ int main(int argc, char **argv)
 
         /* Create nonblocking pipes */
         struct s2n_test_io_pair io_pair = { 0 };
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_OK(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
         /* Connection is successful and EMS is negotiated */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

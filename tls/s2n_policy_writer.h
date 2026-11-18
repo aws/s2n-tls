@@ -17,6 +17,8 @@
 
 #include <s2n.h>
 
+#include "utils/s2n_result.h"
+
 struct s2n_security_policy;
 
 /**
@@ -60,7 +62,7 @@ typedef enum {
  * @param length Output parameter where the required buffer length will be written
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure
  */
-int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
+S2N_RESULT s2n_security_policy_write_length(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint32_t *length);
 
 /**
@@ -74,7 +76,7 @@ int s2n_security_policy_write_length(const struct s2n_security_policy *policy,
  *                    This value is only meaningful when the function returns S2N_SUCCESS
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure (e.g., if buffer is too small)
  */
-int s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
+S2N_RESULT s2n_security_policy_write_bytes(const struct s2n_security_policy *policy,
         s2n_policy_format format, uint8_t *buffer, uint32_t buffer_length, uint32_t *output_size);
 
 /**

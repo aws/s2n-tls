@@ -106,15 +106,15 @@ int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2
     return pkey->decrypt(pkey, in, out);
 }
 
-int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key)
+S2N_RESULT s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key)
 {
-    POSIX_ENSURE_REF(pub_key);
+    RESULT_ENSURE_REF(pub_key);
 
     /* Minimally, both keys must be of the same type */
     s2n_pkey_type priv_type = 0, pub_type = 0;
-    POSIX_GUARD_RESULT(s2n_pkey_get_type(priv_key->pkey, &priv_type));
-    POSIX_GUARD_RESULT(s2n_pkey_get_type(pub_key->pkey, &pub_type));
-    POSIX_ENSURE(priv_type == pub_type, S2N_ERR_KEY_MISMATCH);
+    RESULT_GUARD(s2n_pkey_get_type(priv_key->pkey, &priv_type));
+    RESULT_GUARD(s2n_pkey_get_type(pub_key->pkey, &pub_type));
+    RESULT_ENSURE(priv_type == pub_type, S2N_ERR_KEY_MISMATCH);
 
     /* If both keys are of the same type, check that the public key
      * can verify a test signature from the private key.
@@ -144,22 +144,22 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
             hash_alg = S2N_HASH_SHAKE256_64;
             break;
         default:
-            POSIX_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
+            RESULT_BAIL(S2N_ERR_CERT_TYPE_UNSUPPORTED);
     }
 
     DEFER_CLEANUP(struct s2n_hash_state state_in = { 0 }, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&state_in));
-    POSIX_GUARD(s2n_hash_init(&state_in, hash_alg));
-    POSIX_GUARD_RESULT(s2n_pkey_init_hash(pub_key, check_alg, &state_in));
-    POSIX_GUARD(s2n_hash_update(&state_in, input, sizeof(input)));
+    RESULT_GUARD_POSIX(s2n_hash_new(&state_in));
+    RESULT_GUARD_POSIX(s2n_hash_init(&state_in, hash_alg));
+    RESULT_GUARD(s2n_pkey_init_hash(pub_key, check_alg, &state_in));
+    RESULT_GUARD_POSIX(s2n_hash_update(&state_in, input, sizeof(input)));
 
     DEFER_CLEANUP(struct s2n_hash_state state_out = { 0 }, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&state_out));
-    POSIX_GUARD(s2n_hash_copy(&state_out, &state_in));
+    RESULT_GUARD_POSIX(s2n_hash_new(&state_out));
+    RESULT_GUARD_POSIX(s2n_hash_copy(&state_out, &state_in));
 
     uint32_t size = 0;
-    POSIX_GUARD_RESULT(s2n_pkey_size(priv_key, &size));
-    POSIX_GUARD(s2n_alloc(&signature, size));
+    RESULT_GUARD(s2n_pkey_size(priv_key, &size));
+    RESULT_GUARD_POSIX(s2n_alloc(&signature, size));
 
     /* Note: The Libcrypto RSA EVP_PKEY will cache certain computations used for
      * RSA signing.
@@ -170,11 +170,11 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
      * If this pkey_sign operation is moved out of config creation, then the
      * 300 us penalty will be paid by the first handshake done on the config.
      */
-    POSIX_GUARD(s2n_pkey_sign(priv_key, check_alg, &state_in, &signature));
-    POSIX_ENSURE(s2n_pkey_verify(pub_key, check_alg, &state_out, &signature) == S2N_SUCCESS,
+    RESULT_GUARD_POSIX(s2n_pkey_sign(priv_key, check_alg, &state_in, &signature));
+    RESULT_ENSURE(s2n_pkey_verify(pub_key, check_alg, &state_out, &signature) == S2N_SUCCESS,
             S2N_ERR_KEY_MISMATCH);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_pkey_free(struct s2n_pkey *key)

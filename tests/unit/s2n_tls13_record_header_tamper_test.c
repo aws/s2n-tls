@@ -48,7 +48,7 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
@@ -84,8 +84,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer server_out = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_out, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
 
         /* Complete TLS 1.3 handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -171,8 +171,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer server_out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
@@ -232,8 +232,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer server_out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
@@ -287,8 +287,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer server_out = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_out, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
@@ -343,8 +343,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_stuffer server_out = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_in, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_out, 0));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
-        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_out, &server_in, client_conn));
+        EXPECT_OK(s2n_connection_set_io_stuffers(&server_in, &server_out, server_conn));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);

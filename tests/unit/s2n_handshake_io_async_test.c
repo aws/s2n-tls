@@ -55,7 +55,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(NULL, &io_buffer, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(NULL, &io_buffer, conn));
             EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
             /* Consistently blocks */
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&io_buffer, NULL, conn));
+            EXPECT_OK(s2n_connection_set_io_stuffers(&io_buffer, NULL, conn));
 
             /* Consistently blocks */
             async_blocked = true;

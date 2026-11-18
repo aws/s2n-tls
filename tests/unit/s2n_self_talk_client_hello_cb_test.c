@@ -312,7 +312,7 @@ int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
 
     /* Add application protocols to swapped config */
     static const char *protocols[] = { "h2" };
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* prepare swap_config */
     EXPECT_NOT_NULL(swap_config = s2n_config_new());
@@ -368,7 +368,7 @@ int run_test_no_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode, struct clien
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 0));
 
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_OK(s2n_config_set_tls12_security_policy(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -407,7 +407,7 @@ int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode, struct cli
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 1, 0));
 
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_OK(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
