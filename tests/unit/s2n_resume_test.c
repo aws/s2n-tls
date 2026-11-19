@@ -106,6 +106,7 @@ static S2N_RESULT s2n_test_complete_handshake(struct s2n_connection *conn, uint3
         RESULT_ENSURE_LT(conn->handshake.message_number, S2N_MAX_HANDSHAKE_LENGTH - 1);
         conn->handshake.message_number++;
     }
+    return S2N_RESULT_OK;
 }
 
 /* Test convenience wrapper: the production code inlines this init+encode pair

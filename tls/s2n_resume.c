@@ -1180,6 +1180,9 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
         RESULT_ENSURE(s2n_resume_client_auth_resumption_enabled(conn), S2N_ERR_INVALID_SESSION_TICKET);
     }
 
+    struct s2n_ticket_header header = { 0 };
+    RESULT_GUARD(s2n_ticket_header_decode(&header, from));
+
     /* The encrypted resumption state is the remainder of the ticket, following
      * the header. */
     struct s2n_blob encrypted_state = { 0 };
