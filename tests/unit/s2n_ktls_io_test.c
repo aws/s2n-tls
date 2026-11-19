@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    const uint8_t test_record_type = 43;
+    const uint8_t test_record_type = TLS_APPLICATION_DATA;
     /* test data */
     uint8_t test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
@@ -560,6 +560,48 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
             EXPECT_EQUAL(io_pair.client_in.recvmsg_invoked_count, 1);
         };
+    };
+
+    /* Test: s2n_ktls_recvmsg rejects invalid record types
+     *
+     * Iterates all 256 possible byte values for the TLS ContentType field
+     * delivered via kTLS ancillary data. Only alert (21), handshake (22),
+     * and application_data (23) are valid post-handshake record types per
+     * RFC 8446 Section 5. All others must be rejected with S2N_ERR_BAD_MESSAGE.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 }, s2n_ktls_io_stuffer_pair_free);
+        EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+        for (uint16_t record_type_val = 0; record_type_val <= UINT8_MAX; record_type_val++) {
+            uint8_t injected_record_type = (uint8_t) record_type_val;
+            bool is_valid = (injected_record_type >= TLS_ALERT
+                    && injected_record_type <= TLS_APPLICATION_DATA);
+
+            /* Inject a record with the test record_type into the client's receive buffer via the mock stuffer IO. */
+            struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            size_t bytes_written = 0;
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, injected_record_type, &msg_iov, 1, &blocked, &bytes_written));
+            EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
+
+            uint8_t recv_buf[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
+            uint8_t recv_record_type = 0;
+            size_t bytes_read = 0;
+
+            if (is_valid) {
+                EXPECT_OK(s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read));
+                EXPECT_EQUAL(recv_record_type, injected_record_type);
+                EXPECT_EQUAL(bytes_read, S2N_TEST_TO_SEND);
+            } else {
+                EXPECT_ERROR_WITH_ERRNO(
+                        s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                                recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                        S2N_ERR_BAD_MESSAGE);
+            }
+        }
     };
 
     /* Test s2n_ktls_send */
