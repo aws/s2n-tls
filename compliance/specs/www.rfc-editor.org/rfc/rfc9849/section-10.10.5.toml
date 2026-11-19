@@ -1,0 +1,16 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-10.10.5"
+
+# 10.10.5.  Maintain Forward Secrecy
+#
+# This design does not provide forward secrecy for the inner
+# ClientHello because the server's ECH key is static.  However, the
+# window of exposure is bound by the key lifetime.  It is RECOMMENDED
+# that servers rotate keys regularly.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+It is RECOMMENDED
+that servers rotate keys regularly.
+'''
+

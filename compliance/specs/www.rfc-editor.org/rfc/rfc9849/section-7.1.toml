@@ -1,0 +1,173 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-7.1"
+
+# 7.1.  Client-Facing Server
+#
+# Upon receiving an "encrypted_client_hello" extension in an initial
+# ClientHello, the client-facing server determines if it will accept
+# ECH prior to negotiating any other TLS parameters.  Note that
+# successfully decrypting the extension will result in a new
+# ClientHello to process, so even the client's TLS version preferences
+# may have changed.
+# 
+# First, the server collects a set of candidate ECHConfig values.  This
+# list is determined by one of the two following methods:
+# 
+# 1.  Compare ECHClientHello.config_id against identifiers of each
+#     known ECHConfig and select the ones that match, if any, as
+#     candidates.
+# 
+# 2.  Collect all known ECHConfig values as candidates, with trial
+#     decryption below determining the final selection.
+# 
+# Some uses of ECH, such as local discovery mode, may randomize the
+# ECHClientHello.config_id since it can be used as a tracking vector.
+# In such cases, the second method SHOULD be used for matching the
+# ECHClientHello to a known ECHConfig.  See Section 10.4.  Unless
+# specified by the application profile or otherwise externally
+# configured, implementations MUST use the first method.
+# 
+# The server then iterates over the candidate ECHConfig values,
+# attempting to decrypt the "encrypted_client_hello" extension as
+# follows.
+# 
+# The server verifies that the ECHConfig supports the cipher suite
+# indicated by the ECHClientHello.cipher_suite and that the version of
+# ECH indicated by the client matches the ECHConfig.version.  If not,
+# the server continues to the next candidate ECHConfig.
+# 
+# Next, the server decrypts ECHClientHello.payload, using the private
+# key skR corresponding to ECHConfig, as follows:
+# 
+#     context = SetupBaseR(ECHClientHello.enc, skR,
+#                          "tls ech" || 0x00 || ECHConfig)
+#     EncodedClientHelloInner = context.Open(ClientHelloOuterAAD,
+#                                            ECHClientHello.payload)
+# 
+# ClientHelloOuterAAD is computed from ClientHelloOuter as described in
+# Section 5.2.  The info parameter to SetupBaseR is the concatenation
+# "tls ech", a zero byte, and the serialized ECHConfig.  If decryption
+# fails, the server continues to the next candidate ECHConfig.
+# Otherwise, the server reconstructs ClientHelloInner from
+# EncodedClientHelloInner, as described in Section 5.1.  It then stops
+# iterating over the candidate ECHConfig values.
+# 
+# Once the server has chosen the correct ECHConfig, it MAY verify that
+# the value in the ClientHelloOuter "server_name" extension matches the
+# value of ECHConfig.contents.public_name and abort with an
+# "illegal_parameter" alert if these do not match.  This optional check
+# allows the server to limit ECH connections to only use the public SNI
+# values advertised in its ECHConfigs.  The server MUST be careful not
+# to unnecessarily reject connections if the same ECHConfig id or
+# keypair is used in multiple ECHConfigs with distinct public names.
+# 
+# Upon determining the ClientHelloInner, the client-facing server
+# checks that the message includes a well-formed
+# "encrypted_client_hello" extension of type inner and that it does not
+# offer TLS 1.2 or below.  If either of these checks fails, the client-
+# facing server MUST abort with an "illegal_parameter" alert.
+# 
+# If these checks succeed, the client-facing server then forwards the
+# ClientHelloInner to the appropriate backend server, which proceeds as
+# in Section 7.2.  If the backend server responds with a
+# HelloRetryRequest, the client-facing server forwards it, decrypts the
+# client's second ClientHelloOuter using the procedure in
+# Section 7.1.1, and forwards the resulting second ClientHelloInner.
+# The client-facing server forwards all other TLS messages between the
+# client and backend server unmodified.
+# 
+# Otherwise, if all candidate ECHConfig values fail to decrypt the
+# extension, the client-facing server MUST ignore the extension and
+# proceed with the connection using ClientHelloOuter with the following
+# modifications:
+# 
+# *  If sending a HelloRetryRequest, the server MAY include an
+#    "encrypted_client_hello" extension with a payload of 8 random
+#    bytes; see Section 10.10.4 for details.
+# 
+# *  If the server is configured with any ECHConfigs, it MUST include
+#    the "encrypted_client_hello" extension in its EncryptedExtensions
+#    with the "retry_configs" field set to one or more ECHConfig
+#    structures with up-to-date keys.  Servers MAY supply multiple
+#    ECHConfig values of different versions.  This allows a server to
+#    support multiple versions at once.
+# 
+# Note that decryption failure could indicate a GREASE ECH extension
+# (see Section 6.2), so it is necessary for servers to proceed with the
+# connection and rely on the client to abort if ECH was required.  In
+# particular, the unrecognized value alone does not indicate a
+# misconfigured ECH advertisement (Section 8.1.1).  Instead, servers
+# can measure occurrences of the "ech_required" alert to detect this
+# case.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+In such cases, the second method SHOULD be used for matching the
+ECHClientHello to a known ECHConfig.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Unless
+specified by the application profile or otherwise externally
+configured, implementations MUST use the first method.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Once the server has chosen the correct ECHConfig, it MAY verify that
+the value in the ClientHelloOuter "server_name" extension matches the
+value of ECHConfig.contents.public_name and abort with an
+"illegal_parameter" alert if these do not match.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST be careful not
+to unnecessarily reject connections if the same ECHConfig id or
+keypair is used in multiple ECHConfigs with distinct public names.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If either of these checks fails, the client-
+facing server MUST abort with an "illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Otherwise, if all candidate ECHConfig values fail to decrypt the
+extension, the client-facing server MUST ignore the extension and
+proceed with the connection using ClientHelloOuter with the following
+modifications:
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+*  If sending a HelloRetryRequest, the server MAY include an
+"encrypted_client_hello" extension with a payload of 8 random
+bytes; see Section 10.10.4 for details.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+*  If the server is configured with any ECHConfigs, it MUST include
+the "encrypted_client_hello" extension in its EncryptedExtensions
+with the "retry_configs" field set to one or more ECHConfig
+structures with up-to-date keys.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Servers MAY supply multiple
+ECHConfig values of different versions.
+'''
+

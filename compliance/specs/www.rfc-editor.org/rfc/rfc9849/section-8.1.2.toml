@@ -1,0 +1,32 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-8.1.2"
+
+# 8.1.2.  Middleboxes
+#
+# The requirements in [RFC8446], Section 9.3 which require proxies to
+# act as conforming TLS client and server provide interoperability with
+# TLS-terminating proxies even in cases where the server supports ECH
+# but the proxy does not, as detailed below.
+# 
+# The proxy must ignore unknown parameters and generate its own
+# ClientHello containing only parameters it understands.  Thus, when
+# presenting a certificate to the client or sending a ClientHello to
+# the server, the proxy will act as if connecting to the
+# ClientHelloOuter server_name, which SHOULD match the public name (see
+# Section 6.1) without echoing the "encrypted_client_hello" extension.
+# 
+# Depending on whether the client is configured to accept the proxy's
+# certificate as authoritative for the public name, this may trigger
+# the retry logic described in Section 6.1.6 or result in a connection
+# failure.  A proxy which is not authoritative for the public name
+# cannot forge a signal to disable ECH.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Thus, when
+presenting a certificate to the client or sending a ClientHello to
+the server, the proxy will act as if connecting to the
+ClientHelloOuter server_name, which SHOULD match the public name (see
+Section 6.1) without echoing the "encrypted_client_hello" extension.
+'''
+
