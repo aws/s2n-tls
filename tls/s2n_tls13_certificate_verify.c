@@ -85,7 +85,22 @@ int s2n_tls13_write_cert_verify_signature(struct s2n_connection *conn,
     POSIX_GUARD(s2n_hash_new(&message_hash));
     POSIX_GUARD(s2n_hash_init(&message_hash, chosen_sig_scheme->hash_alg));
 
+    /* ML-DSA prefixes the signed message with a hash of the signer's public key ("mu").
+     * Take that public key from our certificate, not from our private key: when the
+     * private key is offloaded with s2n_config_set_async_pkey_callback(), the chain is
+     * loaded without one, and private_key->pkey is NULL.
+     */
     const struct s2n_pkey *pkey = conn->handshake_params.our_chain_and_key->private_key;
+    DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+    if (chosen_sig_scheme->sig_alg == S2N_SIGNATURE_MLDSA) {
+        struct s2n_cert_chain *cert_chain = conn->handshake_params.our_chain_and_key->cert_chain;
+        POSIX_ENSURE_REF(cert_chain);
+        POSIX_ENSURE_REF(cert_chain->head);
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        POSIX_GUARD_RESULT(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert_chain->head->raw));
+        POSIX_ENSURE(pkey_type == S2N_PKEY_TYPE_MLDSA, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        pkey = &public_key;
+    }
     POSIX_GUARD_RESULT(s2n_pkey_init_hash(pkey, chosen_sig_scheme->sig_alg, &message_hash));
 
     DEFER_CLEANUP(struct s2n_stuffer unsigned_content = { 0 }, s2n_stuffer_free);
