@@ -194,10 +194,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
         return S2N_RESULT_OK;
     }
 
-    /* With client auth, tickets are only issued if s2n_config_set_client_auth_resumption is
-     * enabled and this connection used a client certificate or resumed from a client auth
-     * ticket. Other tickets would never be accepted.
-     */
+    /* With client auth, only issue tickets that can be used to resume */
     if (s2n_connection_is_client_auth_enabled(conn) && !s2n_resume_client_auth_ticket_allowed(conn)) {
         return S2N_RESULT_OK;
     }

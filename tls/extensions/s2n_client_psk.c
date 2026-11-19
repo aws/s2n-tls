@@ -19,6 +19,7 @@
 
 #include "crypto/s2n_hash.h"
 #include "tls/s2n_psk.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_bitmap.h"
@@ -245,12 +246,9 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
      * client certificate or peer identity. Bailing here leaves chosen_psk NULL, so
      * the caller falls back to a full handshake. Mirrors the TLS1.2 behavior in
      * s2n_allowed_to_cache_connection() and s2n_client_session_ticket_recv().
-     *
-     * This is an early exit: s2n_resume_decrypt_session() enforces the same rule on every
-     * path, including PSK selection callbacks. With s2n_config_set_client_auth_resumption
-     * enabled, it only accepts client auth tickets.
+     * s2n_resume_decrypt_session() also enforces this, including for PSK selection callbacks.
      */
-    if (s2n_connection_is_client_auth_enabled(conn) && !conn->config->client_auth_resumption) {
+    if (s2n_connection_is_client_auth_enabled(conn) && !s2n_resume_client_auth_resumption_enabled(conn)) {
         RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);
     }
 

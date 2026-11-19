@@ -801,44 +801,59 @@ struct s2n_unique_ticket_key {
     uint8_t output_key[S2N_AES256_KEY_LEN];
 };
 
-/* Client auth tickets mix this label and the server name into the per-ticket key derivation,
- * so they can't be decrypted as default tickets and default tickets can't be decrypted as them. */
-#define S2N_CLIENT_AUTH_TICKET_KEY_LABEL     "s2n client auth ticket key"
-#define S2N_CLIENT_AUTH_TICKET_KEY_LABEL_LEN (sizeof(S2N_CLIENT_AUTH_TICKET_KEY_LABEL) - 1)
-
-/* Points `server_name` at the server name exactly as sent by the client, without the NUL terminator */
+/* The server name as sent by the client, without the NUL terminator */
 static S2N_RESULT s2n_resume_server_name_blob(struct s2n_connection *conn, struct s2n_blob *server_name)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(server_name);
-    /* conn->server_name is always NUL-terminated */
     size_t server_name_len = strlen(conn->server_name);
     RESULT_ENSURE_LTE(server_name_len, S2N_MAX_SERVER_NAME);
     RESULT_GUARD_POSIX(s2n_blob_init(server_name, (uint8_t *) conn->server_name, (uint32_t) server_name_len));
     return S2N_RESULT_OK;
 }
 
-/* A server with client auth may only issue a ticket if s2n_config_set_client_auth_resumption
- * is enabled and the connection either used a client certificate or resumed from a client auth ticket. */
-bool s2n_resume_client_auth_ticket_allowed(struct s2n_connection *conn)
+bool s2n_resume_client_auth_resumption_enabled(struct s2n_connection *conn)
 {
     if (conn == NULL || conn->config == NULL || !conn->config->client_auth_resumption) {
         return false;
     }
+    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+    if (s2n_connection_get_client_auth_type(conn, &auth_type) != S2N_SUCCESS) {
+        return false;
+    }
+    return auth_type == S2N_CERT_AUTH_REQUIRED;
+}
+
+/* A server with client auth may only issue a ticket after verifying a client certificate
+ * or resuming from a ticket issued with client auth. */
+bool s2n_resume_client_auth_ticket_allowed(struct s2n_connection *conn)
+{
+    if (!s2n_resume_client_auth_resumption_enabled(conn)) {
+        return false;
+    }
+
+    /* The client auth type can change after the CertificateRequest decision, so check the handshake */
     if (s2n_connection_client_cert_used(conn) == 1) {
         return true;
     }
+
+    /* External PSK handshakes don't request a client certificate */
     struct s2n_psk *chosen_psk = conn->psk_params.chosen_psk;
-    return chosen_psk != NULL && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION && chosen_psk->labeled_ticket;
+    return chosen_psk != NULL && chosen_psk->type == S2N_PSK_TYPE_RESUMPTION;
 }
 
-/* A server with client auth enabled (REQUIRED or OPTIONAL) only uses the client auth
- * ticket key derivation. */
-static bool s2n_resume_uses_client_auth_ticket_key(struct s2n_connection *conn)
+/* Clients map to NONE: they default to S2N_CERT_AUTH_OPTIONAL and some paths encrypt tickets
+ * on client connections, but clients never decrypt tickets. */
+static S2N_RESULT s2n_resume_ticket_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *auth_type)
 {
-    /* s2n_connection_is_client_auth_enabled returns a negative value on error,
-     * which is treated as client auth enabled. */
-    return conn->mode == S2N_SERVER && s2n_connection_is_client_auth_enabled(conn) != 0;
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(auth_type);
+    if (conn->mode != S2N_SERVER) {
+        *auth_type = S2N_CERT_AUTH_NONE;
+        return S2N_RESULT_OK;
+    }
+    RESULT_GUARD_POSIX(s2n_connection_get_client_auth_type(conn, auth_type));
+    return S2N_RESULT_OK;
 }
 
 /* Ensures that a session ticket encryption key is used only once per ticket.
@@ -848,39 +863,37 @@ static bool s2n_resume_uses_client_auth_ticket_key(struct s2n_connection *conn)
  * random nonce will be generated twice and used with the same ticket key.
  * To avoid this we generate a unique session ticket encryption key for each ticket.
  *
- * output_key = HKDF-SHA256(salt = empty, IKM = initial_key, info), where info is:
- * - default tickets: the 32-byte info. This must stay byte-identical so that existing
- *   tickets remain decryptable. `server_name` is ignored.
- * - client auth tickets: info || S2N_CLIENT_AUTH_TICKET_KEY_LABEL || the server name exactly
- *   as sent by the client (NULL means empty). The server name is the last field and all earlier
- *   fields are fixed length, so it needs no length prefix. If a field is ever appended after it,
- *   add a length prefix.
+ * The key is HKDF-SHA256(empty salt, initial_key, info || client auth type byte || server name),
+ * binding the ticket to the client auth type and server name. The server name is last and earlier
+ * fields are fixed length, so it needs no length prefix. Add one if a field is ever appended.
  **/
 static S2N_RESULT s2n_resume_generate_unique_ticket_key(struct s2n_unique_ticket_key *key,
-        bool client_auth, const struct s2n_blob *server_name)
+        s2n_cert_auth_type auth_type, const struct s2n_blob *server_name)
 {
     RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(server_name);
+    RESULT_ENSURE_LTE(server_name->size, S2N_MAX_SERVER_NAME);
+
+    /* s2n_cert_auth_type values are fixed by the public API, so the key derivation can use them */
+    int auth_type_value = auth_type;
+    RESULT_ENSURE(auth_type_value >= S2N_CERT_AUTH_NONE && auth_type_value <= S2N_CERT_AUTH_OPTIONAL, S2N_ERR_SAFETY);
+    uint8_t auth_type_byte = (uint8_t) auth_type_value;
 
     struct s2n_blob out_key_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&out_key_blob, key->output_key, sizeof(key->output_key)));
-    struct s2n_blob info_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&info_blob, key->info, sizeof(key->info)));
 
-    uint8_t labeled_info_data[sizeof(key->info) + S2N_CLIENT_AUTH_TICKET_KEY_LABEL_LEN + S2N_MAX_SERVER_NAME] = { 0 };
-    if (client_auth) {
-        struct s2n_blob labeled_info_blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&labeled_info_blob, labeled_info_data, sizeof(labeled_info_data)));
-        struct s2n_stuffer labeled_info = { 0 };
-        RESULT_GUARD_POSIX(s2n_stuffer_init(&labeled_info, &labeled_info_blob));
-        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&labeled_info, key->info, sizeof(key->info)));
-        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&labeled_info, (const uint8_t *) S2N_CLIENT_AUTH_TICKET_KEY_LABEL,
-                S2N_CLIENT_AUTH_TICKET_KEY_LABEL_LEN));
-        if (server_name != NULL) {
-            RESULT_ENSURE_LTE(server_name->size, S2N_MAX_SERVER_NAME);
-            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&labeled_info, server_name->data, server_name->size));
-        }
-        RESULT_GUARD_POSIX(s2n_blob_init(&info_blob, labeled_info_data, s2n_stuffer_data_available(&labeled_info)));
+    uint8_t info_data[sizeof(key->info) + sizeof(auth_type_byte) + S2N_MAX_SERVER_NAME] = { 0 };
+    struct s2n_blob info_data_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&info_data_blob, info_data, sizeof(info_data)));
+    struct s2n_stuffer info = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&info, &info_data_blob));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&info, key->info, sizeof(key->info)));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&info, auth_type_byte));
+    if (server_name->size > 0) {
+        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&info, server_name->data, server_name->size));
     }
+    struct s2n_blob info_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&info_blob, info_data, s2n_stuffer_data_available(&info)));
 
     struct s2n_blob salt = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&salt, NULL, 0));
@@ -909,14 +922,15 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn,
     RESULT_GUARD_POSIX(s2n_blob_init(&info_blob, ticket_key.info, sizeof(ticket_key.info)));
     RESULT_GUARD(s2n_get_public_random_data(&info_blob));
 
-    bool client_auth_ticket = s2n_resume_uses_client_auth_ticket_key(conn);
-    struct s2n_blob server_name = { 0 };
-    if (client_auth_ticket) {
-        /* Callers only issue client auth tickets when allowed */
+    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+    RESULT_GUARD(s2n_resume_ticket_auth_type(conn, &auth_type));
+    if (auth_type != S2N_CERT_AUTH_NONE) {
+        /* Callers already skip tickets that are not allowed */
         RESULT_ENSURE(s2n_resume_client_auth_ticket_allowed(conn), S2N_ERR_SAFETY);
-        RESULT_GUARD(s2n_resume_server_name_blob(conn, &server_name));
     }
-    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key, client_auth_ticket, &server_name));
+    struct s2n_blob server_name = { 0 };
+    RESULT_GUARD(s2n_resume_server_name_blob(conn, &server_name));
+    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key, auth_type, &server_name));
 
     /* Initialize AES key */
     struct s2n_blob aes_key_blob = { 0 };
@@ -981,16 +995,12 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
     RESULT_ENSURE_REF(from);
     RESULT_ENSURE_REF(conn->config);
 
-    /* A server with client auth only accepts tickets if s2n_config_set_client_auth_resumption
-     * is enabled, and then only decrypts them with the client auth ticket key derivation,
-     * with no fallback to the default one.
-     *
-     * Which tickets are accepted is enforced by this check and the key derivation. The checks
-     * when issuing tickets only avoid issuing tickets that s2n_resume_client_auth_ticket_allowed()
-     * does not allow. */
-    bool client_auth_ticket = s2n_resume_uses_client_auth_ticket_key(conn);
-    if (client_auth_ticket) {
-        RESULT_ENSURE(conn->config->client_auth_resumption, S2N_ERR_INVALID_SESSION_TICKET);
+    /* This check and the per-ticket key (client auth type and server name) decide which tickets
+     * are accepted. The checks when issuing tickets only avoid issuing unusable tickets. */
+    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+    RESULT_GUARD(s2n_resume_ticket_auth_type(conn, &auth_type));
+    if (auth_type != S2N_CERT_AUTH_NONE) {
+        RESULT_ENSURE(s2n_resume_client_auth_resumption_enabled(conn), S2N_ERR_INVALID_SESSION_TICKET);
     }
 
     /* Read version number */
@@ -1024,10 +1034,8 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, ticket_key.info, sizeof(ticket_key.info)));
 
     struct s2n_blob server_name = { 0 };
-    if (client_auth_ticket) {
-        RESULT_GUARD(s2n_resume_server_name_blob(conn, &server_name));
-    }
-    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key, client_auth_ticket, &server_name));
+    RESULT_GUARD(s2n_resume_server_name_blob(conn, &server_name));
+    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key, auth_type, &server_name));
 
     /* Read IV */
     uint8_t iv_data[S2N_TLS_GCM_IV_LEN] = { 0 };
@@ -1070,15 +1078,10 @@ S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_st
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&state_stuffer, state_blob_size));
     RESULT_GUARD(s2n_deserialize_resumption_state(conn, &from->blob, &state_stuffer));
 
-    if (client_auth_ticket) {
-        /* Client auth tickets are only issued for TLS1.3, so the state is a single
-         * resumption PSK. Mark it so that this connection may issue client auth tickets. */
+    if (auth_type != S2N_CERT_AUTH_NONE) {
+        /* Tickets with client auth are TLS1.3 only, so the state must be one resumption PSK */
         RESULT_ENSURE(conn->psk_params.type == S2N_PSK_TYPE_RESUMPTION, S2N_ERR_INVALID_SESSION_TICKET);
         RESULT_ENSURE(conn->psk_params.psk_list.len == 1, S2N_ERR_INVALID_SESSION_TICKET);
-        struct s2n_psk *psk = NULL;
-        RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
-        RESULT_ENSURE_REF(psk);
-        psk->labeled_ticket = true;
     }
 
     return S2N_RESULT_OK;
