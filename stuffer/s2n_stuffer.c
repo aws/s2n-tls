@@ -214,7 +214,11 @@ int s2n_stuffer_reread(struct s2n_stuffer *stuffer)
 }
 
 /**
- * wipe the last `size` bytes of previously written data
+ * Wipe the last `size` bytes written, plus any stale bytes up to the high water mark.
+ *
+ * The write cursor moves back by min(size, write_cursor). Bytes from that cursor
+ * through the previous high water mark are overwritten, and high_water_mark is
+ * reset to the new write cursor.
  */
 int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 {
@@ -223,7 +227,10 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 
     stuffer->write_cursor -= wipe_size;
     stuffer->read_cursor = S2N_MIN(stuffer->read_cursor, stuffer->write_cursor);
-    POSIX_CHECKED_MEMSET(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN, wipe_size);
+    /* Wipe down from the high water mark so data above the write cursor is not left behind. */
+    POSIX_CHECKED_MEMSET(stuffer->blob.data + stuffer->write_cursor, S2N_WIPE_PATTERN,
+            stuffer->high_water_mark - stuffer->write_cursor);
+    stuffer->high_water_mark = stuffer->write_cursor;
 
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
