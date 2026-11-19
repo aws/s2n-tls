@@ -134,11 +134,6 @@ impl Connection {
 
         let mut connection = Self { connection };
         connection.init_context();
-        // unwrap safety: setter methods may fail if the connection is in an
-        // invalid state or allocations fail. Those errors in a new connection
-        // indicate a fatal, unrecoverable state, so unwrapping is the right choice.
-        connection.set_binding_specific_defaults().unwrap();
-
         connection
     }
 
@@ -1685,19 +1680,6 @@ impl Connection {
     pub(crate) fn renegotiate_state(&self) -> &RenegotiateState {
         &self.context().renegotiate_state
     }
-
-    /// This is a convenience method to configure defaults for the rust bindings.
-    ///
-    /// This helper function is useful because defaults must be set in both
-    /// [Connection::new] and [Connection::wipe].
-    fn set_binding_specific_defaults(&mut self) -> Result<(), Error> {
-        // Default to maximum record size (16kB) to match the behavior of other
-        // TLS libraries (rustls, openssl). The C library defaults to 8KB to balance
-        // latency & throughput. We expect to update the C library if this change
-        // goes well.
-        self.prefer_throughput()?;
-        Ok(())
-    }
 }
 
 struct Context {
@@ -2176,9 +2158,8 @@ mod tests {
     #[test]
     #[allow(deprecated)]
     fn max_record_size_configuration() -> Result<(), Box<dyn std::error::Error>> {
-        /// https://www.rfc-editor.org/info/rfc8446/#section-5.1
-        /// > The length MUST NOT exceed 2^14 bytes.
-        const MAX_PAYLOAD_LEN: u16 = 1 << 14;
+        /// Default max payload len
+        const MAX_PAYLOAD_LEN: u16 = 8087;
         /// inner content type + GCM auth tag
         const PAYLOAD_OVERHEAD: u16 = 1 + 16;
         const MAX_TLS_RECORD_LEN: u16 = MAX_PAYLOAD_LEN + PAYLOAD_OVERHEAD;

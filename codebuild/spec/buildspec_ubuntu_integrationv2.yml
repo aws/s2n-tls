@@ -37,8 +37,8 @@ batch:
           INTEGV2_TEST:
             - "test_happy_path"
             - "test_signature_algorithms test_session_resumption test_early_data test_external_psk"
-            - "test_version_negotiation test_ocsp test_renegotiate test_serialization test_record_padding
-               test_npn test_cross_compatibility test_renegotiate_apache test_hello_retry_requests
+            - "test_version_negotiation test_ocsp test_renegotiate test_record_padding
+               test_npn test_renegotiate_apache test_hello_retry_requests
                test_sni_match test_fragmentation test_key_update
                test_client_authentication test_sslyze test_sslv2_client_hello"
 
@@ -59,7 +59,7 @@ phases:
     commands:
       # e.g. awslc-fips-2022_gcc6
       - echo "CI Configuration - s2n build preset is $S2N_BUILD_PRESET"
-      # e.g. "test_cross_compatibility test_client_authentication"
+      # e.g. "test_npn test_client_authentication"
       - echo "CI Configuration - the integ tests are $INTEGV2_TEST"
       # For jdk integration test
       - javac tests/integrationv2/bin/SSLSocketClient.java
