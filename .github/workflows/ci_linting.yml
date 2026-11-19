@@ -123,8 +123,12 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Build s2n-tls
+        # Link the shared system libcrypto. Newer Ubuntu runner images ship a
+        # static libcrypto.a built with jitterentropy/zlib/zstd, whose
+        # transitive dependencies aren't linked when using the static archive.
         run: |
           cmake . -Bbuild \
+            -DS2N_USE_CRYPTO_SHARED_LIBS=ON \
             -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_INSTALL_PREFIX=./s2n-tls-install

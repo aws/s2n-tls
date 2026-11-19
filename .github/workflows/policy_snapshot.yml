@@ -26,7 +26,10 @@ jobs:
 
       - name: build policy util
         run: |
-          cmake -Bbuild
+          # Link the shared system libcrypto. Newer Ubuntu runner images ship a
+          # static libcrypto.a built with jitterentropy/zlib/zstd, whose
+          # transitive dependencies aren't linked when using the static archive.
+          cmake -Bbuild -DS2N_USE_CRYPTO_SHARED_LIBS=ON
           cmake --build build -j $(nproc)
 
       - name: generate snapshots
