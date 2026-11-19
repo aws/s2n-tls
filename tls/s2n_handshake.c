@@ -122,6 +122,39 @@ int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake)
     return S2N_SUCCESS;
 }
 
+/* Remove any currently required transcript hash that the connection's security
+ * policy could never need.
+ */
+S2N_RESULT s2n_handshake_restrict_hashes_to_policy(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* Updating the transcript without a security policy means the handshake is in an invalid state */
+    const struct s2n_security_policy *policy = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &policy));
+
+    /* Read into a local rather than caching on the connection. The set is
+     * already precomputed per policy by s2n_security_policies_init, so this is
+     * a lookup, and keeping it off s2n_connection also means there is no cache
+     * to invalidate when the policy is replaced mid-handshake. */
+    uint8_t policy_supported_hash_algs[S2N_HASH_ALGS_COUNT] = { 0 };
+    RESULT_GUARD(s2n_security_policy_get_required_hash_algs(policy, policy_supported_hash_algs));
+
+    /* Both arrays hold one flag per s2n_hash_algorithm, where 1 means that
+     * transcript hash is being maintained. required_hash_algs is the set the
+     * handshake is updating right now, and policy_supported_hash_algs is every
+     * hash the policy could possibly need, which makes it an upper bound on the
+     * required_hash_algs.
+     *
+     * An endpoint should only hash if the algorithm is required and allowed by the security policy.
+     * Therefore, an *and* operation is required to find the shared algorithm to perform hash computations.
+     */
+    for (size_t i = 0; i < S2N_HASH_ALGS_COUNT; i++) {
+        conn->handshake.required_hash_algs[i] &= policy_supported_hash_algs[i];
+    }
+    return S2N_RESULT_OK;
+}
+
 static int s2n_handshake_require_hash(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg)
 {
     handshake->required_hash_algs[hash_alg] = 1;
@@ -157,6 +190,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
          * Therefore all hashes are needed until we're past CLIENT_CERT_VERIFY if client auth is possible. */
         if ((client_cert_auth_type != S2N_CERT_AUTH_NONE) && !client_cert_verify_done) {
             POSIX_GUARD(s2n_handshake_require_all_hashes(&conn->handshake));
+            POSIX_GUARD_RESULT(s2n_handshake_restrict_hashes_to_policy(conn));
             return S2N_SUCCESS;
         }
     }
@@ -189,6 +223,7 @@ int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn)
             POSIX_BAIL(S2N_ERR_SAFETY);
     }
 
+    POSIX_GUARD_RESULT(s2n_handshake_restrict_hashes_to_policy(conn));
     return S2N_SUCCESS;
 }
 
