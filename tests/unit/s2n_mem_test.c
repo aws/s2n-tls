@@ -34,6 +34,26 @@ int s2n_failing_mem_free_cb(void *ptr, uint32_t size)
     return S2N_FAILURE;
 }
 
+/* Track allocations to detect leaks in s2n_alloc */
+static int s2n_test_malloc_count = 0;
+static int s2n_test_free_count = 0;
+
+static int s2n_test_counting_malloc(void **ptr, uint32_t requested, uint32_t *allocated)
+{
+    *ptr = malloc(requested);
+    POSIX_ENSURE(*ptr != NULL, S2N_ERR_ALLOC);
+    *allocated = requested;
+    s2n_test_malloc_count++;
+    return S2N_SUCCESS;
+}
+
+static int s2n_test_counting_free(void *ptr, uint32_t size)
+{
+    free(ptr);
+    s2n_test_free_count++;
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -138,6 +158,94 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_failing_free_cb_called);
 
         /* Restore real callbacks */
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
+    };
+
+    /* Test: s2n_alloc on a blob with pre-existing allocation frees old memory */
+    {
+        s2n_mem_init_callback mem_init_cb = NULL;
+        s2n_mem_cleanup_callback mem_cleanup_cb = NULL;
+        s2n_mem_malloc_callback mem_malloc_cb = NULL;
+        s2n_mem_free_callback mem_free_cb = NULL;
+        EXPECT_OK(s2n_mem_get_callbacks(&mem_init_cb, &mem_cleanup_cb, &mem_malloc_cb, &mem_free_cb));
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb,
+                s2n_test_counting_malloc, s2n_test_counting_free));
+
+        s2n_test_malloc_count = 0;
+        s2n_test_free_count = 0;
+
+        struct s2n_blob blob = { 0 };
+
+        /* First allocation */
+        EXPECT_SUCCESS(s2n_alloc(&blob, 32));
+        EXPECT_EQUAL(s2n_test_malloc_count, 1);
+        EXPECT_EQUAL(s2n_test_free_count, 0);
+
+        /* Second allocation on the same blob - must free the first */
+        EXPECT_SUCCESS(s2n_alloc(&blob, 64));
+        EXPECT_EQUAL(s2n_test_malloc_count, 2);
+        EXPECT_EQUAL(s2n_test_free_count, 1);
+
+        EXPECT_EQUAL(blob.size, 64);
+
+        /* Final free */
+        EXPECT_SUCCESS(s2n_free(&blob));
+        EXPECT_EQUAL(s2n_test_malloc_count, 2);
+        EXPECT_EQUAL(s2n_test_free_count, 2);
+
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
+    };
+
+    /* Test: repeated s2n_alloc calls don't accumulate leaked memory */
+    {
+        s2n_mem_init_callback mem_init_cb = NULL;
+        s2n_mem_cleanup_callback mem_cleanup_cb = NULL;
+        s2n_mem_malloc_callback mem_malloc_cb = NULL;
+        s2n_mem_free_callback mem_free_cb = NULL;
+        EXPECT_OK(s2n_mem_get_callbacks(&mem_init_cb, &mem_cleanup_cb, &mem_malloc_cb, &mem_free_cb));
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb,
+                s2n_test_counting_malloc, s2n_test_counting_free));
+
+        s2n_test_malloc_count = 0;
+        s2n_test_free_count = 0;
+
+        struct s2n_blob blob = { 0 };
+
+        for (int i = 0; i < 10; i++) {
+            EXPECT_SUCCESS(s2n_alloc(&blob, (i + 1) * 16));
+        }
+
+        /* 10 mallocs, 9 frees (each alloc frees the previous except the first) */
+        EXPECT_EQUAL(s2n_test_malloc_count, 10);
+        EXPECT_EQUAL(s2n_test_free_count, 9);
+
+        EXPECT_SUCCESS(s2n_free(&blob));
+        EXPECT_EQUAL(s2n_test_free_count, 10);
+
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
+    };
+
+    /* Test: s2n_alloc on an empty blob (allocated == 0) does not call free */
+    {
+        s2n_mem_init_callback mem_init_cb = NULL;
+        s2n_mem_cleanup_callback mem_cleanup_cb = NULL;
+        s2n_mem_malloc_callback mem_malloc_cb = NULL;
+        s2n_mem_free_callback mem_free_cb = NULL;
+        EXPECT_OK(s2n_mem_get_callbacks(&mem_init_cb, &mem_cleanup_cb, &mem_malloc_cb, &mem_free_cb));
+        EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb,
+                s2n_test_counting_malloc, s2n_test_counting_free));
+
+        s2n_test_malloc_count = 0;
+        s2n_test_free_count = 0;
+
+        struct s2n_blob blob = { 0 };
+
+        EXPECT_SUCCESS(s2n_alloc(&blob, 32));
+        EXPECT_EQUAL(s2n_test_malloc_count, 1);
+        EXPECT_EQUAL(s2n_test_free_count, 0);
+
+        EXPECT_SUCCESS(s2n_free(&blob));
+
         EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
     };
 
