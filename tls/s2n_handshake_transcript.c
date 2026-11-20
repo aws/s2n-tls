@@ -46,6 +46,11 @@ int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blo
     struct s2n_handshake_hashes *hashes = conn->handshake.hashes;
     POSIX_ENSURE_REF(hashes);
 
+    /* Drop any required hash the security policy could never need. Before
+     * negotiation completes the required set is a hedge across all hashes, and
+     * most policies can rule several of them out. */
+    POSIX_GUARD_RESULT(s2n_handshake_restrict_hashes_to_policy(conn));
+
     /* MD5 and SHA1 are not permitted in FIPS mode, but an exception is made in
      * order to continue to support TLS1.0 and TLS1.1. NIST SP 800-52r1 approves
      * their continued use for the signature check in the CertificateVerify message
