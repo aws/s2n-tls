@@ -859,6 +859,31 @@ mod tests {
         assert_eq!(record.incompatible_cnsa2, 1);
     }
 
+    /// A client that only offers RSA key exchange ciphers is incompatible with
+    /// every profile.
+    #[test]
+    fn record_contents_incompatible_metrics() {
+        use s2n_tls::security::Policy;
+
+        let server_policy = Policy::from_version("test_all").unwrap();
+        let endpoint = TestEndpoint::with_server_policy(&server_policy);
+
+        endpoint.client_handshake(&Policy::from_version("test_all_rsa_kex").unwrap());
+        endpoint.subscriber.finish_record();
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.compatibility_general20251201, 0);
+        assert_eq!(record.compatibility_fips20251201, 0);
+        assert_eq!(record.compatibility_cnsa1, 0);
+        assert_eq!(record.compatibility_cnsa2, 0);
+
+        assert_eq!(record.incompatible_general20251201, 1);
+        assert_eq!(record.incompatible_fips20251201, 1);
+        assert_eq!(record.incompatible_cnsa1, 1);
+        assert_eq!(record.incompatible_cnsa2, 1);
+    }
+
     /// The `compatibility_negotiated_*` counters reflect whether the actually
     /// negotiated parameters are permitted by each profile. These are computed
     /// from negotiated parameters (available on both client and server) rather
