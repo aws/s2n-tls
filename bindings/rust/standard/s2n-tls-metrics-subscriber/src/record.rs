@@ -140,6 +140,14 @@ pub(crate) struct HandshakeRecordInProgress {
     compatibility_negotiated_cnsa1: AtomicU64,
     compatibility_negotiated_cnsa2: AtomicU64,
 
+    // The complement of the client hello based `compatibility_*` counters. These
+    // are counted directly so that incompatibility is its own signal, rather than
+    // derived from other metrics.
+    incompatible_general20251201: AtomicU64,
+    incompatible_fips20251201: AtomicU64,
+    incompatible_cnsa1: AtomicU64,
+    incompatible_cnsa2: AtomicU64,
+
     client_issue: Counter<{ ClientIssue::COUNT }, ClientIssue>,
 
     /// sum of handshake duration, including network latency and waiting
@@ -201,6 +209,11 @@ impl HandshakeRecordInProgress {
             compatibility_negotiated_fips20251201: AtomicU64::default(),
             compatibility_negotiated_cnsa1: AtomicU64::default(),
             compatibility_negotiated_cnsa2: AtomicU64::default(),
+
+            incompatible_general20251201: AtomicU64::default(),
+            incompatible_fips20251201: AtomicU64::default(),
+            incompatible_cnsa1: AtomicU64::default(),
+            incompatible_cnsa2: AtomicU64::default(),
 
             client_issue: Counter::new(),
 
@@ -366,16 +379,26 @@ impl HandshakeRecordInProgress {
                     if General20251201::supported(&supported_parameter) {
                         self.compatibility_general20251201
                             .fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        self.incompatible_general20251201
+                            .fetch_add(1, Ordering::Relaxed);
                     }
                     if Fips20251201::supported(&supported_parameter) {
                         self.compatibility_fips20251201
                             .fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        self.incompatible_fips20251201
+                            .fetch_add(1, Ordering::Relaxed);
                     }
                     if Cnsa1::supported(&supported_parameter) {
                         self.compatibility_cnsa1.fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        self.incompatible_cnsa1.fetch_add(1, Ordering::Relaxed);
                     }
                     if Cnsa2::supported(&supported_parameter) {
                         self.compatibility_cnsa2.fetch_add(1, Ordering::Relaxed);
+                    } else {
+                        self.incompatible_cnsa2.fetch_add(1, Ordering::Relaxed);
                     }
                     Some(supported_parameter)
                 }
@@ -547,6 +570,11 @@ impl HandshakeRecordInProgress {
             compatibility_negotiated_cnsa2: self
                 .compatibility_negotiated_cnsa2
                 .load(Ordering::Relaxed),
+
+            incompatible_general20251201: self.incompatible_general20251201.load(Ordering::Relaxed),
+            incompatible_fips20251201: self.incompatible_fips20251201.load(Ordering::Relaxed),
+            incompatible_cnsa1: self.incompatible_cnsa1.load(Ordering::Relaxed),
+            incompatible_cnsa2: self.incompatible_cnsa2.load(Ordering::Relaxed),
 
             client_issues: self.client_issue.freeze(),
 
@@ -824,6 +852,36 @@ mod tests {
         assert_eq!(record.compatibility_fips20251201, 1);
         assert_eq!(record.compatibility_cnsa1, 1);
         assert_eq!(record.compatibility_cnsa2, 0);
+
+        assert_eq!(record.incompatible_general20251201, 0);
+        assert_eq!(record.incompatible_fips20251201, 0);
+        assert_eq!(record.incompatible_cnsa1, 0);
+        assert_eq!(record.incompatible_cnsa2, 1);
+    }
+
+    /// A client that only offers RSA key exchange ciphers is incompatible with
+    /// every profile.
+    #[test]
+    fn record_contents_incompatible_metrics() {
+        use s2n_tls::security::Policy;
+
+        let server_policy = Policy::from_version("test_all").unwrap();
+        let endpoint = TestEndpoint::with_server_policy(&server_policy);
+
+        endpoint.client_handshake(&Policy::from_version("test_all_rsa_kex").unwrap());
+        endpoint.subscriber.finish_record();
+        let records = endpoint.sink.records.lock().unwrap();
+        let record = &records[0].as_schema().handshake;
+
+        assert_eq!(record.compatibility_general20251201, 0);
+        assert_eq!(record.compatibility_fips20251201, 0);
+        assert_eq!(record.compatibility_cnsa1, 0);
+        assert_eq!(record.compatibility_cnsa2, 0);
+
+        assert_eq!(record.incompatible_general20251201, 1);
+        assert_eq!(record.incompatible_fips20251201, 1);
+        assert_eq!(record.incompatible_cnsa1, 1);
+        assert_eq!(record.incompatible_cnsa2, 1);
     }
 
     /// The `compatibility_negotiated_*` counters reflect whether the actually
@@ -926,6 +984,10 @@ mod tests {
         assert_eq!(record.compatibility_fips20251201, 0);
         assert_eq!(record.compatibility_cnsa1, 0);
         assert_eq!(record.compatibility_cnsa2, 0);
+        assert_eq!(record.incompatible_general20251201, 0);
+        assert_eq!(record.incompatible_fips20251201, 0);
+        assert_eq!(record.incompatible_cnsa1, 0);
+        assert_eq!(record.incompatible_cnsa2, 0);
     }
 
     #[test]

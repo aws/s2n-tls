@@ -158,6 +158,18 @@
             "Name": "compatibility.negotiated.cnsa2"
           },
           {
+            "Name": "incompatible.general20251201"
+          },
+          {
+            "Name": "incompatible.fips20251201"
+          },
+          {
+            "Name": "incompatible.cnsa1"
+          },
+          {
+            "Name": "incompatible.cnsa2"
+          },
+          {
             "Name": "sslv2_client_hello"
           },
           {
@@ -243,6 +255,10 @@
   "handshake_failure_count": 1,
   "handshake_success_count": 2,
   "hello_retry_request_count": 0,
+  "incompatible.cnsa1": 0,
+  "incompatible.cnsa2": 2,
+  "incompatible.fips20251201": 0,
+  "incompatible.general20251201": 0,
   "internal_failure": 0,
   "resource": "arn:aws:elasticloadbalancing:us-east-1:123:listener/abc",
   "service": "my-service",
