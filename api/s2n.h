@@ -1299,6 +1299,9 @@ S2N_API extern int s2n_config_set_session_state_lifetime(struct s2n_config *conf
 /**
  * Enable or disable session resumption using session ticket.
  *
+ * A server only resumes a session if the client sends the same server name, compared as exact
+ * bytes, and the connection has the same client authentication type.
+ *
  * @param config The configuration object being updated
  * @param enabled The configuration object being updated. Set to 1 to enable. Set to 0 to disable.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
@@ -1310,6 +1313,9 @@ S2N_API extern int s2n_config_set_session_tickets_onoff(struct s2n_config *confi
  * 
  * @note Session caching will not be turned on unless all three session cache callbacks are set
  * prior to calling this function.
+ *
+ * A server only resumes a session if the client sends the same server name, compared as exact
+ * bytes, and the connection has the same client authentication type.
  *
  * @param config The configuration object being updated
  * @param enabled The configuration object being updated. Set to 1 to enable. Set to 0 to disable.
@@ -1370,6 +1376,33 @@ S2N_API extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, c
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_config_require_ticket_forward_secrecy(struct s2n_config *config, bool enabled);
+
+/**
+ * Allows TLS1.3 session resumption on connections with `S2N_CERT_AUTH_REQUIRED`.
+ *
+ * This must NEVER be used if client authentication distinguishes between multiple client
+ * identities. A resumed connection does not track the client certificate:
+ * `s2n_connection_client_cert_used()` returns 0 and no client certificate chain is available.
+ * Resumption only shows that a client certificate was verified in an earlier handshake
+ * (or received, if certificate verification is disabled). Revocation and expiry are not
+ * checked again, so keep session ticket key lifetimes and the keying material lifetime
+ * (`s2n_connection_set_server_keying_material_lifetime()`) short.
+ *
+ * Servers that share a session ticket key accept each other's tickets. Use a separate ticket
+ * key for each set of trusted client certificate authorities.
+ *
+ * Tickets are only issued after a handshake that verified a client certificate, or after a
+ * resumption, and are only accepted by connections with `S2N_CERT_AUTH_REQUIRED` and this
+ * option enabled. Connections with `S2N_CERT_AUTH_OPTIONAL` neither issue nor accept tickets.
+ * TLS1.2 is not supported.
+ *
+ * @note The default behavior is that resumption is not allowed with client authentication.
+ *
+ * @param config The config object being updated
+ * @param enabled Indicates if TLS1.3 session resumption is allowed with `S2N_CERT_AUTH_REQUIRED`
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_set_client_auth_resumption(struct s2n_config *config, bool enabled);
 
 /**
  * Sets user defined context on the `s2n_config` object.
