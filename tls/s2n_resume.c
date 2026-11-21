@@ -1017,6 +1017,12 @@ bool s2n_resume_client_auth_ticket_allowed(struct s2n_connection *conn)
         return false;
     }
 
+    /* Never issue a client auth ticket before the handshake completes, for example while
+     * sending 0.5-RTT data: the client hasn't been verified yet (RFC 8446, Section 4.6.1). */
+    if (!is_handshake_complete(conn)) {
+        return false;
+    }
+
     /* The client auth type can change after the CertificateRequest decision, so check the handshake */
     if (s2n_connection_client_cert_used(conn) == 1) {
         return true;

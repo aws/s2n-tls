@@ -1760,6 +1760,19 @@ int main(int argc, char **argv)
                 conn->psk_params.chosen_psk = &external_psk;
                 EXPECT_FALSE(s2n_resume_client_auth_ticket_allowed(conn));
                 conn->psk_params.chosen_psk = NULL;
+
+                /* A resumption, only once the handshake completes */
+                DEFER_CLEANUP(struct s2n_psk resumption_psk = { 0 }, s2n_psk_wipe);
+                EXPECT_OK(s2n_psk_init(&resumption_psk, S2N_PSK_TYPE_RESUMPTION));
+                conn->psk_params.chosen_psk = &resumption_psk;
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED));
+                conn->handshake.message_number--;
+                EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
+                EXPECT_FALSE(s2n_resume_client_auth_ticket_allowed(conn));
+                EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &output), S2N_ERR_SAFETY);
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED));
+                EXPECT_TRUE(s2n_resume_client_auth_ticket_allowed(conn));
+                conn->psk_params.chosen_psk = NULL;
             };
 
             /* A server that opted in only accepts the ticket for the same server name */
