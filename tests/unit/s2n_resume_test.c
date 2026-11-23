@@ -58,6 +58,57 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
+/* Prepares a server connection to encrypt or decrypt a TLS1.3 session ticket */
+static S2N_RESULT s2n_test_tls13_ticket_conn_setup(struct s2n_connection *conn, struct s2n_config *config,
+        const char *server_name, struct s2n_blob *session_secret)
+{
+    RESULT_GUARD_POSIX(s2n_connection_set_config(conn, config));
+    conn->actual_protocol_version = S2N_TLS13;
+    conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+    conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+    RESULT_GUARD_POSIX(s2n_dup(session_secret, &conn->tls13_ticket_fields.session_secret));
+    size_t server_name_len = strlen(server_name);
+    RESULT_ENSURE_LTE(server_name_len, S2N_MAX_SERVER_NAME);
+    RESULT_CHECKED_MEMCPY(conn->server_name, server_name, server_name_len + 1);
+    return S2N_RESULT_OK;
+}
+
+/* Decrypts a copy of `ticket` on a new server connection and checks the PSK secret */
+static S2N_RESULT s2n_test_decrypt_tls13_ticket(struct s2n_config *config, struct s2n_stuffer *ticket,
+        const char *server_name, struct s2n_blob *session_secret)
+{
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD(s2n_test_tls13_ticket_conn_setup(conn, config, server_name, session_secret));
+
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(ticket));
+    DEFER_CLEANUP(struct s2n_stuffer copy = { 0 }, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&copy, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(ticket, &copy, s2n_stuffer_data_available(ticket)));
+    RESULT_GUARD(s2n_resume_decrypt_session(conn, &copy));
+
+    RESULT_ENSURE_EQ(conn->psk_params.psk_list.len, 1);
+    struct s2n_psk *psk = NULL;
+    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
+    RESULT_ENSURE_REF(psk);
+    RESULT_ENSURE_EQ(psk->secret.size, session_secret->size);
+    RESULT_ENSURE(s2n_constant_time_equals(psk->secret.data, session_secret->data, session_secret->size), S2N_ERR_SAFETY);
+    return S2N_RESULT_OK;
+}
+
+/* Sets the handshake type and moves the connection to the end of that handshake */
+static S2N_RESULT s2n_test_complete_handshake(struct s2n_connection *conn, uint32_t handshake_type)
+{
+    RESULT_ENSURE_REF(conn);
+    conn->handshake.handshake_type = handshake_type;
+    conn->handshake.message_number = 0;
+    while (s2n_conn_get_current_message_type(conn) != APPLICATION_DATA) {
+        RESULT_ENSURE_LT(conn->handshake.message_number, S2N_MAX_HANDSHAKE_LENGTH - 1);
+        conn->handshake.message_number++;
+    }
+    return S2N_RESULT_OK;
+}
+
 /* Test convenience wrapper: the production code inlines this init+encode pair
  * in s2n_serialize_resumption_state. */
 static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -1358,8 +1409,21 @@ int main(int argc, char **argv)
             struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
             EXPECT_NOT_NULL(key);
 
+            EXPECT_MEMCPY_SUCCESS(conn->server_name, "localhost", sizeof("localhost"));
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &conn->client_ticket_to_decrypt));
             EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
+
+            /* A different server name can't decrypt the ticket. Decrypt a copy: decryption modifies it. */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer copy = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&copy, 0));
+                EXPECT_SUCCESS(s2n_stuffer_copy(&conn->client_ticket_to_decrypt, &copy,
+                        s2n_stuffer_data_available(&conn->client_ticket_to_decrypt)));
+                EXPECT_SUCCESS(s2n_stuffer_reread(&conn->client_ticket_to_decrypt));
+                EXPECT_MEMCPY_SUCCESS(conn->server_name, "other.example", sizeof("other.example"));
+                EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session(conn, &copy), S2N_ERR_DECRYPT);
+                EXPECT_MEMCPY_SUCCESS(conn->server_name, "localhost", sizeof("localhost"));
+            };
 
             /* Wiping the master secret to prove that the decryption function actually writes the master secret */
             memset(conn->secrets.version.tls12.master_secret, 0, test_master_secret.size);
@@ -1597,6 +1661,141 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
+        };
+
+        /* Known answer tests for the per-ticket key derivation */
+        {
+            uint8_t initial_key[S2N_AES256_KEY_LEN] = { 0 };
+            for (size_t i = 0; i < s2n_array_len(initial_key); i++) {
+                initial_key[i] = (uint8_t) (0x01 + i);
+            }
+
+            struct {
+                s2n_cert_auth_type auth_type;
+                const char *server_name;
+                const char *expected_hex;
+            } test_cases[] = {
+                { .auth_type = S2N_CERT_AUTH_NONE,
+                        .server_name = "",
+                        .expected_hex = "691f42640b2f1cb95b2b017e6633dc411c5fe450de3b510bc53b1898319ac7a7" },
+                { .auth_type = S2N_CERT_AUTH_REQUIRED,
+                        .server_name = "localhost",
+                        .expected_hex = "02e4613112fdb6f900ccf016f1864252f519a81ae70d75585340a3345847f23f" },
+            };
+
+            for (size_t test_i = 0; test_i < s2n_array_len(test_cases); test_i++) {
+                uint8_t server_name_data[S2N_MAX_SERVER_NAME] = { 0 };
+                size_t server_name_len = strlen(test_cases[test_i].server_name);
+                EXPECT_MEMCPY_SUCCESS(server_name_data, test_cases[test_i].server_name, server_name_len);
+                struct s2n_blob server_name = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&server_name, server_name_data, server_name_len));
+
+                struct s2n_unique_ticket_key ticket_key = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&ticket_key.initial_key, initial_key, sizeof(initial_key)));
+                for (size_t i = 0; i < s2n_array_len(ticket_key.info); i++) {
+                    ticket_key.info[i] = (uint8_t) (0xA0 + i);
+                }
+
+                S2N_BLOB_FROM_HEX(expected, test_cases[test_i].expected_hex);
+                EXPECT_OK(s2n_resume_generate_unique_ticket_key(&ticket_key, test_cases[test_i].auth_type,
+                        &server_name));
+                EXPECT_EQUAL(expected.size, sizeof(ticket_key.output_key));
+                EXPECT_BYTEARRAY_EQUAL(ticket_key.output_key, expected.data, expected.size);
+            }
+
+            /* Unknown client auth types are rejected */
+            {
+                struct s2n_unique_ticket_key ticket_key = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&ticket_key.initial_key, initial_key, sizeof(initial_key)));
+                struct s2n_blob server_name = { 0 };
+                int invalid_auth_type = S2N_CERT_AUTH_OPTIONAL + 1;
+                EXPECT_ERROR_WITH_ERRNO(s2n_resume_generate_unique_ticket_key(&ticket_key,
+                                                (s2n_cert_auth_type) invalid_auth_type, &server_name),
+                        S2N_ERR_SAFETY);
+            };
+        };
+
+        /* Encrypt and decrypt TLS1.3 tickets with client auth */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+            EXPECT_SUCCESS(s2n_config_set_client_auth_resumption(config, true));
+
+            DEFER_CLEANUP(struct s2n_stuffer ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&ticket, 0));
+
+            /* A server that opted in only issues a ticket after receiving a client certificate */
+            {
+                EXPECT_FALSE(s2n_resume_client_auth_ticket_allowed(NULL));
+
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_OK(s2n_test_tls13_ticket_conn_setup(conn, config, "localhost", &test_session_secret));
+                struct s2n_ticket_key *key = s2n_get_ticket_encrypt_decrypt_key(conn->config);
+                EXPECT_NOT_NULL(key);
+
+                DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+                /* Full handshake without a CertificateRequest */
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED | FULL_HANDSHAKE));
+                EXPECT_FALSE(s2n_resume_client_auth_ticket_allowed(conn));
+                EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &output), S2N_ERR_SAFETY);
+
+                /* Full handshake where the client sent no certificate */
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT));
+                EXPECT_FALSE(s2n_resume_client_auth_ticket_allowed(conn));
+
+                /* Full handshake with a client certificate */
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH));
+                EXPECT_TRUE(s2n_resume_client_auth_ticket_allowed(conn));
+                EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, key, &ticket));
+
+                /* External PSK */
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED));
+                DEFER_CLEANUP(struct s2n_psk external_psk = { 0 }, s2n_psk_wipe);
+                EXPECT_OK(s2n_psk_init(&external_psk, S2N_PSK_TYPE_EXTERNAL));
+                conn->psk_params.chosen_psk = &external_psk;
+                EXPECT_FALSE(s2n_resume_client_auth_ticket_allowed(conn));
+                conn->psk_params.chosen_psk = NULL;
+
+                /* A resumption, only once the handshake completes */
+                DEFER_CLEANUP(struct s2n_psk resumption_psk = { 0 }, s2n_psk_wipe);
+                EXPECT_OK(s2n_psk_init(&resumption_psk, S2N_PSK_TYPE_RESUMPTION));
+                conn->psk_params.chosen_psk = &resumption_psk;
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED));
+                conn->handshake.message_number--;
+                EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), CLIENT_FINISHED);
+                EXPECT_FALSE(s2n_resume_client_auth_ticket_allowed(conn));
+                EXPECT_ERROR_WITH_ERRNO(s2n_resume_encrypt_session_ticket(conn, key, &output), S2N_ERR_SAFETY);
+                EXPECT_OK(s2n_test_complete_handshake(conn, NEGOTIATED));
+                EXPECT_TRUE(s2n_resume_client_auth_ticket_allowed(conn));
+                conn->psk_params.chosen_psk = NULL;
+            };
+
+            /* A server that opted in only accepts the ticket for the same server name */
+            EXPECT_OK(s2n_test_decrypt_tls13_ticket(config, &ticket, "localhost", &test_session_secret));
+            EXPECT_ERROR_WITH_ERRNO(s2n_test_decrypt_tls13_ticket(config, &ticket, "other.example",
+                                            &test_session_secret),
+                    S2N_ERR_DECRYPT);
+
+            /* A server with client auth required that did not opt in rejects the ticket */
+            EXPECT_SUCCESS(s2n_config_set_client_auth_resumption(config, false));
+            EXPECT_ERROR_WITH_ERRNO(s2n_test_decrypt_tls13_ticket(config, &ticket, "localhost", &test_session_secret),
+                    S2N_ERR_INVALID_SESSION_TICKET);
+
+            /* A server with client auth optional rejects the ticket, even if it opted in */
+            EXPECT_SUCCESS(s2n_config_set_client_auth_resumption(config, true));
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_OPTIONAL));
+            EXPECT_ERROR_WITH_ERRNO(s2n_test_decrypt_tls13_ticket(config, &ticket, "localhost", &test_session_secret),
+                    S2N_ERR_INVALID_SESSION_TICKET);
+
+            /* A server without client auth rejects the ticket */
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_NONE));
+            EXPECT_ERROR_WITH_ERRNO(s2n_test_decrypt_tls13_ticket(config, &ticket, "localhost", &test_session_secret),
+                    S2N_ERR_DECRYPT);
         };
     };
 

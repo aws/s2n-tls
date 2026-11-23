@@ -19,6 +19,7 @@
 
 #include "crypto/s2n_hash.h"
 #include "tls/s2n_psk.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_bitmap.h"
@@ -240,13 +241,14 @@ static S2N_RESULT s2n_select_resumption_psk(struct s2n_connection *conn, struct 
     struct s2n_offered_psk client_psk = { 0 };
     conn->psk_params.chosen_psk = NULL;
 
-    /* s2n does not support resumption when client auth is enabled: a resumed
-     * handshake skips the CertificateRequest, and the ticket carries no client
-     * certificate or peer identity. Bailing here leaves chosen_psk NULL, so the
-     * caller falls back to a full handshake. Mirrors the TLS1.2 behavior in
+    /* By default s2n does not support resumption when client auth is enabled:
+     * a resumed handshake skips the CertificateRequest, and the ticket carries no
+     * client certificate or peer identity. Bailing here leaves chosen_psk NULL, so
+     * the caller falls back to a full handshake. Mirrors the TLS1.2 behavior in
      * s2n_allowed_to_cache_connection() and s2n_client_session_ticket_recv().
+     * s2n_resume_decrypt_session() also enforces this, including for PSK selection callbacks.
      */
-    if (s2n_connection_is_client_auth_enabled(conn)) {
+    if (s2n_connection_is_client_auth_enabled(conn) && !s2n_resume_client_auth_resumption_enabled(conn)) {
         RESULT_BAIL(S2N_ERR_INVALID_SESSION_TICKET);
     }
 
