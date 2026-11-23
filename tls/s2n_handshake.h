@@ -211,6 +211,7 @@ message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *co
 int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);
 uint8_t s2n_handshake_is_hash_required(struct s2n_handshake *handshake, s2n_hash_algorithm hash_alg);
 int s2n_conn_update_required_handshake_hashes(struct s2n_connection *conn);
+S2N_RESULT s2n_handshake_restrict_hashes_to_policy(struct s2n_connection *conn);
 S2N_RESULT s2n_handshake_copy_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg, struct s2n_hash_state *hash_state);
 S2N_RESULT s2n_handshake_reset_hash_state(struct s2n_connection *conn, s2n_hash_algorithm hash_alg);
 int s2n_conn_find_name_matching_certs(struct s2n_connection *conn);

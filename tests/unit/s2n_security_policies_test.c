@@ -15,6 +15,7 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_pq.h"
 #include "crypto/s2n_rsa_pss.h"
@@ -1381,6 +1382,154 @@ int main(int argc, char **argv)
             }
         }
     }
+    /* Test s2n_security_policy_get_required_hash_algs */
+    {
+        /* The set must cover every transcript hash a policy could need before
+         * the cipher suite and protocol version are negotiated */
+        for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+            const struct s2n_security_policy *policy = security_policy_selection[i].security_policy;
+
+            uint8_t required[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(policy, required));
+
+            /* An incomplete policy falls back to requiring everything */
+            if (policy->cipher_preferences == NULL || policy->cipher_preferences->suites == NULL
+                    || policy->signature_preferences == NULL
+                    || policy->signature_preferences->signature_schemes == NULL) {
+                for (size_t j = 0; j < S2N_HASH_ALGS_COUNT; j++) {
+                    EXPECT_EQUAL(required[j], 1);
+                }
+                continue;
+            }
+
+            /* The negotiated cipher suite defines the TLS1.2 and TLS1.3 PRF hash,
+             * so every suite in the policy contributes its PRF hash */
+            for (size_t j = 0; j < policy->cipher_preferences->count; j++) {
+                s2n_hash_algorithm prf_hash = S2N_HASH_NONE;
+                EXPECT_SUCCESS(s2n_hmac_hash_alg(policy->cipher_preferences->suites[j]->prf_alg, &prf_hash));
+                EXPECT_EQUAL(required[prf_hash], 1);
+            }
+
+            /* The TLS1.0 and TLS1.1 PRF needs MD5, SHA1 and the combined hash, and
+             * the pre-TLS1.2 default signature schemes need SHA1 or the combined
+             * hash. None of those are reachable if the policy requires TLS1.2.
+             * No signature scheme in any preference list uses MD5 or the combined
+             * hash, so the protocol version alone determines these. */
+            uint8_t legacy_possible = (policy->minimum_protocol_version < S2N_TLS12);
+            EXPECT_EQUAL(required[S2N_HASH_MD5], legacy_possible);
+            EXPECT_EQUAL(required[S2N_HASH_MD5_SHA1], legacy_possible);
+            if (legacy_possible) {
+                EXPECT_EQUAL(required[S2N_HASH_SHA1], 1);
+            }
+
+            /* The TLS1.2 CertificateVerify hash is the negotiated signature
+             * scheme's hash, and that scheme always comes from the policy's
+             * signature preferences. TLS1.3 CertificateVerify signs the cipher
+             * suite's PRF hash instead, so a policy that requires TLS1.3 needs
+             * nothing from its signature preferences. */
+            bool tls13_only = (policy->minimum_protocol_version >= S2N_TLS13);
+            for (size_t j = 0; j < policy->signature_preferences->count; j++) {
+                const struct s2n_signature_scheme *scheme =
+                        policy->signature_preferences->signature_schemes[j];
+                if (tls13_only || scheme->minimum_protocol_version >= S2N_TLS13) {
+                    continue;
+                }
+                EXPECT_EQUAL(required[scheme->hash_alg], 1);
+            }
+
+            /* These have no handshake transcript state, so they can never be required */
+            EXPECT_EQUAL(required[S2N_HASH_NONE], 0);
+            EXPECT_EQUAL(required[S2N_HASH_SHAKE256_64], 0);
+        }
+
+        /* A TLS1.3-only policy needs only the PRF hashes of its cipher suites.
+         * 20250414 requires TLS1.3 and AES-256, so TLS_AES_256_GCM_SHA384 is its
+         * only cipher suite and SHA384 is the only hash it can ever need. */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("20250414", &policy));
+            EXPECT_EQUAL(policy->minimum_protocol_version, S2N_TLS13);
+
+            uint8_t required[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(policy, required));
+            for (size_t j = 0; j < S2N_HASH_ALGS_COUNT; j++) {
+                EXPECT_EQUAL(required[j], (j == S2N_HASH_SHA384));
+            }
+        }
+
+        /* default_tls13 still permits TLS1.2, so its TLS1.2 signature preferences
+         * contribute hashes beyond the two possible PRF hashes */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &policy));
+            EXPECT_EQUAL(policy->minimum_protocol_version, S2N_TLS12);
+
+            uint8_t required[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(policy, required));
+            EXPECT_EQUAL(required[S2N_HASH_MD5], 0);
+            EXPECT_EQUAL(required[S2N_HASH_SHA1], 0);
+            EXPECT_EQUAL(required[S2N_HASH_SHA224], 0);
+            EXPECT_EQUAL(required[S2N_HASH_SHA256], 1);
+            EXPECT_EQUAL(required[S2N_HASH_SHA384], 1);
+            EXPECT_EQUAL(required[S2N_HASH_SHA512], 1);
+            EXPECT_EQUAL(required[S2N_HASH_MD5_SHA1], 0);
+        }
+
+        /* A policy that allows TLS1.0 keeps the legacy hashes */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("20170210", &policy));
+            EXPECT_TRUE(policy->minimum_protocol_version < S2N_TLS12);
+
+            uint8_t required[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(policy, required));
+            EXPECT_EQUAL(required[S2N_HASH_MD5], 1);
+            EXPECT_EQUAL(required[S2N_HASH_SHA1], 1);
+            EXPECT_EQUAL(required[S2N_HASH_MD5_SHA1], 1);
+        }
+
+        /* A policy that is not in the selection table is computed on the fly and
+         * must match the equivalent table entry */
+        {
+            const struct s2n_security_policy *table_policy = NULL;
+            EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &table_policy));
+
+            struct s2n_security_policy copy = *table_policy;
+            EXPECT_NOT_EQUAL(&copy, table_policy);
+
+            uint8_t from_table[S2N_HASH_ALGS_COUNT] = { 0 };
+            uint8_t computed[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(table_policy, from_table));
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(&copy, computed));
+            EXPECT_BYTEARRAY_EQUAL(from_table, computed, S2N_HASH_ALGS_COUNT);
+        }
+
+        /* A policy missing its preferences cannot be narrowed */
+        {
+            struct s2n_security_policy no_ciphers = *(&security_policy_20170210);
+            no_ciphers.cipher_preferences = NULL;
+            uint8_t required[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(&no_ciphers, required));
+            for (size_t j = 0; j < S2N_HASH_ALGS_COUNT; j++) {
+                EXPECT_EQUAL(required[j], 1);
+            }
+
+            struct s2n_security_policy no_sigs = *(&security_policy_20170210);
+            no_sigs.signature_preferences = NULL;
+            uint8_t required_no_sigs[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_OK(s2n_security_policy_get_required_hash_algs(&no_sigs, required_no_sigs));
+            for (size_t j = 0; j < S2N_HASH_ALGS_COUNT; j++) {
+                EXPECT_EQUAL(required_no_sigs[j], 1);
+            }
+        }
+
+        /* Null arguments are rejected */
+        {
+            uint8_t required[S2N_HASH_ALGS_COUNT] = { 0 };
+            EXPECT_ERROR(s2n_security_policy_get_required_hash_algs(NULL, required));
+            EXPECT_ERROR(s2n_security_policy_get_required_hash_algs(&security_policy_20170210, NULL));
+        }
+    };
 
     END_TEST();
 }
