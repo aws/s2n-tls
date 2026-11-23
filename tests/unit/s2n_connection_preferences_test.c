@@ -207,7 +207,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NULL(conn->security_policy_override);
         EXPECT_FAILURE(s2n_connection_set_cipher_preferences(conn, NULL));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "null"));
+        EXPECT_SUCCESS(s2n_connection_set_security_policy(conn, &security_policy_null));
         EXPECT_NOT_NULL(conn->security_policy_override);
 
         EXPECT_SUCCESS(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));

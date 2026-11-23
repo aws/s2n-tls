@@ -2183,7 +2183,6 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "test_all_tls12", .security_policy = &security_policy_test_all_tls12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_all_tls13", .security_policy = &security_policy_test_all_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "test_pq_only", .security_policy = &security_policy_test_pq_only, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "null", .security_policy = &security_policy_null, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = NULL, .security_policy = NULL, .ecc_extension_required = 0, .pq_kem_extension_required = 0 }
 };
 
@@ -2218,6 +2217,7 @@ const char *deprecated_security_policies[] = {
     "PQ-SIKE-TEST-TLS-1-0-2019-11",
     "PQ-SIKE-TEST-TLS-1-0-2020-02",
     "20240730",
+    "null",
 };
 const size_t deprecated_security_policies_len = s2n_array_len(deprecated_security_policies);
 
@@ -2278,6 +2278,13 @@ static int s2n_config_validate_security_policy(struct s2n_config *config, const 
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+    /* security_policy_null has no key exchange and no usable cipher suite, so it
+     * cannot pass the checks below. It is not reachable by name from application
+     * code (it is not in security_policy_selection), and neither it nor the
+     * pointer-based setters are part of the public API in api/s2n.h. It remains
+     * exempted here only so that internal tests can install it as a policy that
+     * matches nothing.
+     */
     if (security_policy == &security_policy_null) {
         return S2N_SUCCESS;
     }
@@ -2354,16 +2361,14 @@ int s2n_security_policies_init()
             POSIX_GUARD_RESULT(s2n_validate_certificate_signature_preferences(certificate_signature_preference));
         }
 
-        if (security_policy != &security_policy_null) {
-            /* All policies must have at least one ecc curve or PQ kem group configured. */
-            bool ecc_kx_supported = ecc_preference->count > 0;
-            bool pq_kx_supported = kem_preference->tls13_kem_group_count > 0;
-            POSIX_ENSURE(ecc_kx_supported || pq_kx_supported, S2N_ERR_INVALID_SECURITY_POLICY);
+        /* All policies must have at least one ecc curve or PQ kem group configured. */
+        bool ecc_kx_supported = ecc_preference->count > 0;
+        bool pq_kx_supported = kem_preference->tls13_kem_group_count > 0;
+        POSIX_ENSURE(ecc_kx_supported || pq_kx_supported, S2N_ERR_INVALID_SECURITY_POLICY);
 
-            /* A PQ key exchange is only supported in TLS 1.3, so PQ-only policies must require TLS 1.3.*/
-            if (!ecc_kx_supported) {
-                POSIX_ENSURE(security_policy->minimum_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_SECURITY_POLICY);
-            }
+        /* A PQ key exchange is only supported in TLS 1.3, so PQ-only policies must require TLS 1.3.*/
+        if (!ecc_kx_supported) {
+            POSIX_ENSURE(security_policy->minimum_protocol_version >= S2N_TLS13, S2N_ERR_INVALID_SECURITY_POLICY);
         }
 
         for (int j = 0; j < cipher_preference->count; j++) {

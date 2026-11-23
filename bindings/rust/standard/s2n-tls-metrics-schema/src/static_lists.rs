@@ -507,7 +507,7 @@ pub const VERSIONS_AVAILABLE_IN_S2N: [VersionInformation; 5] = [
 ];
 
 #[rustfmt::skip]
-pub const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 37] = [
+pub const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 36] = [
     CipherInformation::new("TLS_AES_128_GCM_SHA256", [19, 1], "TLS_AES_128_GCM_SHA256" ),
     CipherInformation::new("TLS_AES_256_GCM_SHA384", [19, 2], "TLS_AES_256_GCM_SHA384" ),
     CipherInformation::new("TLS_CHACHA20_POLY1305_SHA256", [19, 3], "TLS_CHACHA20_POLY1305_SHA256" ),
@@ -535,7 +535,6 @@ pub const CIPHERS_AVAILABLE_IN_S2N: [CipherInformation; 37] = [
     CipherInformation::new("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384", [192, 48], "ECDHE-RSA-AES256-GCM-SHA384" ),
     CipherInformation::new("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256", [204, 168], "ECDHE-RSA-CHACHA20-POLY1305" ),
     CipherInformation::new("TLS_ECDHE_RSA_WITH_RC4_128_SHA", [192, 17], "ECDHE-RSA-RC4-SHA" ),
-    CipherInformation::new("TLS_NULL_WITH_NULL_NULL", [0, 0], "TLS_NULL_WITH_NULL_NULL" ),
     CipherInformation::new("TLS_RSA_WITH_3DES_EDE_CBC_SHA", [0, 10], "DES-CBC3-SHA" ),
     CipherInformation::new("TLS_RSA_WITH_AES_128_CBC_SHA", [0, 47], "AES128-SHA" ),
     CipherInformation::new("TLS_RSA_WITH_AES_128_CBC_SHA256", [0, 60], "AES128-SHA256" ),

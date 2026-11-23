@@ -15,11 +15,14 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_cipher.h"
+#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_mldsa.h"
 #include "crypto/s2n_pq.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_signature_algorithms.h"
@@ -640,13 +643,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20200310);
-
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "null"));
-        EXPECT_EQUAL(config->security_policy, &security_policy_null);
-        EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_null);
-        EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
-        EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_null);
-        EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_null);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
         EXPECT_EQUAL(config->security_policy, &security_policy_test_all);
@@ -1377,6 +1373,108 @@ int main(int argc, char **argv)
                     EXPECT_FALSE(ecdsa_suite->key_exchange_alg == &s2n_ecdhe
                             && ecdsa_suite->auth_method == S2N_AUTHENTICATION_ECDSA
                             && ecdsa_suite->all_record_algs[0] == rsa_suite->all_record_algs[0]);
+                }
+            }
+        }
+    }
+
+    /* The "null" security policy must not be selectable by name.
+     *
+     * security_policy_null offers only s2n_null_cipher_suite
+     * (TLS_NULL_WITH_NULL_NULL), the placeholder suite installed before a suite
+     * is negotiated. It applies no encryption and no MAC, and it is exempted
+     * from the key exchange and certificate validation that every other policy
+     * must pass. It was never meant to be chosen by an application.
+     */
+    {
+        /* The name no longer resolves to a policy */
+        {
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("null", &policy),
+                    S2N_ERR_DEPRECATED_SECURITY_POLICY);
+            EXPECT_NULL(policy);
+
+            /* Lookup is case insensitive, so every spelling must fail */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("NULL", &policy),
+                    S2N_ERR_DEPRECATED_SECURITY_POLICY);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_find_security_policy_from_version("Null", &policy),
+                    S2N_ERR_DEPRECATED_SECURITY_POLICY);
+            EXPECT_NULL(policy);
+        }
+
+        /* s2n_config_set_cipher_preferences() rejects it and leaves the config alone */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            const struct s2n_security_policy *before = config->security_policy;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "null"),
+                    S2N_ERR_DEPRECATED_SECURITY_POLICY);
+            EXPECT_EQUAL(config->security_policy, before);
+            EXPECT_NOT_EQUAL(config->security_policy, &security_policy_null);
+        }
+
+        /* s2n_connection_set_cipher_preferences() rejects it and sets no override */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "null"),
+                    S2N_ERR_DEPRECATED_SECURITY_POLICY);
+            EXPECT_NULL(conn->security_policy_override);
+
+            /* The connection still uses a policy that actually protects data */
+            const struct s2n_security_policy *policy = NULL;
+            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &policy));
+            EXPECT_NOT_EQUAL(policy, &security_policy_null);
+        }
+
+        /* security_policy_null is absent from the selection table, so it has no name */
+        {
+            for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+                EXPECT_NOT_EQUAL(security_policy_selection[i].security_policy, &security_policy_null);
+            }
+        }
+
+        /* No policy reachable by name offers a suite without encryption or integrity protection. */
+        {
+            for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
+                const struct s2n_security_policy *policy = security_policy_selection[i].security_policy;
+                EXPECT_NOT_NULL(policy);
+                const struct s2n_cipher_preferences *prefs = policy->cipher_preferences;
+                EXPECT_NOT_NULL(prefs);
+
+                /* A policy with no cipher suites can never negotiate anything */
+                EXPECT_TRUE(prefs->count > 0);
+
+                for (size_t j = 0; j < prefs->count; j++) {
+                    const struct s2n_cipher_suite *suite = prefs->suites[j];
+                    EXPECT_NOT_NULL(suite);
+                    EXPECT_NOT_EQUAL(suite, &s2n_null_cipher_suite);
+
+                    /* Check every record algorithm the suite could use, including
+                     * the one chosen by s2n_cipher_suites_init() and the SSLv3
+                     * variant, since availability depends on the libcrypto.
+                     */
+                    const struct s2n_record_algorithm *record_algs[S2N_MAX_POSSIBLE_RECORD_ALGS + 2] = { 0 };
+                    size_t record_alg_count = 0;
+                    record_algs[record_alg_count++] = suite->record_alg;
+                    record_algs[record_alg_count++] = suite->sslv3_record_alg;
+                    for (size_t k = 0; k < suite->num_record_algs; k++) {
+                        record_algs[record_alg_count++] = suite->all_record_algs[k];
+                    }
+
+                    for (size_t k = 0; k < record_alg_count; k++) {
+                        const struct s2n_record_algorithm *record_alg = record_algs[k];
+                        if (record_alg == NULL) {
+                            continue;
+                        }
+                        EXPECT_NOT_EQUAL(record_alg, &s2n_record_alg_null);
+                        /* Either the cipher encrypts, or the record alg authenticates.
+                         * Never neither.
+                         */
+                        EXPECT_FALSE(record_alg->cipher == &s2n_null_cipher
+                                && record_alg->hmac_alg == S2N_HMAC_NONE);
+                    }
                 }
             }
         }
