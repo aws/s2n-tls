@@ -17,6 +17,7 @@
 
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 /* To test static function */
 #include "tls/s2n_resume.c"
@@ -1917,7 +1918,7 @@ int main(int argc, char **argv)
                 /* Trigger the deserialization failure when checking the validity
                  * of the chosen cipher, not when parsing the ticket.
                  */
-                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "null"));
+                EXPECT_SUCCESS(s2n_connection_set_security_policy(conn, &security_policy_null));
 
                 /* Test the connection is not modified by a failed deserialize */
                 uint8_t saved_conn[sizeof(struct s2n_connection)] = { 0 };

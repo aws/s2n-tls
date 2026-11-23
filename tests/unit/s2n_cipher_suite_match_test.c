@@ -291,7 +291,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers, cipher_count));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
         EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "test_all"));
-        EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
+        /* The "null" policy is deprecated and can no longer be looked up by name. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_is_valid_for_cipher_preferences(conn, "null"),
+                S2N_ERR_DEPRECATED_SECURITY_POLICY);
         EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
         /* TEST RENEGOTIATION
@@ -313,7 +315,8 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS11;
         EXPECT_FAILURE(s2n_set_cipher_as_tls_server(conn, wire_ciphers_fallback, cipher_count_fallback));
         EXPECT_EQUAL(conn->secure_renegotiation, 0);
-        EXPECT_EQUAL(1, s2n_connection_is_valid_for_cipher_preferences(conn, "null"));
+        /* Cipher selection failed, so the placeholder suite is still installed. */
+        EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_null_cipher_suite);
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2018"));
         EXPECT_EQUAL(0, s2n_connection_is_valid_for_cipher_preferences(conn, "CloudFront-TLS-1-2-2019"));
         EXPECT_SUCCESS(s2n_connection_wipe(conn));

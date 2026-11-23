@@ -22,6 +22,7 @@
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_safety.h"
@@ -477,7 +478,7 @@ int main()
         EXPECT_NOT_NULL(ecc_pref);
 
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &stuffer));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "null"));
+        EXPECT_SUCCESS(s2n_connection_set_security_policy(conn, &security_policy_null));
 
         EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
         EXPECT_SUCCESS(s2n_client_supported_groups_extension.recv(conn, &stuffer));
