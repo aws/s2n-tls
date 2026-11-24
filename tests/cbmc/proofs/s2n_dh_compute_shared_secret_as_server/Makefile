@@ -45,7 +45,5 @@ UNWINDSET +=
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_free_mlock_impl
 REMOVE_FUNCTION_BODY += s2n_blob_slice
-REMOVE_FUNCTION_BODY += s2n_blob_zero
-REMOVE_FUNCTION_BODY += s2n_free
 
 include ../Makefile.common
