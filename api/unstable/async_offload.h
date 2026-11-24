@@ -85,6 +85,12 @@ S2N_API extern int s2n_config_set_async_offload_callback(struct s2n_config *conf
  * 
  * s2n_negotiate() will throw an `S2N_ERR_T_BLOCKED` error if the handshake is pending on the async offloading callback.
  * Retrying s2n_negotiate() will produce the same result until s2n_async_offload_op_perform() is completed.
+ *
+ * If s2n_async_offload_op_perform() is not invoked inside the callback, s2n_negotiate() always reports
+ * `S2N_ERR_T_BLOCKED` at least once for that operation, even if the separate thread finishes before the
+ * callback returns. The application MUST NOT retry s2n_negotiate() until the thread executing
+ * s2n_async_offload_op_perform() has finished and the application has synchronized with it
+ * (for example, via a mutex or the completion notification of a thread pool).
  * 
  * s2n_async_offload_op_perform() can only be called once for each triggered operation.
  *
