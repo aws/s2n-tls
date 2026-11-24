@@ -1544,10 +1544,12 @@ int main(int argc, char **argv)
         /* Second client hello has version SSLv2 */
         server_conn->client_hello.sslv2 = true;
 
-        /* Mock having some data in the client hello */
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 100));
+        /* Mock having some data in the client hello. The SSLv2 parser accepts a
+         * cipher suite length of 3, so only the retry check fails with S2N_ERR_BAD_MESSAGE.
+         */
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 3));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(server_conn), S2N_ERR_BAD_MESSAGE);
     };
 
     /* Test s2n_client_hello_parse_message

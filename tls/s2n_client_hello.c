@@ -222,17 +222,12 @@ int s2n_collect_client_hello(struct s2n_client_hello *ch, struct s2n_stuffer *so
 }
 
 static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
-        struct s2n_client_hello *old_ch, struct s2n_client_hello *new_ch,
-        uint8_t *previous_client_random)
+        struct s2n_client_hello *old_ch, struct s2n_client_hello *new_ch)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(old_ch);
     RESULT_ENSURE_REF(new_ch);
-    RESULT_ENSURE_REF(previous_client_random);
-
-    if (!s2n_is_hello_retry_handshake(conn)) {
-        return S2N_RESULT_OK;
-    }
+    RESULT_ENSURE(s2n_is_hello_retry_handshake(conn), S2N_ERR_SAFETY);
 
     /*
      *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
@@ -260,8 +255,8 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
          * fail this validation.
          */
         RESULT_ENSURE(s2n_constant_time_equals(
-                              previous_client_random,
-                              conn->client_hello.random,
+                              old_ch->random,
+                              new_ch->random,
                               S2N_TLS_RANDOM_DATA_LEN),
                 S2N_ERR_BAD_MESSAGE);
 
@@ -434,29 +429,13 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello)
     return S2N_RESULT_OK;
 }
 
+/* Parses the ClientHello into conn->client_hello. This does not handle a
+ * HelloRetryRequest: s2n_client_hello_parse_retry moves the first ClientHello
+ * aside first, and validates the second ClientHello against it afterwards.
+ */
 int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-
-    /* SSLv2 ClientHellos are not allowed during a HelloRetryRequest */
-    if (s2n_is_hello_retry_handshake(conn)) {
-        POSIX_ENSURE(!conn->client_hello.sslv2, S2N_ERR_BAD_MESSAGE);
-    }
-
-    /* If a retry, move the old version of the client hello
-     * somewhere safe so we can compare it to the new client hello later.
-     */
-    DEFER_CLEANUP(struct s2n_client_hello previous_hello_retry = conn->client_hello,
-            s2n_client_hello_free_raw_message);
-
-    /* Save the client random before clearing for retry validation */
-    uint8_t previous_client_random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
-    POSIX_CHECKED_MEMCPY(previous_client_random, conn->client_hello.random,
-            S2N_TLS_RANDOM_DATA_LEN);
-
-    if (s2n_is_hello_retry_handshake(conn)) {
-        POSIX_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
-    }
 
     POSIX_GUARD(s2n_collect_client_hello(&conn->client_hello, &conn->handshake.io));
 
@@ -478,9 +457,35 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     conn->session_id_len = conn->client_hello.session_id.size;
     POSIX_CHECKED_MEMCPY(conn->session_id, conn->client_hello.session_id.data, conn->session_id_len);
 
-    POSIX_GUARD_RESULT(s2n_client_hello_verify_for_retry(conn,
-            &previous_hello_retry, &conn->client_hello, previous_client_random));
     return S2N_SUCCESS;
+}
+
+/* Parses the second ClientHello of a HelloRetryRequest handshake and validates
+ * it against the first. Parsing and validation run in one call, so the first
+ * ClientHello can stay in a local.
+ *
+ * The comparison must see the ClientHello the handshake negotiates with, in
+ * both flights. Any step that replaces conn->client_hello, such as ECH
+ * decryption, must finish before the comparison runs. Comparing a second
+ * ClientHelloOuter with a first ClientHelloInner would leak the inner
+ * server_name (RFC 9849, Section 10.12.2).
+ */
+static S2N_RESULT s2n_client_hello_parse_retry(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* SSLv2 ClientHellos are not allowed during a HelloRetryRequest */
+    RESULT_ENSURE(!conn->client_hello.sslv2, S2N_ERR_BAD_MESSAGE);
+
+    /* Move the first ClientHello somewhere safe so we can compare it to the second */
+    DEFER_CLEANUP(struct s2n_client_hello previous_hello_retry = conn->client_hello,
+            s2n_client_hello_free_raw_message);
+    RESULT_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
+
+    RESULT_GUARD_POSIX(s2n_parse_client_hello(conn));
+
+    RESULT_GUARD(s2n_client_hello_verify_for_retry(conn, &previous_hello_retry, &conn->client_hello));
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **result,
@@ -669,7 +674,11 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
 
     /* Only parse the ClientHello once */
     if (!conn->client_hello.parsed) {
-        POSIX_GUARD(s2n_parse_client_hello(conn));
+        if (s2n_is_hello_retry_handshake(conn)) {
+            POSIX_GUARD_RESULT(s2n_client_hello_parse_retry(conn));
+        } else {
+            POSIX_GUARD(s2n_parse_client_hello(conn));
+        }
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.parsed = true;
     }
