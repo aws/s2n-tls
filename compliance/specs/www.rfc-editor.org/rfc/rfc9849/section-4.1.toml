@@ -1,0 +1,47 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-4.1"
+
+# 4.1.  Configuration Identifiers
+#
+# A client-facing server has a set of known ECHConfig values with
+# corresponding private keys.  This set SHOULD contain the currently
+# published values, as well as previous values that may still be in
+# use, since clients may cache DNS records up to a TTL or longer.
+# 
+# Section 7.1 describes a trial decryption process for decrypting the
+# ClientHello.  This can impact performance when the client-facing
+# server maintains many known ECHConfig values.  To avoid this, the
+# client-facing server SHOULD allocate distinct config_id values for
+# each ECHConfig in its known set.  The RECOMMENDED strategy is via
+# rejection sampling, i.e., to randomly select config_id repeatedly
+# until it does not match any known ECHConfig.
+# 
+# It is not necessary for config_id values across different client-
+# facing servers to be distinct.  A backend server may be hosted behind
+# two different client-facing servers with colliding config_id values
+# without any performance impact.  Values may also be reused if the
+# previous ECHConfig is no longer in the known set.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+This set SHOULD contain the currently
+published values, as well as previous values that may still be in
+use, since clients may cache DNS records up to a TTL or longer.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+To avoid this, the
+client-facing server SHOULD allocate distinct config_id values for
+each ECHConfig in its known set.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The RECOMMENDED strategy is via
+rejection sampling, i.e., to randomly select config_id repeatedly
+until it does not match any known ECHConfig.
+'''
+

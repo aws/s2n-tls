@@ -1,0 +1,52 @@
+target = "https://www.rfc-editor.org/rfc/rfc9849#section-6.2.2"
+
+# 6.2.2.  Server Greasing
+#
+# Section 11.3 describes a set of Reserved extensions which will never
+# be registered.  These can be used by servers to "grease" the contents
+# of the ECH configuration, as inspired by [RFC8701].  This helps
+# ensure clients process ECH extensions correctly.  When constructing
+# ECH configurations, servers SHOULD randomly select from reserved
+# values with the high-order bit clear.  Correctly implemented clients
+# will ignore those extensions.
+# 
+# The reserved values with the high-order bit set are mandatory, as
+# defined in Section 4.2.  Servers SHOULD randomly select from these
+# values and include them in extraneous ECH configurations.  Correctly
+# implemented clients will ignore these configurations because they do
+# not recognize the mandatory extension.  Servers SHOULD ensure that
+# any client using these configurations encounters a warning or error
+# message.  This can be accomplished in several ways, including:
+# 
+# *  By giving the extraneous configurations distinctive config IDs or
+#    public names, and rejecting the TLS connection or inserting an
+#    application-level warning message when these are observed.
+# 
+# *  By giving the extraneous configurations an invalid public key and
+#    a public name not associated with the server so that the initial
+#    ClientHelloOuter will not be decryptable and the server cannot
+#    perform the recovery flow described in Section 6.1.6.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+When constructing
+ECH configurations, servers SHOULD randomly select from reserved
+values with the high-order bit clear.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers SHOULD randomly select from these
+values and include them in extraneous ECH configurations.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers SHOULD ensure that
+any client using these configurations encounters a warning or error
+message.
+'''
+
