@@ -1,0 +1,30 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-5.1.4"
+
+# 5.1.4.  Authentication Using Both a PSK and an Asymmetric Key
+#
+# This mode is a straightforward combination of the PSK and
+# authenticated modes.  Like the PSK mode, a PSK is provided as input
+# to the key schedule, and like the authenticated mode, authenticated
+# KEM variants are used.
+# 
+# def SetupAuthPSKS(pkR, info, psk, psk_id, skS):
+#   shared_secret, enc = AuthEncap(pkR, skS)
+#   return enc, KeyScheduleS(mode_auth_psk, shared_secret, info,
+#                            psk, psk_id)
+# 
+# def SetupAuthPSKR(enc, skR, info, psk, psk_id, pkS):
+#   shared_secret = AuthDecap(enc, skR, pkS)
+#   return KeyScheduleR(mode_auth_psk, shared_secret, info,
+#                       psk, psk_id)
+# 
+# The PSK MUST have at least 32 bytes of entropy and SHOULD be of
+# length Nh bytes or longer.  See Section 9.5 for a more detailed
+# discussion.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The PSK MUST have at least 32 bytes of entropy and SHOULD be of
+length Nh bytes or longer.
+'''
+

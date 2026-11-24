@@ -1,0 +1,36 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-5.3"
+
+# 5.3.  Secret Export
+#
+# HPKE provides an interface for exporting secrets from the encryption
+# context using a variable-length pseudorandom function (PRF), similar
+# to the TLS 1.3 exporter interface (see [RFC8446], Section 7.5).  This
+# interface takes as input a context string exporter_context and a
+# desired length L in bytes, and produces a secret derived from the
+# internal exporter secret using the corresponding KDF Expand function.
+# For the KDFs defined in this specification, L has a maximum value of
+# 255*Nh.  Future specifications that define new KDFs MUST specify a
+# bound for L.
+# 
+# The exporter_context field has a maximum length that depends on the
+# KDF itself, on the definition of LabeledExpand(), and on the constant
+# labels used together with them.  See Section 7.2.1 for precise limits
+# on this length.
+# 
+# def Context.Export(exporter_context, L):
+#   return LabeledExpand(self.exporter_secret, "sec",
+#                        exporter_context, L)
+# 
+# Applications that do not use the encryption API in Section 5.2 can
+# use the export-only AEAD ID 0xFFFF when computing the key schedule.
+# Such applications can avoid computing the key and base_nonce values
+# in the key schedule, as they are not used by the Export interface
+# described above.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Future specifications that define new KDFs MUST specify a
+bound for L.
+'''
+

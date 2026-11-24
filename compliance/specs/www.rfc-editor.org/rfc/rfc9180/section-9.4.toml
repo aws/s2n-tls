@@ -1,0 +1,14 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-9.4"
+
+# 9.4.  Security Requirements on an AEAD
+#
+# All AEADs MUST be IND-CCA2-secure, as is currently true for all AEADs
+# listed in Section 7.3.
+
+[[spec]]
+level = "MUST"
+quote = '''
+All AEADs MUST be IND-CCA2-secure, as is currently true for all AEADs
+listed in Section 7.3.
+'''
+

@@ -1,0 +1,71 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-7.1.2"
+
+# 7.1.2.  SerializePrivateKey and DeserializePrivateKey
+#
+# As per [SECG], P-256, P-384, and P-521 private keys are field
+# elements in the scalar field of the curve being used.  For this
+# section, and for Section 7.1.3, it is assumed that implementors of
+# ECDH over these curves use an integer representation of private keys
+# that is compatible with the OS2IP() function.
+# 
+# For P-256, P-384, and P-521, the SerializePrivateKey() function of
+# the KEM performs the Field-Element-to-Octet-String conversion
+# according to [SECG].  If the private key is an integer outside the
+# range [0, order-1], where order is the order of the curve being used,
+# the private key MUST be reduced to its representative in [0, order-1]
+# before being serialized.  DeserializePrivateKey() performs the Octet-
+# String-to-Field-Element conversion according to [SECG].
+# 
+# For X25519 and X448, private keys are identical to their byte string
+# representation, so little processing has to be done.  The
+# SerializePrivateKey() function MUST clamp its output and the
+# DeserializePrivateKey() function MUST clamp its input, where
+# _clamping_ refers to the bitwise operations performed on k in the
+# decodeScalar25519() and decodeScalar448() functions defined in
+# Section 5 of [RFC7748].
+# 
+# To catch invalid keys early on, implementors of DHKEMs SHOULD check
+# that deserialized private keys are not equivalent to 0 (mod order),
+# where order is the order of the DH group.  Note that this property is
+# trivially true for X25519 and X448 groups, since clamped values can
+# never be 0 (mod order).
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the private key is an integer outside the
+range [0, order-1], where order is the order of the curve being used,
+the private key MUST be reduced to its representative in [0, order-1]
+before being serialized.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The
+SerializePrivateKey() function MUST clamp its output and the
+DeserializePrivateKey() function MUST clamp its input, where
+_clamping_ refers to the bitwise operations performed on k in the
+decodeScalar25519() and decodeScalar448() functions defined in
+Section 5 of [RFC7748].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The
+SerializePrivateKey() function MUST clamp its output and the
+DeserializePrivateKey() function MUST clamp its input, where
+_clamping_ refers to the bitwise operations performed on k in the
+decodeScalar25519() and decodeScalar448() functions defined in
+Section 5 of [RFC7748].
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+To catch invalid keys early on, implementors of DHKEMs SHOULD check
+that deserialized private keys are not equivalent to 0 (mod order),
+where order is the order of the DH group.
+'''
+

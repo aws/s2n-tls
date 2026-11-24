@@ -1,0 +1,23 @@
+target = "https://www.rfc-editor.org/rfc/rfc9180#section-7.1.1"
+
+# 7.1.1.  SerializePublicKey and DeserializePublicKey
+#
+# For P-256, P-384, and P-521, the SerializePublicKey() function of the
+# KEM performs the uncompressed Elliptic-Curve-Point-to-Octet-String
+# conversion according to [SECG].  DeserializePublicKey() performs the
+# uncompressed Octet-String-to-Elliptic-Curve-Point conversion.
+# 
+# For X25519 and X448, the SerializePublicKey() and
+# DeserializePublicKey() functions are the identity function, since
+# these curves already use fixed-length byte strings for public keys.
+# 
+# Some deserialized public keys MUST be validated before they can be
+# used.  See Section 7.1.4 for specifics.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Some deserialized public keys MUST be validated before they can be
+used.
+'''
+
