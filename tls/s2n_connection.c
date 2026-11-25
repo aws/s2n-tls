@@ -937,6 +937,7 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
+    POSIX_GUARD(s2n_blob_zero(&ctx_mem));
 
     peer_socket_ctx = (struct s2n_socket_write_io_context *) (void *) ctx_mem.data;
     peer_socket_ctx->fd = wfd;
