@@ -17,6 +17,8 @@ Both clients and servers will need to create and append a PSK to a connection in
 
 Call `s2n_connection_append_psk()` to append the newly created PSK to the connection. Both the server and client should call this API to add PSKs to their connection. PSKs that are appended first will be preferred over PSKs appended last unless custom PSK selection logic is implemented. Use `s2n_psk_free()` to free the memory allocated for a PSK once you have associated it with a connection.
 
+All PSKs must be appended before a PSK is chosen for the connection. Once the handshake, or a `s2n_psk_selection_callback`, has chosen a PSK, `s2n_connection_append_psk()` fails with **S2N_ERR_INVALID_STATE**.
+
 External PSKs and Session Resumption cannot both be used in TLS13. Therefore, users must pick which mode they are using by calling `s2n_config_set_psk_mode()` prior to the handshake. Additionally, `s2n_connection_set_psk_mode()` overrides the PSK mode set on the config for a particular connection.
 
 ## Selecting a Pre-Shared Key

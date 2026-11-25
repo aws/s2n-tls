@@ -3065,6 +3065,9 @@ S2N_API int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
  * Note that a copy of `psk` is stored on the connection. The user is still responsible for freeing the 
  * memory associated with `psk`.
  *
+ * PSKs must be appended before the handshake chooses a PSK. If a PSK has already been chosen for
+ * the connection, this method fails with `S2N_ERR_INVALID_STATE`.
+ *
  * @param conn A pointer to the s2n_connection object that contains the list of PSKs supported.
  * @param psk A pointer to the `s2n_psk` object to be appended to the list of PSKs on the s2n connection.
  */

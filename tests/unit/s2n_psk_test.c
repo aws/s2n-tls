@@ -977,6 +977,41 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
+
+        /* Can't append a PSK once a PSK has been chosen.
+         *
+         * Appending can reallocate the memory backing the PSK list, which would leave
+         * conn->psk_params.chosen_psk referencing freed memory.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, input_psk));
+
+            /* Choose the appended PSK, as a server would while receiving the ClientHello */
+            struct s2n_offered_psk_list offered_psk_list = { .conn = conn };
+            struct s2n_offered_psk offered_psk = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&offered_psk.identity, identity_0, sizeof(identity_0)));
+            EXPECT_SUCCESS(s2n_offered_psk_list_choose_psk(&offered_psk_list, &offered_psk));
+            EXPECT_NOT_NULL(conn->psk_params.chosen_psk);
+
+            DEFER_CLEANUP(struct s2n_psk *new_psk = s2n_external_psk_new(), s2n_psk_free);
+            EXPECT_NOT_NULL(new_psk);
+            EXPECT_SUCCESS(s2n_psk_set_identity(new_psk, identity_1, sizeof(identity_1)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(new_psk, secret_0, sizeof(secret_0)));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_append_psk(conn, new_psk), S2N_ERR_INVALID_STATE);
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, 1);
+
+            /* The chosen PSK is unaffected by the rejected append */
+            EXPECT_EQUAL(conn->psk_params.chosen_psk->identity.size, sizeof(identity_0));
+            EXPECT_BYTEARRAY_EQUAL(conn->psk_params.chosen_psk->identity.data, identity_0, sizeof(identity_0));
+
+            /* Appending is allowed again if no PSK is chosen */
+            EXPECT_SUCCESS(s2n_offered_psk_list_choose_psk(&offered_psk_list, NULL));
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, new_psk));
+            EXPECT_EQUAL(conn->psk_params.psk_list.len, 2);
+        };
     };
 
     /* Test: s2n_psk_set_hmac */

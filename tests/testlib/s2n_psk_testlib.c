@@ -59,6 +59,12 @@ S2N_RESULT s2n_append_test_chosen_psk_with_early_data(struct s2n_connection *con
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(cipher_suite);
 
+    /* s2n_connection_append_psk rejects appends while a PSK is chosen, since appending
+     * can reallocate the PSK list and invalidate the chosen PSK pointer. Clear any
+     * previous choice, because this helper chooses the newly appended PSK below.
+     */
+    conn->psk_params.chosen_psk = NULL;
+
     RESULT_GUARD(s2n_append_test_psk_with_early_data(conn, max_early_data, cipher_suite));
     RESULT_ENSURE_GT(conn->psk_params.psk_list.len, 0);
 
