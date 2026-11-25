@@ -599,6 +599,12 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(input_psk);
+
+    /* Appending a PSK may reallocate the memory backing the PSK list, which would leave
+     * chosen_psk pointing at freed memory. Reject the append if a psk has already been chosen.
+     */
+    POSIX_ENSURE(conn->psk_params.chosen_psk == NULL, S2N_ERR_INVALID_STATE);
+
     POSIX_GUARD_RESULT(s2n_connection_set_psk_type(conn, input_psk->type));
 
     struct s2n_array *psk_list = &conn->psk_params.psk_list;

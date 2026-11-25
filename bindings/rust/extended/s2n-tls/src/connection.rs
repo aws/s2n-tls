@@ -1570,6 +1570,9 @@ impl Connection {
     ///
     /// This may be called repeatedly to support multiple PSKs.
     ///
+    /// All PSKs must be appended before a PSK is chosen for the connection.
+    /// Once the handshake has chosen a PSK, this method will error.
+    ///
     /// Corresponds to [`s2n_connection_append_psk`].
     pub fn append_psk(&mut self, psk: &Psk) -> Result<(), Error> {
         unsafe {
