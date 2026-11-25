@@ -594,6 +594,9 @@ pub enum CertKeyType {
     Secp256r1,
     Secp384r1,
     Secp521r1,
+    MlDsa44,
+    MlDsa65,
+    MlDsa87,
     Unknown,
 }
 
@@ -603,7 +606,7 @@ impl Display for CertKeyType {
     }
 }
 
-pub const CERT_KEYS: [CertKeyType; 11] = [
+pub const CERT_KEYS: [CertKeyType; 14] = [
     CertKeyType::Rsa1024,
     CertKeyType::Rsa2048,
     CertKeyType::Rsa3072,
@@ -614,6 +617,9 @@ pub const CERT_KEYS: [CertKeyType; 11] = [
     CertKeyType::Secp256r1,
     CertKeyType::Secp384r1,
     CertKeyType::Secp521r1,
+    CertKeyType::MlDsa44,
+    CertKeyType::MlDsa65,
+    CertKeyType::MlDsa87,
     CertKeyType::Unknown,
 ];
 
@@ -698,6 +704,9 @@ pub enum CertSignatureAlgorithm {
     EcdsaSha256,
     EcdsaSha384,
     EcdsaSha512,
+    MlDsa44,
+    MlDsa65,
+    MlDsa87,
     Unknown,
 }
 
@@ -707,7 +716,7 @@ impl Display for CertSignatureAlgorithm {
     }
 }
 
-pub const CERT_SIGS: [CertSignatureAlgorithm; 9] = [
+pub const CERT_SIGS: [CertSignatureAlgorithm; 12] = [
     CertSignatureAlgorithm::RsaPkcsSha1,
     CertSignatureAlgorithm::RsaPkcsSha256,
     CertSignatureAlgorithm::RsaPkcsSha384,
@@ -716,6 +725,9 @@ pub const CERT_SIGS: [CertSignatureAlgorithm; 9] = [
     CertSignatureAlgorithm::EcdsaSha256,
     CertSignatureAlgorithm::EcdsaSha384,
     CertSignatureAlgorithm::EcdsaSha512,
+    CertSignatureAlgorithm::MlDsa44,
+    CertSignatureAlgorithm::MlDsa65,
+    CertSignatureAlgorithm::MlDsa87,
     CertSignatureAlgorithm::Unknown,
 ];
 
