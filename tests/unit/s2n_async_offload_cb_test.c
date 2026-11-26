@@ -14,7 +14,6 @@
  */
 
 #include <pthread.h>
-#include <stdint.h>
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
@@ -65,10 +64,16 @@ static S2N_RESULT s2n_async_offload_test_op_data_free(struct s2n_async_offload_o
     return S2N_RESULT_OK;
 }
 
+struct s2n_async_offload_test_perform_args {
+    struct s2n_async_offload_op *op;
+    int result;
+};
+
 static void *s2n_async_offload_test_perform_thread(void *arg)
 {
-    struct s2n_async_offload_op *op = (struct s2n_async_offload_op *) arg;
-    return (void *) (intptr_t) s2n_async_offload_op_perform(op);
+    struct s2n_async_offload_test_perform_args *args = (struct s2n_async_offload_test_perform_args *) arg;
+    args->result = s2n_async_offload_op_perform(args->op);
+    return NULL;
 }
 
 /* Performs the op on a separate thread and joins it before returning, which forces
@@ -81,11 +86,21 @@ static int s2n_async_offload_test_thread_wins_callback(struct s2n_connection *co
     data->invoked_count += 1;
 
     pthread_t perform_thread = { 0 };
-    EXPECT_EQUAL(pthread_create(&perform_thread, NULL, s2n_async_offload_test_perform_thread, op), 0);
-    void *perform_result = NULL;
-    EXPECT_EQUAL(pthread_join(perform_thread, &perform_result), 0);
-    EXPECT_EQUAL((intptr_t) perform_result, S2N_SUCCESS);
+    struct s2n_async_offload_test_perform_args args = { .op = op, .result = S2N_FAILURE };
+    EXPECT_EQUAL(pthread_create(&perform_thread, NULL, s2n_async_offload_test_perform_thread, &args), 0);
+    EXPECT_EQUAL(pthread_join(perform_thread, NULL), 0);
+    EXPECT_SUCCESS(args.result);
 
+    return S2N_SUCCESS;
+}
+
+/* Stands in for a callback that calls s2n_negotiate() on another connection. */
+static int s2n_async_offload_test_nested_callback(struct s2n_connection *conn,
+        struct s2n_async_offload_op *op, void *ctx)
+{
+    struct s2n_connection *inner_conn = (struct s2n_connection *) ctx;
+    EXPECT_ERROR_WITH_ERRNO(s2n_async_offload_cb_invoke(inner_conn, &inner_conn->async_offload_op),
+            S2N_ERR_REENTRANCY);
     return S2N_SUCCESS;
 }
 
@@ -313,6 +328,29 @@ int main(int argc, char *argv[])
         /* With client auth, pkey_verify is offloaded on both the client and the server. */
         EXPECT_EQUAL(data.invoked_count, 2);
         EXPECT_EQUAL(blocked_count, data.invoked_count);
+    }
+
+    /* Regression test: a nested async offload callback is rejected, and cannot make the
+     * outer op continue without being performed. */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        DEFER_CLEANUP(struct s2n_connection *outer_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(outer_conn);
+        DEFER_CLEANUP(struct s2n_connection *inner_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(inner_conn);
+
+        EXPECT_SUCCESS(s2n_config_set_async_offload_callback(config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY,
+                s2n_async_offload_test_nested_callback, inner_conn));
+        struct s2n_connection *conns[] = { outer_conn, inner_conn };
+        for (size_t i = 0; i < s2n_array_len(conns); i++) {
+            EXPECT_SUCCESS(s2n_connection_set_config(conns[i], config));
+            conns[i]->async_offload_op.perform = s2n_async_offload_test_failing_perform;
+            conns[i]->async_offload_op.op_data_free = s2n_async_offload_test_op_data_free;
+        }
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_async_offload_cb_invoke(outer_conn, &outer_conn->async_offload_op),
+                S2N_ERR_ASYNC_BLOCKED);
     }
 
     /* Regression test: a failed s2n_async_offload_op_perform() leaves the op in

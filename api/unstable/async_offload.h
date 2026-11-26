@@ -52,6 +52,9 @@ typedef enum {
  * 2) Async offloading callback returns success and s2n_async_offload_op_perform() is invoked outside the callback.
  *
  * If s2n_async_offload_op_perform() is invoked inside the callback, it is equivalent to the synchronous use case.
+ *
+ * The callback MUST NOT trigger another async offloading callback on the same thread, for example by calling
+ * s2n_negotiate() on another connection. The nested operation fails with an `S2N_ERR_T_USAGE` error.
  * 
  * `op` is owned by s2n-tls and will be freed along with s2n_connection eventually.
  *

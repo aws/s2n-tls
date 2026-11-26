@@ -40,6 +40,9 @@ S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_a
     RESULT_ENSURE_REF(op->perform);
     RESULT_ENSURE_REF(op->op_data_free);
     RESULT_ENSURE(op->async_state == S2N_ASYNC_NOT_INVOKED, S2N_ERR_ASYNC_MORE_THAN_ONE);
+    /* Reject nested callbacks (e.g. the callback negotiates another connection), which
+     * would overwrite the thread-local state of the outer callback. */
+    RESULT_ENSURE(s2n_async_offload_op_in_cb == NULL, S2N_ERR_REENTRANCY);
 
     op->async_state = S2N_ASYNC_INVOKED;
 
