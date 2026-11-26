@@ -208,82 +208,50 @@ int main(int argc, char **argv)
         };
 
         /* Regression test for https://github.com/aws/s2n-tls/issues/5624:
-         *
-         * If a TLS1.2 handshake is not fully consumed -- for example, the
-         * server's final Finished message is still sitting unread -- and a
-         * caller (mis)believes the handshake is complete and attempts to
-         * process what looks like a new record, s2n-tls must NOT silently
-         * misinterpret those leftover handshake bytes as a TLS1.3
-         * post-handshake message. It must fail with a clear,
-         * handshake-not-complete error instead.
+         * s2n_recv on a TLS1.2 connection whose handshake is not complete
+         * (the server's Finished message is still unread) rejects the leftover
+         * handshake record instead of treating it as a post-handshake message.
          */
         {
-            struct s2n_cert_chain_and_key *chain_and_key = NULL;
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-            struct s2n_config *config = s2n_config_new();
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
 
-            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-            struct s2n_test_io_pair io_pair = { 0 };
-            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
 
-            /* Deterministically stop the client right before it consumes the
-             * server's Finished message, while letting the server run to
-             * completion. At this point, the client's actual_protocol_version
-             * is already TLS1.2, but the handshake has NOT actually finished:
-             * the server's Finished message is still unread.
+            /* The server completes the handshake, but the client stops right before
+             * reading the server's Finished message.
              */
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            bool server_done = false;
-            int max_attempts = 20;
-            while (s2n_result_is_error(s2n_negotiate_until_message(client_conn, &blocked, SERVER_FINISHED))) {
-                EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
-                if (!server_done) {
-                    if (s2n_negotiate(server_conn, &blocked) == S2N_SUCCESS) {
-                        server_done = true;
-                    } else {
-                        EXPECT_EQUAL(s2n_error_get_type(s2n_errno), S2N_ERR_T_BLOCKED);
-                    }
-                }
-                EXPECT_TRUE(--max_attempts > 0);
-            }
-
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_FINISHED));
+            EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
+            EXPECT_TRUE(s2n_handshake_is_complete(server_conn));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_FINISHED);
             EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
             EXPECT_FALSE(s2n_handshake_is_complete(client_conn));
 
-            /* Read the server's final flight into conn->in, exactly as
-             * s2n_recv()'s main loop would, then hand it to
-             * s2n_post_handshake_recv() as if it had been misrouted there.
-             * Before the fix, this leftover Finished data could be
-             * misparsed as a bogus (or, worse, coincidentally valid-looking)
-             * post-handshake message. Now it must be rejected outright.
-             */
-            int isSSLv2 = 0;
-            uint8_t record_type = 0;
-            EXPECT_SUCCESS(s2n_read_full_record(client_conn, &record_type, &isSSLv2));
-            EXPECT_EQUAL(record_type, TLS_HANDSHAKE);
-            EXPECT_TRUE(s2n_stuffer_data_available(&client_conn->in) > 0);
-
-            EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(client_conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
-
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
-            EXPECT_SUCCESS(s2n_connection_free(server_conn));
-            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
-            EXPECT_SUCCESS(s2n_config_free(config));
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            /* Try to read the server's Finished message as a post-handshake message */
+            uint8_t output_buffer[10] = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, output_buffer, sizeof(output_buffer), &blocked),
+                    S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+            EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_CLOSED));
         };
     };
 
@@ -364,8 +332,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
         /* Try to read the ClientHello as a post-handshake message.
-         * This is previously resulted in the less clear S2N_ERR_BAD_MESSAGE;
-         * see https://github.com/aws/s2n-tls/issues/5624
+         * The handshake is not complete, so the message is rejected.
          */
         uint8_t output_buffer[10] = { 0 };
         EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, output_buffer, sizeof(output_buffer), &blocked), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
