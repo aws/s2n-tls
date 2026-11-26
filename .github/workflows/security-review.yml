@@ -34,8 +34,11 @@ jobs:
         env:
           PERMISSION_DATA: ${{ steps.get_permission.outputs.data }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_AUTHOR_TYPE: ${{ github.event.pull_request.user.type }}
+          PR_HEAD_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPOSITORY: ${{ github.repository }}
         run: |
           permission="$(jq -er '.permission | strings' <<< "$PERMISSION_DATA")"
           if [[ ! "$PR_NUMBER" =~ ^[1-9][0-9]*$ || ! "$PR_HEAD_SHA" =~ ^[0-9a-f]{40}$ ]]; then
@@ -43,18 +46,27 @@ jobs:
             exit 1
           fi
 
+          allowlisted_bot="false"
+          if [[ "$PR_AUTHOR_TYPE" == "Bot" && "$PR_HEAD_REPOSITORY" == "$REPOSITORY" ]]; then
+            # Keep this list small and code-reviewed. GitHub asserts the bot
+            # type and login in the pull request event payload.
+            case "$PR_AUTHOR" in
+              "dependabot[bot]") allowlisted_bot="true" ;;
+            esac
+          fi
+
           source_version="refs/pull/$PR_NUMBER/head^{$PR_HEAD_SHA}"
           echo "$PR_AUTHOR has permission '$permission'."
-          case "$permission" in
-            admin|write)
-              eligible="true"
-              ;;
-            *)
-              eligible="false"
-              echo "$PR_AUTHOR requires maintainer approval."
-              echo "The approval will review PR #$PR_NUMBER pinned to $PR_HEAD_SHA."
-              ;;
-          esac
+          if [[ "$permission" == "admin" || "$permission" == "write" ]]; then
+            eligible="true"
+          elif [[ "$allowlisted_bot" == "true" ]]; then
+            eligible="true"
+            echo "$PR_AUTHOR is an allowlisted bot."
+          else
+            eligible="false"
+            echo "$PR_AUTHOR requires maintainer approval."
+            echo "The approval will review PR #$PR_NUMBER pinned to $PR_HEAD_SHA."
+          fi
 
           echo "eligible=$eligible" >> "$GITHUB_OUTPUT"
           echo "source_version=$source_version" >> "$GITHUB_OUTPUT"
