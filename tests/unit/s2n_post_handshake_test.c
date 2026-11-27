@@ -45,6 +45,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_skip_handshake(conn));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Write key update requested to conn->in */
@@ -64,6 +65,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_skip_handshake(conn));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Write key update requested to conn->in */
@@ -83,6 +85,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_skip_handshake(conn));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
             /* Write key update requested to conn->in */
@@ -101,6 +104,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            EXPECT_OK(s2n_skip_handshake(conn));
             uint8_t num_key_updates = 3;
 
             /* Write three key update messages in one record. We cannot call s2n_post_handshake_send
@@ -126,6 +130,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
             conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_OK(s2n_skip_handshake(conn));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_HELLO_REQUEST));
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
@@ -148,6 +153,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_skip_handshake(conn));
 
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, state_machine[i].message_type));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
@@ -165,6 +171,7 @@ int main(int argc, char **argv)
                 struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_skip_handshake(conn));
 
                 EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, tls13_state_machine[i].message_type));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, 0));
@@ -172,6 +179,79 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
+        };
+
+        /* post_handshake_recv refuses to process any bytes until the handshake
+         * has actually completed, even if the connection is otherwise set up
+         * to look like it is negotiating a valid post-handshake message.
+         *
+         * This is a defense-in-depth check: it protects against TLS1.2
+         * handshake fragments (like a stray, not-yet-consumed Finished
+         * message) being misrouted through this TLS1.3-oriented logic and
+         * misinterpreted as a post-handshake message.
+         */
+        {
+            struct s2n_connection *conn = NULL;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+            /* Deliberately do NOT mark the handshake complete. */
+
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, TLS_KEY_UPDATE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&conn->in, S2N_KEY_UPDATE_LENGTH));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->in, S2N_KEY_UPDATE_REQUESTED));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_post_handshake_recv(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        };
+
+        /* Regression test for https://github.com/aws/s2n-tls/issues/5624:
+         * s2n_recv on a TLS1.2 connection whose handshake is not complete
+         * (the server's Finished message is still unread) rejects the leftover
+         * handshake record instead of treating it as a post-handshake message.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            /* The server completes the handshake, but the client stops right before
+             * reading the server's Finished message.
+             */
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_FINISHED));
+            EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
+            EXPECT_TRUE(s2n_handshake_is_complete(server_conn));
+            EXPECT_EQUAL(s2n_conn_get_current_message_type(client_conn), SERVER_FINISHED);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_FALSE(s2n_handshake_is_complete(client_conn));
+
+            /* Try to read the server's Finished message as a post-handshake message */
+            uint8_t output_buffer[10] = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, output_buffer, sizeof(output_buffer), &blocked),
+                    S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+            EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_CLOSED));
         };
     };
 
@@ -251,9 +331,11 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
-        /* Try to read the ClientHello as a post-handshake message */
+        /* Try to read the ClientHello as a post-handshake message.
+         * The handshake is not complete, so the message is rejected.
+         */
         uint8_t output_buffer[10] = { 0 };
-        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, output_buffer, sizeof(output_buffer), &blocked), S2N_ERR_BAD_MESSAGE);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, output_buffer, sizeof(output_buffer), &blocked), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
         /* Error closed connection */
         EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));

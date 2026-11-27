@@ -142,11 +142,13 @@ static S2N_RESULT s2n_test_init_sender_and_receiver(struct s2n_config *config,
     RESULT_GUARD_POSIX(s2n_connection_set_all_protocol_versions(sender, S2N_TLS13));
     RESULT_GUARD(s2n_connection_set_secrets(sender));
     RESULT_GUARD_POSIX(s2n_connection_set_blinding(sender, S2N_SELF_SERVICE_BLINDING));
+    RESULT_GUARD(s2n_skip_handshake(sender));
 
     RESULT_GUARD_POSIX(s2n_connection_set_config(receiver, config));
     RESULT_GUARD_POSIX(s2n_connection_set_all_protocol_versions(receiver, S2N_TLS13));
     RESULT_GUARD(s2n_connection_set_secrets(receiver));
     RESULT_GUARD_POSIX(s2n_connection_set_blinding(receiver, S2N_SELF_SERVICE_BLINDING));
+    RESULT_GUARD(s2n_skip_handshake(receiver));
 
     RESULT_GUARD(s2n_io_stuffer_pair_init(io_pair));
     if (sender->mode == S2N_SERVER) {
@@ -158,6 +160,16 @@ static S2N_RESULT s2n_test_init_sender_and_receiver(struct s2n_config *config,
     /* Send and receive to initialize io buffers */
     EXPECT_OK(s2n_test_basic_recv(sender, receiver));
 
+    return S2N_RESULT_OK;
+}
+
+/* HelloRequest is only valid in TLS1.2, so some tests need a TLS1.2 record layer.
+ * Reuses the key material from s2n_connection_set_secrets with a TLS1.2 AES-256-GCM suite.
+ */
+static S2N_RESULT s2n_test_use_tls12(struct s2n_connection *conn)
+{
+    RESULT_GUARD_POSIX(s2n_connection_set_all_protocol_versions(conn, S2N_TLS12));
+    conn->secure->cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384;
     return S2N_RESULT_OK;
 }
 
@@ -392,6 +404,10 @@ int main(int argc, char **argv)
         /* HelloRequests are ignored if secure_renegotiation isn't set */
         client->secure_renegotiation = true;
 
+        /* HelloRequest is a TLS1.2-only message */
+        EXPECT_OK(s2n_test_use_tls12(client));
+        EXPECT_OK(s2n_test_use_tls12(server));
+
         /* Write HelloRequest messages */
         DEFER_CLEANUP(struct s2n_stuffer messages = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&messages, 0));
@@ -412,6 +428,26 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_blocking_recv(server, client, &io_pair));
         EXPECT_EQUAL(hello_request_count, S2N_TEST_MESSAGE_COUNT);
         EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
+    }
+
+    /* Test: client rejects HelloRequests on a TLS1.3 connection */
+    for (size_t frag_i = 0; frag_i < s2n_array_len(fragment_sizes); frag_i++) {
+        uint32_t fragment_size = fragment_sizes[frag_i];
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_test_init_sender_and_receiver(config, server, client, &io_pair));
+        client->secure_renegotiation = true;
+
+        DEFER_CLEANUP(struct s2n_stuffer messages = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&messages, 0));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&messages, TLS_HELLO_REQUEST));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint24(&messages, 0));
+
+        EXPECT_OK(s2n_test_send_records(server, messages, fragment_size));
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_basic_recv(server, client), S2N_ERR_BAD_MESSAGE);
+        EXPECT_EQUAL(hello_request_count, 0);
     }
 
     /* Test: client and server reject known, invalid messages (ClientHellos) */

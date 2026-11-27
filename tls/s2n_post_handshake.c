@@ -158,6 +158,9 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
 S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
+
+    RESULT_ENSURE(s2n_handshake_is_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+
     while (s2n_stuffer_data_available(&conn->in)) {
         RESULT_GUARD(s2n_post_handshake_message_recv(conn));
         RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->post_handshake.in));
