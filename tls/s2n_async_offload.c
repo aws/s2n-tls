@@ -25,6 +25,11 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
+/* The op whose callback is running on this thread, and whether op_perform() ran inline
+ * inside it. These are thread-local, so other threads never see or write them. */
+static __thread struct s2n_async_offload_op *s2n_async_offload_op_in_cb = NULL;
+static __thread bool s2n_async_offload_performed_in_cb = false;
+
 S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_async_offload_op *op)
 {
     RESULT_ENSURE_REF(conn);
@@ -35,16 +40,23 @@ S2N_RESULT s2n_async_offload_cb_invoke(struct s2n_connection *conn, struct s2n_a
     RESULT_ENSURE_REF(op->perform);
     RESULT_ENSURE_REF(op->op_data_free);
     RESULT_ENSURE(op->async_state == S2N_ASYNC_NOT_INVOKED, S2N_ERR_ASYNC_MORE_THAN_ONE);
+    /* Reject nested callbacks (e.g. the callback negotiates another connection), which
+     * would overwrite the thread-local state of the outer callback. */
+    RESULT_ENSURE(s2n_async_offload_op_in_cb == NULL, S2N_ERR_REENTRANCY);
 
     op->async_state = S2N_ASYNC_INVOKED;
-    RESULT_ENSURE(conn->config->async_offload_cb(conn, op, conn->config->async_offload_ctx) == S2N_SUCCESS,
-            S2N_ERR_CANCELLED);
 
-    /*
-     * If the callback already completed the operation, continue.
-     * Otherwise, we need to block s2n_negotiate and wait for the operation to complete.
+    s2n_async_offload_op_in_cb = op;
+    s2n_async_offload_performed_in_cb = false;
+    int cb_result = conn->config->async_offload_cb(conn, op, conn->config->async_offload_ctx);
+    s2n_async_offload_op_in_cb = NULL;
+
+    RESULT_ENSURE(cb_result == S2N_SUCCESS, S2N_ERR_CANCELLED);
+
+    /* Continue only if the callback performed the op inline. Otherwise, block s2n_negotiate.
+     * Don't read op->async_state: an offload thread may be writing it.
      */
-    if (op->async_state == S2N_ASYNC_COMPLETE) {
+    if (s2n_async_offload_performed_in_cb) {
         return S2N_RESULT_OK;
     }
     RESULT_BAIL(S2N_ERR_ASYNC_BLOCKED);
@@ -61,6 +73,11 @@ int s2n_async_offload_op_perform(struct s2n_async_offload_op *op)
 
     POSIX_GUARD_RESULT(op->perform(op));
     op->async_state = S2N_ASYNC_COMPLETE;
+
+    /* Called inline from this op's callback, on the s2n_negotiate thread: synchronous case. */
+    if (s2n_async_offload_op_in_cb == op) {
+        s2n_async_offload_performed_in_cb = true;
+    }
     return S2N_SUCCESS;
 }
 

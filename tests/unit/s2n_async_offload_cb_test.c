@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <pthread.h>
+
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
@@ -60,6 +62,46 @@ static S2N_RESULT s2n_async_offload_test_op_data_free(struct s2n_async_offload_o
     RESULT_ENSURE_REF(op);
     RESULT_GUARD_POSIX(s2n_free(&op->op_data.async_pkey_verify.signature));
     return S2N_RESULT_OK;
+}
+
+struct s2n_async_offload_test_perform_args {
+    struct s2n_async_offload_op *op;
+    int result;
+};
+
+static void *s2n_async_offload_test_perform_thread(void *arg)
+{
+    struct s2n_async_offload_test_perform_args *args = (struct s2n_async_offload_test_perform_args *) arg;
+    args->result = s2n_async_offload_op_perform(args->op);
+    return NULL;
+}
+
+/* Performs the op on a separate thread and joins it before returning, which forces
+ * the "perform thread wins" ordering. */
+static int s2n_async_offload_test_thread_wins_callback(struct s2n_connection *conn,
+        struct s2n_async_offload_op *op, void *ctx)
+{
+    EXPECT_NOT_NULL(op);
+    struct s2n_async_offload_cb_test *data = (struct s2n_async_offload_cb_test *) ctx;
+    data->invoked_count += 1;
+
+    pthread_t perform_thread = { 0 };
+    struct s2n_async_offload_test_perform_args args = { .op = op, .result = S2N_FAILURE };
+    EXPECT_EQUAL(pthread_create(&perform_thread, NULL, s2n_async_offload_test_perform_thread, &args), 0);
+    EXPECT_EQUAL(pthread_join(perform_thread, NULL), 0);
+    EXPECT_SUCCESS(args.result);
+
+    return S2N_SUCCESS;
+}
+
+/* Stands in for a callback that calls s2n_negotiate() on another connection. */
+static int s2n_async_offload_test_nested_callback(struct s2n_connection *conn,
+        struct s2n_async_offload_op *op, void *ctx)
+{
+    struct s2n_connection *inner_conn = (struct s2n_connection *) ctx;
+    EXPECT_ERROR_WITH_ERRNO(s2n_async_offload_cb_invoke(inner_conn, &inner_conn->async_offload_op),
+            S2N_ERR_REENTRANCY);
+    return S2N_SUCCESS;
 }
 
 static int s2n_test_handshake_async(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
@@ -237,6 +279,78 @@ int main(int argc, char *argv[])
                 EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS12);
             }
         }
+    }
+
+    /* Regression test: an offloaded op must block s2n_negotiate(), even if the perform
+     * thread finishes before the callback returns. Previously s2n-tls read op->async_state
+     * while that thread wrote it, and could complete the handshake inline. */
+    for (size_t version_idx = 0; version_idx < s2n_array_len(versions); version_idx++) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, versions[version_idx]));
+        EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+
+        struct s2n_async_offload_cb_test data = { 0 };
+        EXPECT_SUCCESS(s2n_config_set_async_offload_callback(config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY,
+                s2n_async_offload_test_thread_wins_callback, &data));
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+        /* Every offloaded op blocks exactly once; retrying then makes progress
+         * because the perform thread has already completed the op. */
+        int blocked_count = 0;
+        bool handshake_done = false;
+        for (size_t retry = 0; retry < 20 && !handshake_done; retry++) {
+            if (s2n_negotiate_test_server_and_client(server_conn, client_conn) == S2N_SUCCESS) {
+                handshake_done = true;
+            } else {
+                EXPECT_EQUAL(s2n_errno, S2N_ERR_ASYNC_BLOCKED);
+                blocked_count++;
+            }
+        }
+        EXPECT_TRUE(handshake_done);
+
+        /* With client auth, pkey_verify is offloaded on both the client and the server. */
+        EXPECT_EQUAL(data.invoked_count, 2);
+        EXPECT_EQUAL(blocked_count, data.invoked_count);
+    }
+
+    /* Regression test: a nested async offload callback is rejected, and cannot make the
+     * outer op continue without being performed. */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        DEFER_CLEANUP(struct s2n_connection *outer_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(outer_conn);
+        DEFER_CLEANUP(struct s2n_connection *inner_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(inner_conn);
+
+        EXPECT_SUCCESS(s2n_config_set_async_offload_callback(config, S2N_ASYNC_OFFLOAD_PKEY_VERIFY,
+                s2n_async_offload_test_nested_callback, inner_conn));
+        struct s2n_connection *conns[] = { outer_conn, inner_conn };
+        for (size_t i = 0; i < s2n_array_len(conns); i++) {
+            EXPECT_SUCCESS(s2n_connection_set_config(conns[i], config));
+            conns[i]->async_offload_op.perform = s2n_async_offload_test_failing_perform;
+            conns[i]->async_offload_op.op_data_free = s2n_async_offload_test_op_data_free;
+        }
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_async_offload_cb_invoke(outer_conn, &outer_conn->async_offload_op),
+                S2N_ERR_ASYNC_BLOCKED);
     }
 
     /* Regression test: a failed s2n_async_offload_op_perform() leaves the op in
