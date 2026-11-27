@@ -61,7 +61,7 @@ If a server trusts both `keyA` and `keyB`, then the client will need to communic
 
 To do this we calculate a `kms_key_binder` which incorporates the 
 
-* kms key arn: the key that was used to generate the daily secret
+* kms key arn: identifies which trusted key the client used, so the server can find it. The ARN is not authenticated; see [Trusted keys and Multi-Region replicas](#trusted-keys-and-multi-region-replicas).
 * session_name: this makes the kms key binder unique per connection, preventing information from being correlated across multiple connections from a single client.
 * epoch_secret: without secret information, then an attacker would be able to calculate whether the kms_key_binder is valid for some specific key, because the `session_name` is public information.
 
@@ -88,6 +88,12 @@ Then for each KMS HMAC Key that it trusts, it would repeat the PSK secret and PS
 If an attacker obtains an epoch secret, then they will be able to impersonate a server or a client. They can not decrypt any conversations between other peers, because TLS 1.3 PSK authentication performs an additional DHE key exchange.
 
 If an attacker obtains a connection specific secret, then they will be able impersonate a client to any server. They will not be able to impersonate a server, or decrypt any client communications.
+
+### Trusted keys and Multi-Region replicas
+
+`trusted_key_arns` trusts the key material behind each ARN, not the ARN itself. KMS never authenticates the ARN: the daily secret is a MAC over the epoch and a fixed label, and the `kms_key_binder` only lets the server find which trusted key a client used. A peer is trusted if it can call `kms:GenerateMac` on any KMS key with that key material.
+
+Replicas of a [Multi-Region key](https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html) share key material, so a principal with `kms:GenerateMac` on any replica is a trusted peer of a server that lists any other replica. Each replica's key policy, grants and enabled state are managed separately, but denying or disabling a principal on one replica does not keep it out while it can still use another. To keep two groups of peers apart, give each group its own KMS key, not its own replica of a shared key.
 
 ### Revoking a peer
 

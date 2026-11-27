@@ -40,7 +40,9 @@
 //!
 //! To do this we calculate a `kms_key_binder` to include in the PSK Identity. This
 //! incorporates
-//! - kms key arn: the key that was used to generate the daily secret
+//! - kms key arn: identifies which trusted key the client used, so the server can
+//!   find it. The ARN is not authenticated: Multi-Region replicas of a key share
+//!   its key material, so they produce the same epoch_secret.
 //! - session name: this makes the kms key binder unique per connection, preventing
 //!   information from being correlated across multiple connections from a single
 //!   client.
@@ -215,7 +217,7 @@ pub(crate) struct PskIdentity {
     pub key_epoch: u64,
     /// the session name used to derive session specific keys
     pub session_name: PrefixedBlob<u16>,
-    /// a value indicating the KMS key arn that was used
+    /// identifies which trusted KMS key the client used. Not authenticated.
     kms_key_binder: PrefixedBlob<u16>,
 }
 

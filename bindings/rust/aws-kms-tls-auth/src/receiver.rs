@@ -200,6 +200,10 @@ impl PskReceiver {
     ///   of KMS keys, because the PskReceiver has to do brute force linear matching
     ///   to find the KMS key that was used for a client identity. This costs ~ 300ns
     ///   per trusted key, and thus is negligible for small amounts of trusted keys.
+    ///
+    ///   A key is trusted by its key material, not its ARN. A peer that can call
+    ///   `kms:GenerateMac` on any Multi-Region replica of a trusted key is trusted,
+    ///   so keeping two groups of peers apart requires separate KMS keys.
     pub async fn initialize(
         kms_client: Client,
         trusted_key_arns: Vec<KeyArn>,

@@ -25,7 +25,9 @@
 //! (PSK with (EC)DHE handshake mode).
 //!
 //! The authenticated identity of a peer is “the peer has IAM permissions to call
-//! `kms:GenerateMAC` on the trusted KMS key”.
+//! `kms:GenerateMAC` on the trusted KMS key”. Multi-Region replicas of a key share
+//! its key material, so permission on any replica authenticates the peer, whichever
+//! replica's ARN the [`PskReceiver`] trusts.
 //!
 //! ## Deployment Concerns
 //!
