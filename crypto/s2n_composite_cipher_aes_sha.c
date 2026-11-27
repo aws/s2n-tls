@@ -31,7 +31,7 @@
     /* Symbols for AES-SHA1-CBC composite ciphers were added in Openssl 1.0.1
      * These composite ciphers exhibit erratic behavior in LibreSSL releases.
      */
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1, 0, 1)
+    #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AES_CBC_HMAC_SHA1)
         #define S2N_AES_SHA1_COMPOSITE_AVAILABLE
     #endif
     #if defined(AWSLC_API_VERSION) && (AWSLC_API_VERSION <= 17)
@@ -41,7 +41,7 @@
      * See https://www.openssl.org/news/cl102.txt
      * These composite ciphers exhibit erratic behavior in LibreSSL releases.
      */
-    #if S2N_OPENSSL_VERSION_AT_LEAST(1, 0, 2)
+    #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AES_CBC_HMAC_SHA256)
         #define S2N_AES_SHA256_COMPOSITE_AVAILABLE
     #endif
     #if defined(AWSLC_API_VERSION) && (AWSLC_API_VERSION <= 17)
