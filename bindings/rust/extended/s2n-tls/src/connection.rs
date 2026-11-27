@@ -523,6 +523,21 @@ impl Connection {
         Ok(self)
     }
 
+    /// Returns the maximum size of outgoing record payloads (the "fragment length").
+    ///
+    /// Corresponds to [`s2n_connection_get_max_fragment_length`].
+    pub fn max_fragment_length(&self) -> Result<u16, Error> {
+        let mut max_fragment_length = 0;
+        unsafe {
+            s2n_connection_get_max_fragment_length(
+                self.connection.as_ptr(),
+                &mut max_fragment_length,
+            )
+            .into_result()?;
+        }
+        Ok(max_fragment_length)
+    }
+
     /// Configure the connection to reduce potentially expensive calls to recv.
     ///
     /// Corresponds to [`s2n_connection_set_recv_buffering`].
@@ -2231,6 +2246,8 @@ mod tests {
             };
             let mut pair = TestPair::from_config(&config);
             pair.handshake()?;
+            assert_eq!(pair.server.max_fragment_length()?, max_fragment_length);
+            assert_eq!(pair.client.max_fragment_length()?, max_fragment_length);
 
             pair.io.server_tx_stream.borrow_mut().clear();
             assert!(pair.server.poll_send(&send_data).is_ready());
