@@ -2247,6 +2247,7 @@ mod tests {
             let mut pair = TestPair::from_config(&config);
             pair.handshake()?;
             assert_eq!(pair.server.max_fragment_length()?, max_fragment_length);
+            assert_eq!(pair.client.max_fragment_length()?, max_fragment_length);
 
             pair.io.server_tx_stream.borrow_mut().clear();
             assert!(pair.server.poll_send(&send_data).is_ready());

@@ -1933,6 +1933,9 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
 /**
  * Gets the maximum size of outgoing record payloads (the "fragment length") for the connection.
  *
+ * If kTLS is enabled for sending, the kernel sizes records and the TLS maximum
+ * fragment length is returned.
+ *
  * @param conn A pointer to the connection object.
  * @param max_fragment_length The maximum outgoing fragment length, in bytes.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure

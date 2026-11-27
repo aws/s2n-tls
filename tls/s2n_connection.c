@@ -1502,6 +1502,15 @@ int s2n_connection_prefer_low_latency(struct s2n_connection *conn)
 
 int s2n_connection_get_max_fragment_length(struct s2n_connection *conn, uint16_t *max_fragment_length)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_MUT(max_fragment_length);
+
+    /* With kTLS, the kernel fragments outgoing data instead of s2n-tls */
+    if (conn->ktls_send_enabled) {
+        *max_fragment_length = S2N_TLS_MAXIMUM_FRAGMENT_LENGTH;
+        return S2N_SUCCESS;
+    }
+
     POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, max_fragment_length));
     return S2N_SUCCESS;
 }

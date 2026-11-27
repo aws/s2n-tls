@@ -258,6 +258,18 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_max_fragment_length(conn, &size));
             EXPECT_EQUAL(size, S2N_SMALL_FRAGMENT_LENGTH);
         };
+
+        /* Reports the TLS maximum when kTLS is enabled for sending */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+            conn->ktls_send_enabled = true;
+
+            uint16_t size = 0;
+            EXPECT_SUCCESS(s2n_connection_get_max_fragment_length(conn, &size));
+            EXPECT_EQUAL(size, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+        };
     };
 
     /* Test s2n_record_min_write_payload_size() */
