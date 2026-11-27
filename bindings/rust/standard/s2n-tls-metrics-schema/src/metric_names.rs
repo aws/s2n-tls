@@ -80,6 +80,10 @@ pub const COMPATIBILITY_NEGOTIATED_GENERAL20251201: &str =
 pub const COMPATIBILITY_NEGOTIATED_FIPS20251201: &str = "compatibility.negotiated.fips20251201";
 pub const COMPATIBILITY_NEGOTIATED_CNSA1: &str = "compatibility.negotiated.cnsa1";
 pub const COMPATIBILITY_NEGOTIATED_CNSA2: &str = "compatibility.negotiated.cnsa2";
+pub const INCOMPATIBLE_GENERAL20251201: &str = "incompatible.general20251201";
+pub const INCOMPATIBLE_FIPS20251201: &str = "incompatible.fips20251201";
+pub const INCOMPATIBLE_CNSA1: &str = "incompatible.cnsa1";
+pub const INCOMPATIBLE_CNSA2: &str = "incompatible.cnsa2";
 pub const SECURITY_POLICY_PREFIX: &str = "tls_policy";
 pub const SECURITY_POLICY_TOO_MANY: &str = "tls_policy.TOO_MANY";
 
@@ -103,6 +107,10 @@ pub const ALL_SCALARS: &[&str] = &[
     COMPATIBILITY_NEGOTIATED_FIPS20251201,
     COMPATIBILITY_NEGOTIATED_CNSA1,
     COMPATIBILITY_NEGOTIATED_CNSA2,
+    INCOMPATIBLE_GENERAL20251201,
+    INCOMPATIBLE_FIPS20251201,
+    INCOMPATIBLE_CNSA1,
+    INCOMPATIBLE_CNSA2,
     SSLV2_CLIENT_HELLO,
     HELLO_RETRY_REQUEST_COUNT,
     HANDSHAKE_SUCCESS_COUNT,

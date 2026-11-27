@@ -133,6 +133,15 @@ pub struct FrozenHandshakeRecord {
     pub compatibility_negotiated_cnsa2: u64,
 
     #[serde(default)]
+    pub incompatible_general20251201: u64,
+    #[serde(default)]
+    pub incompatible_fips20251201: u64,
+    #[serde(default)]
+    pub incompatible_cnsa1: u64,
+    #[serde(default)]
+    pub incompatible_cnsa2: u64,
+
+    #[serde(default)]
     pub client_issues: FrozenCounter<{ ClientIssue::COUNT }, ClientIssue>,
 
     #[serde(default)]
@@ -184,6 +193,10 @@ impl Default for FrozenHandshakeRecord {
             compatibility_negotiated_fips20251201: 0,
             compatibility_negotiated_cnsa1: 0,
             compatibility_negotiated_cnsa2: 0,
+            incompatible_general20251201: 0,
+            incompatible_fips20251201: 0,
+            incompatible_cnsa1: 0,
+            incompatible_cnsa2: 0,
             client_issues: FrozenCounter::default(),
             handshake_duration_us: 0,
             handshake_compute_us: 0,
@@ -305,6 +318,17 @@ impl metrique_writer::Entry for FrozenHandshakeRecord {
             names::COMPATIBILITY_NEGOTIATED_CNSA2,
             &self.compatibility_negotiated_cnsa2,
         );
+
+        writer.value(
+            names::INCOMPATIBLE_GENERAL20251201,
+            &self.incompatible_general20251201,
+        );
+        writer.value(
+            names::INCOMPATIBLE_FIPS20251201,
+            &self.incompatible_fips20251201,
+        );
+        writer.value(names::INCOMPATIBLE_CNSA1, &self.incompatible_cnsa1);
+        writer.value(names::INCOMPATIBLE_CNSA2, &self.incompatible_cnsa2);
 
         write_counter(&self.client_issues, &names::CLIENT_ISSUES, writer);
 
