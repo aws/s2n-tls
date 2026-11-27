@@ -1,0 +1,67 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+use s2n_tls::{config::Config, error::ErrorType};
+use s2n_tls_tokio::TlsAcceptor;
+use std::{
+    io,
+    pin::Pin,
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc,
+    },
+    task::{Context, Poll},
+};
+use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+
+struct ReadBufInspector {
+    read_called: Arc<AtomicBool>,
+}
+
+impl AsyncRead for ReadBufInspector {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        buf: &mut ReadBuf<'_>,
+    ) -> Poll<io::Result<()>> {
+        self.read_called.store(true, Ordering::Relaxed);
+        assert_eq!(buf.initialized().len(), 0);
+        Poll::Ready(Ok(()))
+    }
+}
+
+impl AsyncWrite for ReadBufInspector {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        _cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
+        Poll::Ready(Ok(buf.len()))
+    }
+
+    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+
+    fn poll_shutdown(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        Poll::Ready(Ok(()))
+    }
+}
+
+#[tokio::test]
+async fn recv_io_cb_does_not_assume_buffer_initialized() -> Result<(), Box<dyn std::error::Error>> {
+    let read_called = Arc::new(AtomicBool::new(false));
+    let stream = ReadBufInspector {
+        read_called: read_called.clone(),
+    };
+
+    let mut config = Config::builder();
+    config.with_system_certs(false)?;
+    let acceptor = TlsAcceptor::new(config.build()?);
+
+    let error = acceptor.accept(stream).await.unwrap_err();
+    assert_eq!(error.kind(), ErrorType::ConnectionClosed);
+    assert!(read_called.load(Ordering::Relaxed));
+
+    Ok(())
+}

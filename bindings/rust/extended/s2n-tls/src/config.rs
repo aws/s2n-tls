@@ -183,13 +183,26 @@ pub struct Builder {
 }
 
 impl Builder {
-    /// # Warning
+    /// By default, this config has two non-recommended behaviors.
     ///
-    /// The newly created Builder will create Configs that use the default security policy.
-    /// Consider changing this depending on your security and compatibility requirements
-    /// by calling [`Builder::set_security_policy`].
-    /// See the s2n-tls usage guide:
-    /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+    /// ## ⚠️ Loads System Trust Store ⚠️
+    ///
+    /// [`Builder::with_system_certs`] is `true` by default. System trust stores will
+    /// often consume 1 MB+, which is inefficient. Consider trusting only the
+    /// minimal set of CAs needed by setting `with_system_certs` to `false`, and
+    /// calling [`Builder::trust_pem`] on the minimal set of CA's.
+    ///
+    /// This behavior will be updated in a future version bump.
+    ///
+    /// ## ⚠️ Uses default security policy ⚠️
+    ///
+    /// The config will be loaded with a "good default" which controls the ciphers,
+    /// groups, version, etc that can be negotiated. This is a moving target, and
+    /// will change over time.
+    ///
+    /// Consider setting an explicit security policy to meet your compatibility
+    /// and compliance requirements through [`Builder::set_security_policy`].
+    /// Additional documentation can be found in the [s2n-tls usage guide](https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html)
     ///
     /// Corresponds to [`s2n_config_new_minimal`],
     /// but also calls [`s2n_config_set_client_hello_cb_mode`] to set the client
