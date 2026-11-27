@@ -93,11 +93,17 @@ mod der_codec {
     const OID_ECDSA_SHA256: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.2").as_bytes();
     const OID_ECDSA_SHA384: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.3").as_bytes();
     const OID_ECDSA_SHA512: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.4.3.4").as_bytes();
+    const OID_ML_DSA_44: &[u8] = ObjectIdentifier::new_unwrap("2.16.840.1.101.3.4.3.17").as_bytes();
+    const OID_ML_DSA_65: &[u8] = ObjectIdentifier::new_unwrap("2.16.840.1.101.3.4.3.18").as_bytes();
+    const OID_ML_DSA_87: &[u8] = ObjectIdentifier::new_unwrap("2.16.840.1.101.3.4.3.19").as_bytes();
 
     // Key algorithm OIDs
     const OID_RSA_KEY: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.113549.1.1.1").as_bytes();
     const OID_RSA_PSS_KEY: &[u8] = OID_RSA_PSS;
     const OID_EC_PUBLIC_KEY: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.2.1").as_bytes();
+    const OID_ML_DSA_44_KEY: &[u8] = OID_ML_DSA_44;
+    const OID_ML_DSA_65_KEY: &[u8] = OID_ML_DSA_65;
+    const OID_ML_DSA_87_KEY: &[u8] = OID_ML_DSA_87;
 
     // EC named curve OIDs
     const OID_SECP256R1: &[u8] = ObjectIdentifier::new_unwrap("1.2.840.10045.3.1.7").as_bytes();
@@ -118,6 +124,9 @@ mod der_codec {
             OID_ECDSA_SHA256 => CertSignatureAlgorithm::EcdsaSha256,
             OID_ECDSA_SHA384 => CertSignatureAlgorithm::EcdsaSha384,
             OID_ECDSA_SHA512 => CertSignatureAlgorithm::EcdsaSha512,
+            OID_ML_DSA_44 => CertSignatureAlgorithm::MlDsa44,
+            OID_ML_DSA_65 => CertSignatureAlgorithm::MlDsa65,
+            OID_ML_DSA_87 => CertSignatureAlgorithm::MlDsa87,
             _ => CertSignatureAlgorithm::Unknown,
         }
     }
@@ -405,6 +414,9 @@ mod der_codec {
                     };
                     Ok((CertKeyWrapper(key_type), buffer))
                 }
+                OID_ML_DSA_44_KEY => Ok((CertKeyWrapper(CertKeyType::MlDsa44), rest)),
+                OID_ML_DSA_65_KEY => Ok((CertKeyWrapper(CertKeyType::MlDsa65), rest)),
+                OID_ML_DSA_87_KEY => Ok((CertKeyWrapper(CertKeyType::MlDsa87), rest)),
                 _ => Ok((CertKeyWrapper(CertKeyType::Unknown), rest)),
             }
         }
@@ -585,6 +597,67 @@ mod tests {
                 signature: *signature,
             };
             assert_eq!(parse(&der).unwrap(), expected, "failed for {prefix}");
+        }
+    }
+
+    /// Helper: do a handshake with the given ML-DSA cert and return the leaf DER.
+    ///
+    /// ML-DSA files don't use .pem extension, so we build the config directly
+    /// instead of using CertKeyPair.
+    fn mldsa_handshake_leaf_der(parameter_set: &str) -> Vec<u8> {
+        let pems = concat!(env!("CARGO_MANIFEST_DIR"), "/../../../../tests/pems/mldsa/");
+        let cert = std::fs::read(format!("{pems}{parameter_set}.crt")).unwrap();
+        let key = std::fs::read(format!("{pems}{parameter_set}-seed.priv")).unwrap();
+        let policy = s2n_tls::security::Policy::from_version("test_all").unwrap();
+        let mut builder = s2n_tls::config::Builder::new();
+        builder.set_security_policy(&policy).unwrap();
+        builder.load_pem(&cert, &key).unwrap();
+        builder.trust_pem(&cert).unwrap();
+        builder
+            .set_verify_host_callback(s2n_tls::testing::InsecureAcceptAllCertificatesHandler {})
+            .unwrap();
+        builder.with_system_certs(false).unwrap();
+        let config = builder.build().unwrap();
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake().unwrap();
+        let chain = pair.server.selected_cert().unwrap();
+        chain
+            .iter()
+            .next()
+            .unwrap()
+            .unwrap()
+            .der()
+            .unwrap()
+            .to_vec()
+    }
+
+    /// The ML-DSA test certs are self-signed, so the key type and the signature
+    /// algorithm are the same parameter set.
+    #[test]
+    fn mldsa_test_certs() {
+        let cases: &[(&str, CertKeyType, CertSignatureAlgorithm)] = &[
+            (
+                "ML-DSA-44",
+                CertKeyType::MlDsa44,
+                CertSignatureAlgorithm::MlDsa44,
+            ),
+            (
+                "ML-DSA-65",
+                CertKeyType::MlDsa65,
+                CertSignatureAlgorithm::MlDsa65,
+            ),
+            (
+                "ML-DSA-87",
+                CertKeyType::MlDsa87,
+                CertSignatureAlgorithm::MlDsa87,
+            ),
+        ];
+
+        for (parameter_set, key_type, signature) in cases {
+            let der = mldsa_handshake_leaf_der(parameter_set);
+            let parsed = parse(&der).unwrap();
+            assert_eq!(parsed.key_type, *key_type, "failed for {parameter_set}");
+            assert_eq!(parsed.signature, *signature, "failed for {parameter_set}");
         }
     }
 
