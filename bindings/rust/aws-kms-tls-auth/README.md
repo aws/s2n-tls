@@ -61,7 +61,7 @@ If a server trusts both `keyA` and `keyB`, then the client will need to communic
 
 To do this we calculate a `kms_key_binder` which incorporates the 
 
-* kms key arn: the key that was used to generate the daily secret
+* kms key arn: identifies which trusted key the client used, so the server can find it. The client computes the binder locally, so the ARN is not authenticated; see [Trusted keys and Multi-Region replicas](#trusted-keys-and-multi-region-replicas).
 * session_name: this makes the kms key binder unique per connection, preventing information from being correlated across multiple connections from a single client.
 * epoch_secret: without secret information, then an attacker would be able to calculate whether the kms_key_binder is valid for some specific key, because the `session_name` is public information.
 
@@ -88,6 +88,12 @@ Then for each KMS HMAC Key that it trusts, it would repeat the PSK secret and PS
 If an attacker obtains an epoch secret, then they will be able to impersonate a server or a client. They can not decrypt any conversations between other peers, because TLS 1.3 PSK authentication performs an additional DHE key exchange.
 
 If an attacker obtains a connection specific secret, then they will be able impersonate a client to any server. They will not be able to impersonate a server, or decrypt any client communications.
+
+### Trusted keys and Multi-Region replicas
+
+`trusted_key_arns` trusts the key material behind each ARN, not the ARN itself. The client hashes an ARN into the `kms_key_binder` so the server can find which trusted key it used, but the client computes the binder locally, and the daily secret is a MAC over the epoch and a fixed label. So KMS never authenticates the ARN, and a client can name any ARN.
+
+Replicas of a [Multi-Region key](https://docs.aws.amazon.com/kms/latest/developerguide/multi-region-keys-overview.html) share key material. A `PskProvider` names the ARN it was configured with, so for its handshakes to succeed, that ARN must be in the server's `trusted_key_arns`. This is a lookup requirement, not access control: a principal with `kms:GenerateMac` on any replica derives the same daily secret and can name any replica's ARN, so it can authenticate to a server that lists any replica. Each replica's key policy, grants and enabled state are managed separately, but denying or disabling a principal on one replica does not keep it out while it can still use another. To keep two groups of peers apart, give each group its own KMS key, not its own replica of a shared key.
 
 ### Revoking a peer
 
