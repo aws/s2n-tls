@@ -158,6 +158,33 @@ where
     shutdown_error: Option<Error>,
 }
 
+struct ClearIoOnDrop<'a, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    tls: &'a mut TlsStream<S, C>,
+}
+
+impl<S, C> Drop for ClearIoOnDrop<'_, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    fn drop(&mut self) {
+        let conn = self.tls.as_mut();
+        let _ = conn.set_receive_callback(None);
+        let _ = conn.set_send_callback(None);
+
+        // SAFETY: a null context is never dereferenced by s2n-tls
+        unsafe {
+            let _ = conn.set_receive_context(std::ptr::null_mut());
+            let _ = conn.set_send_context(std::ptr::null_mut());
+        }
+        let _ = conn.set_waker(None);
+    }
+}
+
 impl<S, C> TlsStream<S, C>
 where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
@@ -224,25 +251,21 @@ where
         // because the raw pointers provide no lifetime or memory guarantees.
         // We protect against this by pinning the stream during the action
         // and clearing the context afterwards.
+        let guard = ClearIoOnDrop { tls: self };
+        let context = (&raw mut *guard.tls).cast::<c_void>();
+
+        let conn = guard.tls.as_mut();
+        conn.set_receive_callback(Some(Self::recv_io_cb))?;
+        conn.set_send_callback(Some(Self::send_io_cb))?;
+
         unsafe {
-            let context = self as *mut Self as *mut c_void;
-
-            self.as_mut().set_receive_callback(Some(Self::recv_io_cb))?;
-            self.as_mut().set_send_callback(Some(Self::send_io_cb))?;
-            self.as_mut().set_receive_context(context)?;
-            self.as_mut().set_send_context(context)?;
-            self.as_mut().set_waker(Some(ctx.waker()))?;
-            self.as_mut().set_blinding(Blinding::SelfService)?;
-
-            let result = action(Pin::new(self));
-
-            self.as_mut().set_receive_callback(None)?;
-            self.as_mut().set_send_callback(None)?;
-            self.as_mut().set_receive_context(std::ptr::null_mut())?;
-            self.as_mut().set_send_context(std::ptr::null_mut())?;
-            self.as_mut().set_waker(None)?;
-            result
+            conn.set_receive_context(context)?;
+            conn.set_send_context(context)?;
         }
+        conn.set_waker(Some(ctx.waker()))?;
+        conn.set_blinding(Blinding::SelfService)?;
+
+        action(Pin::new(&mut *guard.tls))
     }
 
     fn poll_io<F>(ctx: *mut c_void, action: F) -> c_int
@@ -504,5 +527,113 @@ where
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
         Pin::new(&mut *self.as_mut().stream).poll_blinding(ctx)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use s2n_tls::security::DEFAULT_TLS13;
+    use std::{
+        panic::{catch_unwind, AssertUnwindSafe},
+        sync::{
+            atomic::{AtomicUsize, Ordering},
+            Arc,
+        },
+        task::Waker,
+    };
+    use tokio::io::DuplexStream;
+
+    static CERT_PEM: &[u8] =
+        include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/cert.pem"));
+    static KEY_PEM: &[u8] =
+        include_bytes!(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs/key.pem"));
+
+    struct CountingStream {
+        inner: DuplexStream,
+        reads: Arc<AtomicUsize>,
+    }
+
+    impl AsyncRead for CountingStream {
+        fn poll_read(
+            self: Pin<&mut Self>,
+            ctx: &mut Context<'_>,
+            buf: &mut ReadBuf<'_>,
+        ) -> Poll<io::Result<()>> {
+            let this = self.get_mut();
+            this.reads.fetch_add(1, Ordering::Relaxed);
+            Pin::new(&mut this.inner).poll_read(ctx, buf)
+        }
+    }
+
+    impl AsyncWrite for CountingStream {
+        fn poll_write(
+            self: Pin<&mut Self>,
+            ctx: &mut Context<'_>,
+            buf: &[u8],
+        ) -> Poll<io::Result<usize>> {
+            Pin::new(&mut self.get_mut().inner).poll_write(ctx, buf)
+        }
+
+        fn poll_flush(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Pin::new(&mut self.get_mut().inner).poll_flush(ctx)
+        }
+
+        fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+            Pin::new(&mut self.get_mut().inner).poll_shutdown(ctx)
+        }
+    }
+
+    #[tokio::test]
+    async fn panic_in_with_io_clears_io_callbacks() -> Result<(), Box<dyn std::error::Error>> {
+        let reads = Arc::new(AtomicUsize::new(0));
+
+        let mut server_config = Config::builder();
+        server_config.set_security_policy(&DEFAULT_TLS13)?;
+        server_config.load_pem(CERT_PEM, KEY_PEM)?;
+        let acceptor = TlsAcceptor::new(server_config.build()?);
+
+        let mut client_config = Config::builder();
+        client_config.set_security_policy(&DEFAULT_TLS13)?;
+        client_config.trust_pem(CERT_PEM)?;
+        let connector = TlsConnector::new(client_config.build()?);
+
+        let (server_transport, client_transport) = tokio::io::duplex(1024);
+        let server_transport = CountingStream {
+            inner: server_transport,
+            reads: reads.clone(),
+        };
+
+        let (client, server) = tokio::join!(
+            connector.connect("localhost", client_transport),
+            acceptor.accept(server_transport)
+        );
+        let _client = client?;
+        let mut server = server?;
+
+        assert!(reads.load(Ordering::Relaxed) > 0);
+
+        let panicked = catch_unwind(AssertUnwindSafe(|| {
+            let mut ctx = Context::from_waker(Waker::noop());
+            server.with_io(&mut ctx, |_| -> Poll<Result<(), Error>> {
+                panic!("panic from inside with_io")
+            })
+        }));
+        assert!(panicked.is_err(), "expected the action to panic");
+
+        let reads_before = reads.load(Ordering::Relaxed);
+        let mut buf = [0; 64];
+        let result = server.as_mut().poll_recv(&mut buf);
+        assert!(
+            matches!(result, Poll::Ready(Err(_))),
+            "expected recv to fail with no IO callback registered, got {result:?}"
+        );
+        assert_eq!(
+            reads.load(Ordering::Relaxed),
+            reads_before,
+            "a stale IO callback polled the stream after a panic in with_io"
+        );
+
+        Ok(())
     }
 }
