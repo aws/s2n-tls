@@ -149,22 +149,29 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
     POSIX_ENSURE(p->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_ENSURE(g->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_ENSURE(Ys->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    BIGNUM *bn_p = BN_bin2bn((const unsigned char *) p->data, p->size, NULL);
-    BIGNUM *bn_g = BN_bin2bn((const unsigned char *) g->data, g->size, NULL);
-    BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *) Ys->data, Ys->size, NULL);
+    DEFER_CLEANUP(BIGNUM *bn_p = BN_bin2bn((const unsigned char *) p->data, p->size, NULL), BN_free_pointer);
+    DEFER_CLEANUP(BIGNUM *bn_g = BN_bin2bn((const unsigned char *) g->data, g->size, NULL), BN_free_pointer);
+    DEFER_CLEANUP(BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *) Ys->data, Ys->size, NULL), BN_free_pointer);
+    POSIX_ENSURE(bn_p != NULL && bn_g != NULL && bn_Ys != NULL, S2N_ERR_DH_PARAMS_CREATE);
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
 	* values that have been passed in should not be freed directly after this function has been called
 	*/
     POSIX_GUARD_OSSL(DH_set0_pqg(dh_params->dh, bn_p, NULL, bn_g), S2N_ERR_DH_PARAMS_CREATE);
+    bn_p = NULL;
+    bn_g = NULL;
 
     /* Same as DH_set0_pqg */
     POSIX_GUARD_OSSL(DH_set0_key(dh_params->dh, bn_Ys, NULL), S2N_ERR_DH_PARAMS_CREATE);
+    bn_Ys = NULL;
 #else
     dh_params->dh->p = bn_p;
     dh_params->dh->g = bn_g;
     dh_params->dh->pub_key = bn_Ys;
+    bn_p = NULL;
+    bn_g = NULL;
+    bn_Ys = NULL;
 #endif
 
     return S2N_SUCCESS;
