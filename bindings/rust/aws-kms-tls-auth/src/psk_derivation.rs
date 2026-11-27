@@ -41,8 +41,8 @@
 //! To do this we calculate a `kms_key_binder` to include in the PSK Identity. This
 //! incorporates
 //! - kms key arn: identifies which trusted key the client used, so the server can
-//!   find it. The ARN is not authenticated: Multi-Region replicas of a key share
-//!   its key material, so they produce the same epoch_secret.
+//!   find it. The client computes the binder locally, so the ARN is not
+//!   authenticated.
 //! - session name: this makes the kms key binder unique per connection, preventing
 //!   information from being correlated across multiple connections from a single
 //!   client.
