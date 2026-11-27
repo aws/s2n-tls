@@ -212,6 +212,7 @@ var s2n_8h =
     [ "s2n_connection_get_last_message_name", "s2n_8h.html#af3c50354985713f6dff1d4ae87fbc442", null ],
     [ "s2n_connection_get_master_secret", "s2n_8h.html#ad34a96dd1e2cae7dd2da4812576a65fc", null ],
     [ "s2n_connection_get_max_early_data_size", "s2n_8h.html#a8e112c9be28b49af8d257b1c3a6a2764", null ],
+    [ "s2n_connection_get_max_fragment_length", "s2n_8h.html#a7df036c69e0824195c946fc5959dfb19", null ],
     [ "s2n_connection_get_mode", "s2n_8h.html#a00acc702d76244d8c1dc28f0dae13f61", null ],
     [ "s2n_connection_get_negotiated_psk_identity", "s2n_8h.html#a0abfdc17f22aa1a1b7bbca9fde0d5319", null ],
     [ "s2n_connection_get_negotiated_psk_identity_length", "s2n_8h.html#a414d9640d38a2f55cc2025d8fb6f9061", null ],

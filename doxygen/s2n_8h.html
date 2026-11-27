@@ -31,7 +31,7 @@ mermaid.initialize({ startOnLoad: true, theme: theme });
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.14-a1c09de1</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.7.14-e0f565f3</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -414,6 +414,7 @@ Functions</h2></td></tr>
 <tr class="memitem:a4b73b9a8fa03500d5bc609d09035cd45" id="r_a4b73b9a8fa03500d5bc609d09035cd45"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a4b73b9a8fa03500d5bc609d09035cd45">s2n_connection_set_send_cb</a> (struct s2n_connection *conn, <a class="el" href="#ad8ae4eeefcfc81bc4daf429512612687">s2n_send_fn</a> send)</td></tr>
 <tr class="memitem:a11c72914bfc09a9174b6a7b019e5aa5c" id="r_a11c72914bfc09a9174b6a7b019e5aa5c"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a11c72914bfc09a9174b6a7b019e5aa5c">s2n_connection_prefer_throughput</a> (struct s2n_connection *conn)</td></tr>
 <tr class="memitem:a9b4fafb7e9b8277f408af0ad17ab6e19" id="r_a9b4fafb7e9b8277f408af0ad17ab6e19"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a9b4fafb7e9b8277f408af0ad17ab6e19">s2n_connection_prefer_low_latency</a> (struct s2n_connection *conn)</td></tr>
+<tr class="memitem:a7df036c69e0824195c946fc5959dfb19" id="r_a7df036c69e0824195c946fc5959dfb19"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a7df036c69e0824195c946fc5959dfb19">s2n_connection_get_max_fragment_length</a> (struct s2n_connection *conn, uint16_t *max_fragment_length)</td></tr>
 <tr class="memitem:ae30791c458875956ef9f4cdbd8c8c19f" id="r_ae30791c458875956ef9f4cdbd8c8c19f"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#ae30791c458875956ef9f4cdbd8c8c19f">s2n_connection_set_recv_buffering</a> (struct s2n_connection *conn, bool enabled)</td></tr>
 <tr class="memitem:a9e66cd9a37ddf82419039cdc60b28895" id="r_a9e66cd9a37ddf82419039cdc60b28895"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> uint32_t&#160;</td><td class="memItemRight"><a class="el" href="#a9e66cd9a37ddf82419039cdc60b28895">s2n_peek_buffered</a> (struct s2n_connection *conn)</td></tr>
 <tr class="memitem:a5399ba44a921d36ed34661038a509d1a" id="r_a5399ba44a921d36ed34661038a509d1a"><td class="memItemLeft"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight"><a class="el" href="#a5399ba44a921d36ed34661038a509d1a">s2n_connection_set_dynamic_buffers</a> (struct s2n_connection *conn, bool enabled)</td></tr>
@@ -7209,6 +7210,45 @@ Only a minimal amount of information about the original TLS connection is serial
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>A POSIX error signal. </dd></dl>
+
+</div>
+</div>
+<a id="a7df036c69e0824195c946fc5959dfb19" name="a7df036c69e0824195c946fc5959dfb19"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a7df036c69e0824195c946fc5959dfb19">&#9670;&#160;</a></span>s2n_connection_get_max_fragment_length()</h2>
+
+<div class="memitem">
+<div class="memproto">
+<table class="mlabels">
+  <tr>
+  <td class="mlabels-left">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_get_max_fragment_length </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *</td>          <td class="paramname"><span class="paramname"><em>conn</em></span>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t *</td>          <td class="paramname"><span class="paramname"><em>max_fragment_length</em></span>&#160;)</td>
+        </tr>
+      </table>
+  </td>
+  <td class="mlabels-right">
+<span class="mlabels"><span class="mlabel extern">extern</span></span>  </td>
+  </tr>
+</table>
+</div><div class="memdoc">
+<p>Gets the maximum size of outgoing record payloads (the "fragment length") for the connection.</p>
+<p>If kTLS is enabled for sending, the kernel sizes records and the TLS maximum fragment length is returned.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the connection object. </td></tr>
+    <tr><td class="paramname">max_fragment_length</td><td>The maximum outgoing fragment length, in bytes. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
 
 </div>
 </div>
