@@ -505,27 +505,26 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     POSIX_ENSURE_REF(ecc_evp_params->negotiated_curve);
     S2N_ERROR_IF(point_blob->size != ecc_evp_params->negotiated_curve->share_size, S2N_ERR_ECDHE_SERIALIZING);
 
+    /* Build the key locally so a failed parse leaves ecc_evp_params unchanged */
+    DEFER_CLEANUP(EVP_PKEY *pkey = NULL, EVP_PKEY_free_pointer);
+
 #if EVP_APIS_SUPPORTED
     if (ecc_evp_params->negotiated_curve->libcrypto_nid == NID_X25519) {
-        if (ecc_evp_params->evp_pkey == NULL) {
-            ecc_evp_params->evp_pkey = EVP_PKEY_new();
-        }
-        S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_BAD_MESSAGE);
-        POSIX_GUARD(EVP_PKEY_set_type(ecc_evp_params->evp_pkey, ecc_evp_params->negotiated_curve->libcrypto_nid));
+        pkey = EVP_PKEY_new();
+        S2N_ERROR_IF(pkey == NULL, S2N_ERR_BAD_MESSAGE);
+        POSIX_GUARD(EVP_PKEY_set_type(pkey, ecc_evp_params->negotiated_curve->libcrypto_nid));
     } else {
         DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new_id(EVP_PKEY_EC, NULL), EVP_PKEY_CTX_free_pointer);
         S2N_ERROR_IF(pctx == NULL, S2N_ERR_ECDHE_SERIALIZING);
         POSIX_GUARD_OSSL(EVP_PKEY_paramgen_init(pctx), S2N_ERR_ECDHE_SERIALIZING);
         POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_ec_paramgen_curve_nid(pctx, ecc_evp_params->negotiated_curve->libcrypto_nid), S2N_ERR_ECDHE_SERIALIZING);
-        POSIX_GUARD_OSSL(EVP_PKEY_paramgen(pctx, &ecc_evp_params->evp_pkey), S2N_ERR_ECDHE_SERIALIZING);
+        POSIX_GUARD_OSSL(EVP_PKEY_paramgen(pctx, &pkey), S2N_ERR_ECDHE_SERIALIZING);
     }
-    POSIX_GUARD_OSSL(EVP_PKEY_set1_tls_encodedpoint(ecc_evp_params->evp_pkey, point_blob->data, point_blob->size),
+    POSIX_GUARD_OSSL(EVP_PKEY_set1_tls_encodedpoint(pkey, point_blob->data, point_blob->size),
             S2N_ERR_ECDHE_SERIALIZING);
 #else
-    if (ecc_evp_params->evp_pkey == NULL) {
-        ecc_evp_params->evp_pkey = EVP_PKEY_new();
-    }
-    S2N_ERROR_IF(ecc_evp_params->evp_pkey == NULL, S2N_ERR_BAD_MESSAGE);
+    pkey = EVP_PKEY_new();
+    S2N_ERROR_IF(pkey == NULL, S2N_ERR_BAD_MESSAGE);
     /* Create a key to store the point */
     DEFER_CLEANUP(EC_KEY *ec_key = EC_KEY_new_by_curve_name(ecc_evp_params->negotiated_curve->libcrypto_nid),
             EC_KEY_free_pointer);
@@ -538,12 +537,15 @@ int s2n_ecc_evp_parse_params_point(struct s2n_blob *point_blob, struct s2n_ecc_e
     /* Set the point as the public key */
     int success = EC_KEY_set_public_key(ec_key, point);
 
-    POSIX_GUARD_OSSL(EVP_PKEY_set1_EC_KEY(ecc_evp_params->evp_pkey, ec_key), S2N_ERR_ECDHE_SERIALIZING);
+    POSIX_GUARD_OSSL(EVP_PKEY_set1_EC_KEY(pkey, ec_key), S2N_ERR_ECDHE_SERIALIZING);
 
     /* EC_KEY_set_public_key returns 1 on success, 0 on failure */
     S2N_ERROR_IF(success == 0, S2N_ERR_BAD_MESSAGE);
 
 #endif
+    EVP_PKEY_free(ecc_evp_params->evp_pkey);
+    ecc_evp_params->evp_pkey = pkey;
+    pkey = NULL;
     return 0;
 }
 

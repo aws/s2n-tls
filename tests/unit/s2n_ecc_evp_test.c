@@ -268,6 +268,25 @@ int main(int argc, char** argv)
         }
     };
     {
+        /* TEST s2n_ecc_evp_parse_params_point leaves no key behind when the point is invalid */
+        for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
+            const struct s2n_ecc_named_curve* curve = s2n_all_supported_curves_list[i];
+            /* Every byte string is a valid x25519 public key */
+            if (curve->iana_id == TLS_EC_CURVE_ECDH_X25519) {
+                continue;
+            }
+
+            uint8_t invalid_point[SECP521R1_SHARE_SIZE] = { 0 };
+            EXPECT_TRUE(curve->share_size <= sizeof(invalid_point));
+            struct s2n_blob point_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&point_blob, invalid_point, curve->share_size));
+
+            DEFER_CLEANUP(struct s2n_ecc_evp_params params = { .negotiated_curve = curve }, s2n_ecc_evp_params_free);
+            EXPECT_FAILURE(s2n_ecc_evp_parse_params_point(&point_blob, &params));
+            EXPECT_NULL(params.evp_pkey);
+        }
+    };
+    {
         DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
