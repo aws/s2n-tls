@@ -229,6 +229,37 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test s2n_connection_get_max_fragment_length() */
+    {
+        /* Safety */
+        {
+            uint16_t size = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_max_fragment_length(NULL, &size), S2N_ERR_NULL);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_max_fragment_length(conn, NULL), S2N_ERR_NULL);
+        };
+
+        /* Follows the connection's record size preference */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            uint16_t size = 0;
+            EXPECT_SUCCESS(s2n_connection_get_max_fragment_length(conn, &size));
+            EXPECT_EQUAL(size, S2N_DEFAULT_FRAGMENT_LENGTH);
+
+            EXPECT_SUCCESS(s2n_connection_prefer_throughput(conn));
+            EXPECT_SUCCESS(s2n_connection_get_max_fragment_length(conn, &size));
+            EXPECT_EQUAL(size, S2N_LARGE_FRAGMENT_LENGTH);
+
+            EXPECT_SUCCESS(s2n_connection_prefer_low_latency(conn));
+            EXPECT_SUCCESS(s2n_connection_get_max_fragment_length(conn, &size));
+            EXPECT_EQUAL(size, S2N_SMALL_FRAGMENT_LENGTH);
+        };
+    };
+
     /* Test s2n_record_min_write_payload_size() */
     {
         struct s2n_connection *server_conn = NULL;
